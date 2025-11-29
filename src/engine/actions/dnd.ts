@@ -2,16 +2,32 @@ import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 
 export class DndAction extends BaseAction {
-    constructor(id: string, config: { enabled: boolean }, adapter: SystemAdapter) {
-        super(id, 'dnd', config, adapter);
-    }
+  private previousDndState: boolean | null = null;
 
-    execute(): void {
-        this.adapter.setDND(this.config.enabled);
-    }
+  constructor(
+    id: string,
+    config: { enabled: boolean },
+    adapter: SystemAdapter
+  ) {
+    super(id, 'dnd', config, adapter);
+  }
 
-    revert(): void {
-        // Revert to the opposite state
-        this.adapter.setDND(!this.config.enabled);
+  execute(): void {
+    console.log(`[DNDAction] Setting DND to: ${this.config.enabled}`);
+    // Store current state before changing
+    const settings = new (require('gi://Gio').Settings)({
+      schema_id: 'org.gnome.desktop.notifications',
+    });
+    this.previousDndState = !settings.get_boolean('show-banners');
+    console.log(`[DNDAction] Previous DND state: ${this.previousDndState}`);
+
+    this.adapter.setDND(this.config.enabled);
+  }
+
+  revert(): void {
+    if (this.previousDndState !== null) {
+      console.log(`[DNDAction] Reverting DND to: ${this.previousDndState}`);
+      this.adapter.setDND(this.previousDndState);
     }
+  }
 }
