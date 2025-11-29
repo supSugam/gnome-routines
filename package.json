@@ -1,0 +1,28 @@
+{
+  "name": "gnome-routines",
+  "version": "1.0.0",
+  "description": "A GNOME extension to replicate Samsung Modes and Routines",
+  "scripts": {
+    "build": "node scripts/build.js && npm run package",
+    "watch": "node scripts/build.js --watch",
+    "package": "cd dist && zip -r gnome-routines@supSugam.com.shell-extension.zip . -x *.zip",
+    "install-ext": "gnome-extensions install --force dist/gnome-routines@supSugam.com.shell-extension.zip",
+    "enable": "gnome-extensions enable gnome-routines@supSugam.com",
+    "disable": "gnome-extensions disable gnome-routines@supSugam.com",
+    "reload": "dbus-send --session --type=method_call --dest=org.gnome.Shell /org/gnome/Shell org.gnome.Shell.Eval string:'Main.extensionManager.reloadExtension(\"gnome-routines@supSugam.com\")'",
+    "reinstall": "./scripts/reinstall.sh"
+  },
+  "keywords": [
+    "gnome",
+    "extension",
+    "automation",
+    "routines"
+  ],
+  "author": "Antigravity",
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.0.0"
+  }
+}

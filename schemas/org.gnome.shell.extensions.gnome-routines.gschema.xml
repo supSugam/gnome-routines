@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="gnome-routines">
+  <schema id="org.gnome.shell.extensions.gnome-routines" path="/org/gnome/shell/extensions/gnome-routines/">
+    <key name="routines" type="s">
+      <default>'[]'</default>
+      <summary>Saved Routines</summary>
+      <description>JSON string containing the list of configured routines.</description>
+    </key>
+  </schema>
+</schemalist>
