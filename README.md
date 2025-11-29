@@ -167,14 +167,6 @@ This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE) 
 
 ---
 
-## Contact
-
-**Sugam** - [@supSugam](https://github.com/supSugam)
-
-**Project Link**: [https://github.com/supSugam/gnome-routines](https://github.com/supSugam/gnome-routines)
-
----
-
 <div align="center">
   <sub>Made with ❤️ for the GNOME community</sub>
 </div>
