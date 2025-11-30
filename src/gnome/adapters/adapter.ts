@@ -62,4 +62,28 @@ export interface SystemAdapter {
   // Audio
   getWiredHeadphonesState(): boolean;
   onWiredHeadphonesStateChanged(callback: (isConnected: boolean) => void): void;
+
+  // New Actions - Connections
+  connectBluetoothDevice(id: string): void;
+  disconnectBluetoothDevice(id: string): void;
+  setAirplaneMode(enabled: boolean): void;
+
+  // New Actions - Display
+  setDarkMode(enabled: boolean): void;
+  getDarkMode(): boolean;
+  setNightLight(enabled: boolean): void;
+  getNightLight(): boolean;
+  setScreenTimeout(seconds: number): void;
+  getScreenTimeout(): number;
+  setScreenOrientation(orientation: 'portrait' | 'landscape'): void;
+  setRefreshRate(rate: number): void;
+
+  // New Actions - Power
+  setPowerSaver(enabled: boolean): void;
+  getPowerSaver(): boolean;
+
+  // New Actions - Functions
+  openLink(url: string): void;
+  takeScreenshot(): void;
+  openApp(appIds: string[]): void;
 }

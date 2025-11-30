@@ -6,5 +6,10 @@
       <summary>Saved Routines</summary>
       <description>JSON string containing the list of configured routines.</description>
     </key>
+    <key name="routine-states" type="s">
+      <default>'{}'</default>
+      <summary>Routine State Storage</summary>
+      <description>JSON string containing saved states for each routine to enable proper restoration on deactivation.</description>
+    </key>
   </schema>
 </schemalist>

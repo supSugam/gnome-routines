@@ -331,6 +331,262 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
+  // --- New Actions Implementation ---
+
+  connectBluetoothDevice(id: string): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // bluetoothctl connect <MAC>
+      // We stored 'Name' in triggers, but for connection we ideally need MAC.
+      // If we only have Name, we might need to resolve it.
+      // But wait, the trigger UI stored the Name (alias).
+      // We should probably update the trigger/action UI to store MAC address as ID and Name as label.
+      // For now, let's try to connect by Name (bluetoothctl might not support it directly without lookup).
+      // Let's do a lookup first if it looks like a name.
+      let mac = id;
+      if (!id.includes(':')) {
+        const [success, stdout] = GLib.spawn_command_line_sync(
+          'bluetoothctl devices'
+        );
+        if (success && stdout) {
+          const output = new TextDecoder().decode(stdout);
+          const lines = output.split('\n');
+          for (const line of lines) {
+            if (line.includes(id)) {
+              const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
+              if (match && match[2] === id) {
+                mac = match[1];
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      GLib.spawn_command_line_async(`bluetoothctl connect ${mac}`);
+    } catch (e) {
+      console.error(
+        '[GnomeShellAdapter] Failed to connect bluetooth device:',
+        e
+      );
+    }
+  }
+
+  disconnectBluetoothDevice(id: string): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      let mac = id;
+      if (!id.includes(':')) {
+        // Same lookup logic as connect
+        const [success, stdout] = GLib.spawn_command_line_sync(
+          'bluetoothctl devices'
+        );
+        if (success && stdout) {
+          const output = new TextDecoder().decode(stdout);
+          const lines = output.split('\n');
+          for (const line of lines) {
+            if (line.includes(id)) {
+              const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
+              if (match && match[2] === id) {
+                mac = match[1];
+                break;
+              }
+            }
+          }
+        }
+      }
+      GLib.spawn_command_line_async(`bluetoothctl disconnect ${mac}`);
+    } catch (e) {
+      console.error(
+        '[GnomeShellAdapter] Failed to disconnect bluetooth device:',
+        e
+      );
+    }
+  }
+
+  setAirplaneMode(enabled: boolean): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // rfkill block all / unblock all
+      const cmd = enabled ? 'rfkill block all' : 'rfkill unblock all';
+      GLib.spawn_command_line_async(cmd);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set airplane mode:', e);
+    }
+  }
+
+  setDarkMode(enabled: boolean): void {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.desktop.interface',
+    });
+    settings.set_string('color-scheme', enabled ? 'prefer-dark' : 'default');
+  }
+
+  getDarkMode(): boolean {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.desktop.interface',
+    });
+    return settings.get_string('color-scheme') === 'prefer-dark';
+  }
+
+  setNightLight(enabled: boolean): void {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.settings-daemon.plugins.color',
+    });
+    settings.set_boolean('night-light-enabled', enabled);
+  }
+
+  getNightLight(): boolean {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.settings-daemon.plugins.color',
+    });
+    return settings.get_boolean('night-light-enabled');
+  }
+
+  setScreenTimeout(seconds: number): void {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.desktop.session',
+    });
+    settings.set_uint('idle-delay', seconds);
+  }
+
+  getScreenTimeout(): number {
+    // @ts-ignore
+    const Gio = imports.gi.Gio;
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.desktop.session',
+    });
+    return settings.get_uint('idle-delay');
+  }
+
+  setScreenOrientation(orientation: 'portrait' | 'landscape'): void {
+    // This is hard. xrandr -o left/normal?
+    // On Wayland, this is managed by Mutter.
+    // 'gnome-monitor-config' tool might work if installed.
+    // Or DBus to org.gnome.Mutter.DisplayConfig.
+    // This is complex and risky.
+    // Let's try a simple xrandr fallback for X11, and maybe warn for Wayland.
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const cmd =
+        orientation === 'portrait' ? 'xrandr -o left' : 'xrandr -o normal';
+      GLib.spawn_command_line_async(cmd);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set orientation:', e);
+    }
+  }
+
+  setRefreshRate(rate: number): void {
+    // Extremely complex on GNOME. Requires DBus DisplayConfig.
+    // Skipping for now or using a placeholder log.
+    console.warn('[GnomeShellAdapter] Set Refresh Rate not fully implemented.');
+  }
+
+  setPowerSaver(enabled: boolean): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const cmd = enabled
+        ? 'powerprofilesctl set power-saver'
+        : 'powerprofilesctl set balanced';
+      GLib.spawn_command_line_async(cmd);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set power saver:', e);
+    }
+  }
+
+  getPowerSaver(): boolean {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const [success, stdout] = GLib.spawn_command_line_sync(
+        'powerprofilesctl get'
+      );
+      if (success && stdout) {
+        const output = new TextDecoder().decode(stdout).trim();
+        return output === 'power-saver';
+      }
+      return false;
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to get power saver:', e);
+      return false;
+    }
+  }
+
+  openLink(url: string): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // xdg-open
+      GLib.spawn_command_line_async(`xdg-open ${url}`);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to open link:', e);
+    }
+  }
+
+  takeScreenshot(): void {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+
+      // Ensure Pictures directory exists
+      const picturesDir = `${GLib.get_home_dir()}/Pictures`;
+      const filename = `${picturesDir}/Screenshot_${new Date().getTime()}.png`;
+
+      // Use ImageMagick's import command (simple and reliable)
+      // -window root captures the entire screen
+      const cmd = `import -window root "${filename}"`;
+      GLib.spawn_command_line_async(cmd);
+
+      console.log(`[GnomeShellAdapter] Taking screenshot: ${filename}`);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to take screenshot:', e);
+    }
+  }
+
+  openApp(appIds: string[]): void {
+    try {
+      // @ts-ignore
+      const Gio = imports.gi.Gio;
+
+      appIds.forEach((appId) => {
+        // Find the app info
+        // appId might be 'firefox' or 'firefox.desktop'
+        let id = appId;
+        if (!id.endsWith('.desktop')) id += '.desktop';
+
+        const appInfo = Gio.DesktopAppInfo.new(id);
+        if (appInfo) {
+          appInfo.launch([], null);
+        } else {
+          // Try searching all apps if exact match failed
+          const apps = Gio.AppInfo.get_all();
+          const found = apps.find(
+            (a: any) => a.get_id() === id || a.get_id() === appId
+          );
+          if (found) {
+            found.launch([], null);
+          }
+        }
+      });
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to open apps:', e);
+    }
+  }
   getWifiPowerState(): boolean {
     try {
       // @ts-ignore
@@ -742,17 +998,37 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   onActiveAppChanged(callback: (appName: string) => void): void {
-    // This is tricky in GJS, usually involves tracking window focus
-    // Simplified for this example
-    this.appListenerId = global.display.connect('notify::focus-window', () => {
-      const app = this.getActiveApp();
-      if (app) callback(app);
-    });
+    try {
+      // @ts-ignore
+      const Shell = imports.gi.Shell;
+      const appSystem = Shell.AppSystem.get_default();
+
+      // Listen for app state changes - use STARTING (1) to catch apps immediately
+      // STARTING = 1, RUNNING = 2
+      this.appListenerId = appSystem.connect(
+        'app-state-changed',
+        (sys: any, app: any) => {
+          // Trigger on STARTING state (1) for immediate detection
+          if (app.state === 1 || app.state === Shell.AppState.RUNNING) {
+            callback(app.get_name());
+          }
+        }
+      );
+    } catch (e) {
+      console.error(
+        '[GnomeShellAdapter] Failed to subscribe to app changes:',
+        e
+      );
+    }
   }
 
   destroy() {
     if (this.appListenerId) {
-      global.display.disconnect(this.appListenerId);
+      // @ts-ignore
+      const Shell = imports.gi.Shell;
+      const appSystem = Shell.AppSystem.get_default();
+      appSystem.disconnect(this.appListenerId);
+      this.appListenerId = 0;
     }
   }
 }
