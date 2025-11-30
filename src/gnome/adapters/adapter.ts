@@ -26,4 +26,40 @@ export interface SystemAdapter {
   // App Tracking
   getActiveApp(): string | null;
   onActiveAppChanged(callback: (appName: string) => void): void;
+
+  // Network Tracking
+  onWifiStateChanged(callback: (isConnected: boolean) => void): void;
+  getCurrentWifiSSID(): string | null;
+  getSavedWifiNetworks(): string[];
+
+  // Wifi Power
+  getWifiPowerState(): boolean;
+  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void;
+
+  // Bluetooth Tracking
+  getBluetoothPowerState(): boolean;
+  onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void;
+  getConnectedBluetoothDevices(): string[]; // Returns list of device names/aliases
+  onBluetoothDeviceStateChanged(callback: () => void): void;
+
+  // Power & Battery
+  getBatteryLevel(): number;
+  isCharging(): boolean;
+  onBatteryStateChanged(
+    callback: (level: number, isCharging: boolean) => void
+  ): void;
+
+  getPowerSaverState(): boolean;
+  onPowerSaverStateChanged(callback: (isActive: boolean) => void): void;
+
+  // System Settings
+  getDarkModeState(): boolean;
+  onDarkModeStateChanged(callback: (isDark: boolean) => void): void;
+
+  getAirplaneModeState(): boolean;
+  onAirplaneModeStateChanged(callback: (isEnabled: boolean) => void): void;
+
+  // Audio
+  getWiredHeadphonesState(): boolean;
+  onWiredHeadphonesStateChanged(callback: (isConnected: boolean) => void): void;
 }

@@ -98,25 +98,75 @@ export class RoutineEditor {
         triggerGroup.add(matchTypeRow);
 
         const getTriggerSummary = (trigger: any) => {
-            if (trigger.type === 'time') {
-                const days = trigger.config.days || [];
-                let dayText = '';
-                if (days.length === 7) dayText = 'Everyday';
-                else if (days.length === 0) dayText = 'Never'; // Should not happen if validated
-                else if (days.length === 5 && !days.includes(0) && !days.includes(6)) dayText = 'Weekdays';
-                else if (days.length === 2 && days.includes(0) && days.includes(6)) dayText = 'Weekends';
-                else dayText = days.map((d: number) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
+          if (trigger.type === 'time') {
+            const days = trigger.config.days || [];
+            let dayText = '';
+            if (days.length === 7) dayText = 'Everyday';
+            else if (days.length === 0)
+              dayText = 'Never'; // Should not happen if validated
+            else if (
+              days.length === 5 &&
+              !days.includes(0) &&
+              !days.includes(6)
+            )
+              dayText = 'Weekdays';
+            else if (days.length === 2 && days.includes(0) && days.includes(6))
+              dayText = 'Weekends';
+            else
+              dayText = days
+                .map(
+                  (d: number) =>
+                    ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]
+                )
+                .join(', ');
 
-                if (trigger.config.time) return `At ${trigger.config.time}, ${dayText}`;
-                if (trigger.config.startTime) return `From ${trigger.config.startTime} to ${trigger.config.endTime}, ${dayText}`;
+            if (trigger.config.time)
+              return `At ${trigger.config.time}, ${dayText}`;
+            if (trigger.config.startTime)
+              return `From ${trigger.config.startTime} to ${trigger.config.endTime}, ${dayText}`;
+          }
+          if (trigger.type === 'app') {
+            const count = trigger.config.appIds
+              ? trigger.config.appIds.length
+              : 0;
+            return `App: ${count} selected`;
+          }
+          if (trigger.type === 'wifi') {
+            const ssids = trigger.config.ssids || [];
+            const state = trigger.config.state;
+            if (ssids.length > 0) {
+              return `Wifi: ${state} (${ssids.length} networks)`;
             }
-            if (trigger.type === 'app') {
-                const count = trigger.config.appIds ? trigger.config.appIds.length : 0;
-                return `App: ${count} selected`;
+            return `Wifi: ${state}`;
+          }
+          if (trigger.type === 'bluetooth') {
+            const devices = trigger.config.deviceIds || [];
+            const state = trigger.config.state;
+            if (devices.length > 0) {
+              return `Bluetooth: ${state} (${devices.length} devices)`;
             }
-            return trigger.type;
+            return `Bluetooth: ${state}`;
+          }
+          if (trigger.type === 'battery') {
+            if (trigger.config.mode === 'status') {
+              return `Battery: ${trigger.config.status}`;
+            }
+            return `Battery: ${
+              trigger.config.levelType === 'below' ? '<' : '>='
+            } ${trigger.config.level}%`;
+          }
+          if (trigger.type === 'system') {
+            const names: any = {
+              power_saver: 'Battery Saver',
+              dark_mode: 'Dark Mode',
+              airplane_mode: 'Airplane Mode',
+              headphones: 'Wired Headphones',
+            };
+            return `${names[trigger.config.type]}: ${trigger.config.state}`;
+          }
+          return trigger.type;
         };
-        
+
         const editTrigger = (trigger: any, isNew: boolean = false) => {
           const page = new Adw.NavigationPage({
             title: isNew ? 'Add Condition' : 'Edit Condition',
@@ -152,6 +202,13 @@ export class RoutineEditor {
           const triggerTypes = [
             { id: 'time', title: 'Time' },
             { id: 'app', title: 'App Opened' },
+            { id: 'wifi', title: 'Wifi Status' },
+            { id: 'bluetooth', title: 'Bluetooth Status' },
+            { id: 'battery', title: 'Battery Level/Status' },
+            { id: 'power_saver', title: 'Battery Saver' },
+            { id: 'dark_mode', title: 'Dark Mode' },
+            { id: 'airplane_mode', title: 'Airplane Mode' },
+            { id: 'headphones', title: 'Wired Headphones' },
           ];
 
           const typeModel = new Gtk.StringList({
@@ -167,8 +224,249 @@ export class RoutineEditor {
           // Config Groups
           const timeGroup = new Adw.PreferencesGroup();
           const appGroup = new Adw.PreferencesGroup();
+          const wifiGroup = new Adw.PreferencesGroup();
+          const bluetoothGroup = new Adw.PreferencesGroup();
+          const batteryGroup = new Adw.PreferencesGroup();
+          const systemGroup = new Adw.PreferencesGroup(); // For simple on/off system triggers
           content.add(timeGroup);
           content.add(appGroup);
+          content.add(wifiGroup);
+          content.add(bluetoothGroup);
+          content.add(batteryGroup);
+          content.add(systemGroup);
+
+          // Wifi UI
+          const wifiModel = new Gtk.StringList({
+            strings: ['Connected', 'Disconnected', 'Turned On', 'Turned Off'],
+          });
+          const wifiRow = new Adw.ComboRow({
+            title: 'Trigger when Wifi is',
+            model: wifiModel,
+            selected: [
+              'connected',
+              'disconnected',
+              'enabled',
+              'disabled',
+            ].indexOf(tempConfig.state || 'connected'),
+          });
+          wifiGroup.add(wifiRow);
+
+          // Wifi Network Selection
+          const wifiNetworksRow = new Adw.ExpanderRow({
+            title: 'Specific Networks',
+            subtitle: 'Leave empty for any network',
+            expanded: true,
+          });
+          wifiGroup.add(wifiNetworksRow);
+
+          // Hide network selection if checking for power state
+          // @ts-ignore
+          wifiRow.connect('notify::selected', () => {
+            const isPowerState = wifiRow.selected >= 2; // 2=enabled, 3=disabled
+            wifiNetworksRow.visible = !isPowerState;
+          });
+          // Initial visibility check
+          wifiNetworksRow.visible = wifiRow.selected < 2;
+
+          // --- Bluetooth UI ---
+          const btModel = new Gtk.StringList({
+            strings: ['Connected', 'Disconnected', 'Turned On', 'Turned Off'],
+          });
+          const btRow = new Adw.ComboRow({
+            title: 'Trigger when Bluetooth is',
+            model: btModel,
+            selected: [
+              'connected',
+              'disconnected',
+              'enabled',
+              'disabled',
+            ].indexOf(tempConfig.state || 'connected'),
+          });
+          bluetoothGroup.add(btRow);
+
+          const btDevicesRow = new Adw.ExpanderRow({
+            title: 'Specific Devices',
+            subtitle: 'Leave empty for any device',
+            expanded: true,
+          });
+          bluetoothGroup.add(btDevicesRow);
+
+          // Hide device selection if checking for power state
+          // @ts-ignore
+          btRow.connect('notify::selected', () => {
+            const isPowerState = btRow.selected >= 2;
+            btDevicesRow.visible = !isPowerState;
+          });
+          btDevicesRow.visible = btRow.selected < 2;
+
+          // Load Bluetooth devices
+          let availableDevices: string[] = [];
+          try {
+            // Use bluetoothctl devices to list known devices
+            // @ts-ignore
+            const GLib = imports.gi.GLib;
+            const [success, stdout] = GLib.spawn_command_line_sync(
+              'bluetoothctl devices'
+            );
+            if (success && stdout) {
+              const output = new TextDecoder().decode(stdout);
+              output.split('\n').forEach((line) => {
+                const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
+                if (match) {
+                  availableDevices.push(match[2]);
+                }
+              });
+              availableDevices.sort();
+            }
+          } catch (e) {
+            console.error('Failed to load bluetooth devices:', e);
+          }
+
+          const selectedDevices = new Set<string>(tempConfig.deviceIds || []);
+
+          if (availableDevices.length === 0) {
+            const noDevRow = new Adw.ActionRow({
+              title: 'No known devices found',
+            });
+            btDevicesRow.add_row(noDevRow);
+          } else {
+            availableDevices.forEach((name) => {
+              const row = new Adw.ActionRow({ title: name });
+              const check = new Gtk.CheckButton({
+                active: selectedDevices.has(name),
+                valign: Gtk.Align.CENTER,
+              });
+              // @ts-ignore
+              check.connect('toggled', () => {
+                if (check.active) selectedDevices.add(name);
+                else selectedDevices.delete(name);
+              });
+              row.add_suffix(check);
+              btDevicesRow.add_row(row);
+            });
+          }
+
+          // Get saved networks via adapter (we need access to adapter here)
+          // Since editor doesn't have direct access to adapter, we'll need to pass it or use a global accessor
+          // For now, we'll try to get it from the extension instance if possible, or just list known ones if passed
+          // But wait, the editor is part of prefs which runs in a separate process from the extension!
+          // Prefs cannot access extension objects directly.
+
+          let availableNetworks: string[] = [];
+          try {
+            // @ts-ignore
+            const NM = imports.gi.NM;
+            const client = NM.Client.new(null);
+            if (client) {
+              const connections = client.get_connections();
+              for (let i = 0; i < connections.length; i++) {
+                const conn = connections[i];
+                if (conn.get_connection_type() === '802-11-wireless') {
+                  const id = conn.get_id();
+                  if (id && !availableNetworks.includes(id)) {
+                    availableNetworks.push(id);
+                  }
+                }
+              }
+              availableNetworks.sort();
+            }
+          } catch (e) {
+            console.error('Failed to load wifi networks in prefs:', e);
+          }
+
+          const selectedNetworks = new Set<string>(tempConfig.ssids || []);
+
+          if (availableNetworks.length === 0) {
+            const noNetRow = new Adw.ActionRow({
+              title: 'No saved networks found',
+            });
+            wifiNetworksRow.add_row(noNetRow);
+          } else {
+            availableNetworks.forEach((ssid) => {
+              const row = new Adw.ActionRow({ title: ssid });
+              const check = new Gtk.CheckButton({
+                active: selectedNetworks.has(ssid),
+                valign: Gtk.Align.CENTER,
+              });
+              // @ts-ignore
+              check.connect('toggled', () => {
+                if (check.active) selectedNetworks.add(ssid);
+                else selectedNetworks.delete(ssid);
+              });
+              row.add_suffix(check);
+              wifiNetworksRow.add_row(row);
+            });
+          }
+
+          // --- Battery UI ---
+          const battModeModel = new Gtk.StringList({
+            strings: ['Charging Status', 'Battery Level'],
+          });
+          const battModeRow = new Adw.ComboRow({
+            title: 'Trigger Type',
+            model: battModeModel,
+            selected: tempConfig.mode === 'level' ? 1 : 0,
+          });
+          batteryGroup.add(battModeRow);
+
+          // Status UI
+          const battStatusModel = new Gtk.StringList({
+            strings: ['Charging', 'Discharging'],
+          });
+          const battStatusRow = new Adw.ComboRow({
+            title: 'Status',
+            model: battStatusModel,
+            selected: tempConfig.status === 'discharging' ? 1 : 0,
+          });
+          batteryGroup.add(battStatusRow);
+
+          // Level UI
+          const battLevelTypeModel = new Gtk.StringList({
+            strings: ['Below', 'Equal or Above'],
+          });
+          const battLevelTypeRow = new Adw.ComboRow({
+            title: 'Condition',
+            model: battLevelTypeModel,
+            selected: tempConfig.levelType === 'equal_or_above' ? 1 : 0,
+          });
+          batteryGroup.add(battLevelTypeRow);
+
+          const battLevelRow = new Adw.SpinRow({
+            title: 'Battery Percentage',
+            adjustment: new Gtk.Adjustment({
+              lower: 5,
+              upper: 100,
+              step_increment: 5,
+              value: tempConfig.level || 50,
+            }),
+          });
+          batteryGroup.add(battLevelRow);
+
+          // Visibility logic for Battery
+          const updateBattVisibility = () => {
+            const isLevel = battModeRow.selected === 1;
+            battStatusRow.visible = !isLevel;
+            battLevelTypeRow.visible = isLevel;
+            battLevelRow.visible = isLevel;
+          };
+          // @ts-ignore
+          battModeRow.connect('notify::selected', updateBattVisibility);
+          updateBattVisibility();
+
+          // --- System Triggers UI (Shared for simple On/Off types) ---
+          // We will update the model based on selection
+          const systemStateModel = new Gtk.StringList({
+            strings: ['On', 'Off'],
+          });
+          const systemStateRow = new Adw.ComboRow({
+            title: 'State',
+            model: systemStateModel,
+            selected:
+              tempConfig.state === 'off' || tempConfig.state === 'disconnected'
+                ? 1
+                : 0,
+          });
+          systemGroup.add(systemStateRow);
 
           // --- Time Config UI ---
           // Sub-type selector for Time
@@ -451,6 +749,38 @@ export class RoutineEditor {
             timeGroup.visible = selectedType === 'time';
             daysGroup.visible = selectedType === 'time'; // Hide repeat for non-time triggers
             appGroup.visible = selectedType === 'app';
+            wifiGroup.visible = selectedType === 'wifi';
+            bluetoothGroup.visible = selectedType === 'bluetooth';
+            batteryGroup.visible = selectedType === 'battery';
+
+            // Map specific types to 'system' group
+            const isSystem = [
+              'power_saver',
+              'dark_mode',
+              'airplane_mode',
+              'headphones',
+            ].includes(selectedType);
+            systemGroup.visible = isSystem;
+
+            if (isSystem) {
+              // Update labels based on type
+              if (selectedType === 'headphones') {
+                // We can't easily replace strings in StringList, so we set a new model or just accept it?
+                // Actually GtkStringList is immutable-ish for simple usage, but we can splice.
+                // Or just create new models.
+                // Let's try splicing.
+                // systemStateModel.splice(0, 2, ['Connected', 'Disconnected']);
+                // But splice is not always available in GJS bindings easily or might be tricky.
+                // Creating a new StringList and setting it to the row is safer.
+                const newModel = new Gtk.StringList({
+                  strings: ['Connected', 'Disconnected'],
+                });
+                systemStateRow.model = newModel;
+              } else {
+                const newModel = new Gtk.StringList({ strings: ['On', 'Off'] });
+                systemStateRow.model = newModel;
+              }
+            }
 
             validate();
           };
@@ -479,6 +809,59 @@ export class RoutineEditor {
             } else if (currentType === 'app') {
               finalConfig = {
                 appIds: tempConfig.appIds,
+              };
+            } else if (currentType === 'wifi') {
+              const states = [
+                'connected',
+                'disconnected',
+                'enabled',
+                'disabled',
+              ];
+              finalConfig = {
+                state: states[wifiRow.selected],
+                ssids: Array.from(selectedNetworks),
+              };
+            } else if (currentType === 'bluetooth') {
+              const states = [
+                'connected',
+                'disconnected',
+                'enabled',
+                'disabled',
+              ];
+              finalConfig = {
+                state: states[btRow.selected],
+                deviceIds: Array.from(selectedDevices),
+              };
+            } else if (currentType === 'battery') {
+              finalConfig = {
+                mode: battModeRow.selected === 0 ? 'status' : 'level',
+                status:
+                  battStatusRow.selected === 0 ? 'charging' : 'discharging',
+                levelType:
+                  battLevelTypeRow.selected === 0 ? 'below' : 'equal_or_above',
+                level: battLevelRow.get_value(),
+              };
+            } else if (
+              [
+                'power_saver',
+                'dark_mode',
+                'airplane_mode',
+                'headphones',
+              ].includes(currentType)
+            ) {
+              // We map these all to 'system' trigger type internally, but keep the UI selection as 'type'
+              // Wait, TriggerFactory expects 'system' type with config.type
+              trigger.type = 'system'; // Override the type
+              finalConfig = {
+                type: currentType,
+                state:
+                  systemStateRow.selected === 0
+                    ? currentType === 'headphones'
+                      ? 'connected'
+                      : 'on'
+                    : currentType === 'headphones'
+                    ? 'disconnected'
+                    : 'off',
               };
             }
 
