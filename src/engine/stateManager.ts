@@ -1,14 +1,9 @@
-// @ts-ignore
-import Gio from 'gi://Gio';
-
 export class StateManager {
   private settings: any;
   private states: Map<string, Map<string, any>>;
 
-  constructor() {
-    this.settings = new Gio.Settings({
-      schema_id: 'org.gnome.shell.extensions.gnome-routines',
-    });
+  constructor(settings: any) {
+    this.settings = settings;
     this.states = new Map();
     this.loadStates();
   }
@@ -51,7 +46,7 @@ export class StateManager {
       this.states.set(routineId, new Map());
     }
     const routineStates = this.states.get(routineId)!;
-    
+
     // Only save if not already saved (preserve original state)
     if (!routineStates.has(setting)) {
       routineStates.set(setting, value);

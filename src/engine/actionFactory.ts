@@ -14,6 +14,7 @@ import {
   NightLightAction,
   ScreenTimeoutAction,
   ScreenOrientationAction,
+  RefreshRateAction,
 } from './actions/display.js';
 import { PowerSaverAction } from './actions/power.js';
 import {
@@ -70,6 +71,14 @@ export class ActionFactory {
         );
       case 'screen_orientation':
         return new ScreenOrientationAction(data.id, data.config, adapter);
+      case 'refresh_rate':
+        return new RefreshRateAction(
+          data.id,
+          data.config,
+          adapter,
+          stateManager,
+          routineId
+        );
       case 'power_saver':
         return new PowerSaverAction(data.id, data.config, adapter);
       case 'open_link':

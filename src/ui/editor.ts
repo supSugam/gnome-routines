@@ -26,6 +26,7 @@ export class RoutineEditor {
     }
 
     show(parentWindow: any) {
+      let actionRows: any[] = [];
       const winConfig: any = {
         title: this.routine.name,
         modal: true,
@@ -1022,7 +1023,6 @@ export class RoutineEditor {
         const actionTypes = [
           { id: 'wifi', title: 'Wifi' },
           { id: 'bluetooth', title: 'Bluetooth' },
-          { id: 'bluetooth_device', title: 'Bluetooth Device' },
           { id: 'airplane_mode', title: 'Airplane Mode' },
           { id: 'volume', title: 'Volume' },
           { id: 'brightness', title: 'Brightness' },
@@ -1030,6 +1030,7 @@ export class RoutineEditor {
           { id: 'night_light', title: 'Night Light' },
           { id: 'screen_timeout', title: 'Screen Timeout' },
           { id: 'screen_orientation', title: 'Screen Orientation' },
+          { id: 'refresh_rate', title: 'Refresh Rate' },
           { id: 'power_saver', title: 'Battery Saver' },
           { id: 'open_link', title: 'Open Link' },
           { id: 'open_app', title: 'Open App' },
@@ -1051,7 +1052,6 @@ export class RoutineEditor {
         const dndGroup = new Adw.PreferencesGroup();
         const wifiGroup = new Adw.PreferencesGroup();
         const bluetoothGroup = new Adw.PreferencesGroup();
-        const btDeviceGroup = new Adw.PreferencesGroup();
         const airplaneGroup = new Adw.PreferencesGroup();
         const volumeGroup = new Adw.PreferencesGroup();
         const brightnessGroup = new Adw.PreferencesGroup();
@@ -1063,7 +1063,6 @@ export class RoutineEditor {
 
         content.add(wifiGroup);
         content.add(bluetoothGroup);
-        content.add(btDeviceGroup);
         content.add(airplaneGroup);
         content.add(volumeGroup);
         content.add(brightnessGroup);
@@ -1081,16 +1080,6 @@ export class RoutineEditor {
         dndToggle.valign = Gtk.Align.CENTER;
         dndRow.add_suffix(dndToggle);
         dndGroup.add(dndRow);
-
-        const bluetoothRow = new Adw.ActionRow({
-          title: 'Enable Bluetooth',
-        });
-        const bluetoothToggle = new Gtk.Switch({
-          active: tempConfig.enabled !== false,
-        });
-        bluetoothToggle.valign = Gtk.Align.CENTER;
-        bluetoothRow.add_suffix(bluetoothToggle);
-        bluetoothGroup.add(bluetoothRow);
 
         const volumeRow = new Adw.SpinRow({
           title: 'Volume Level (%)',
@@ -1131,6 +1120,69 @@ export class RoutineEditor {
         wifiRow.add_suffix(wifiToggle);
         wifiGroup.add(wifiRow);
 
+        // Wifi SSID
+        const wifiSsidModel = new Gtk.StringList();
+        const knownSsids: string[] = [];
+        try {
+          // @ts-ignore
+          const GLib = imports.gi.GLib;
+          // Get known wifi connections
+          const [success, stdout] = GLib.spawn_command_line_sync(
+            'nmcli -t -f NAME,TYPE connection show'
+          );
+          if (success && stdout) {
+            const output = new TextDecoder().decode(stdout);
+            output.split('\n').forEach((line) => {
+              const parts = line.split(':');
+              if (parts.length >= 2 && parts[1] === '802-11-wireless') {
+                knownSsids.push(parts[0]);
+              }
+            });
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        knownSsids.forEach((ssid) => wifiSsidModel.append(ssid));
+
+        const wifiSsidRow = new Adw.ComboRow({
+          title: 'Auto-connect to Network',
+          model: wifiSsidModel,
+          selected: tempConfig.ssid
+            ? Math.max(0, knownSsids.indexOf(tempConfig.ssid))
+            : -1, // -1 or 0? ComboRow defaults to 0.
+        });
+        // If no SSID selected previously, maybe don't select any? ComboRow always selects one.
+        // We can add a "None" option at start.
+        wifiSsidModel.splice(0, 0, ['None']);
+        wifiSsidRow.selected = tempConfig.ssid
+          ? knownSsids.indexOf(tempConfig.ssid) + 1
+          : 0;
+
+        wifiGroup.add(wifiSsidRow);
+
+        const wifiTimeoutRow = new Adw.SpinRow({
+          title: 'Connection Timeout (s)',
+          adjustment: new Gtk.Adjustment({
+            lower: 5,
+            upper: 300,
+            step_increment: 5,
+            value: tempConfig.timeout || 30,
+          }),
+        });
+        wifiGroup.add(wifiTimeoutRow);
+
+        const wifiIntervalRow = new Adw.SpinRow({
+          title: 'Retry Interval (s)',
+          adjustment: new Gtk.Adjustment({
+            lower: 1,
+            upper: 60,
+            step_increment: 1,
+            value: tempConfig.interval || 5,
+          }),
+        });
+        wifiGroup.add(wifiIntervalRow);
+
         // Airplane Mode
         const airplaneRow = new Adw.ActionRow({
           title: 'Enable Airplane Mode',
@@ -1142,63 +1194,89 @@ export class RoutineEditor {
         airplaneRow.add_suffix(airplaneToggle);
         airplaneGroup.add(airplaneRow);
 
+        // Bluetooth
+        const bluetoothRow = new Adw.ActionRow({
+          title: 'Enable Bluetooth',
+        });
+        const bluetoothToggle = new Gtk.Switch({
+          active: tempConfig.enabled !== false,
+        });
+        bluetoothToggle.valign = Gtk.Align.CENTER;
+        bluetoothRow.add_suffix(bluetoothToggle);
+        bluetoothGroup.add(bluetoothRow);
+
         // Bluetooth Device
-        const btActionModel = new Gtk.StringList({
-          strings: ['Connect', 'Disconnect'],
-        });
-        const btActionRow = new Adw.ComboRow({
-          title: 'Action',
-          model: btActionModel,
-          selected: tempConfig.action === 'disconnect' ? 1 : 0,
-        });
-        btDeviceGroup.add(btActionRow);
-
-        // Re-use device list logic from trigger? Or just simple entry for now?
-        // User asked for "selectable device from known bollywood device" (assuming known devices)
-        // We can copy the device loading logic.
-        const btDeviceExpander = new Adw.ExpanderRow({
-          title: 'Select Device',
-          subtitle: tempConfig.deviceId || 'None selected',
-        });
-        btDeviceGroup.add(btDeviceExpander);
-
-        // Load devices (Copy-paste logic from trigger, ideally refactor later)
-        let knownDevices: string[] = [];
+        const btDeviceModel = new Gtk.StringList();
+        const knownBtDevices: { id: string; name: string }[] = [];
         try {
           // @ts-ignore
           const GLib = imports.gi.GLib;
           const [success, stdout] = GLib.spawn_command_line_sync(
-            'bluetoothctl devices'
+            '/usr/bin/bluetoothctl devices'
           );
           if (success && stdout) {
             const output = new TextDecoder().decode(stdout);
             output.split('\n').forEach((line) => {
-              const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-              if (match) knownDevices.push(match[2]); // Using Name as ID for UI consistency with trigger
+              const parts = line.split(' ');
+              if (parts.length >= 3 && parts[0] === 'Device') {
+                // Format: Device MAC Name...
+                const mac = parts[1];
+                const name = parts.slice(2).join(' ');
+                knownBtDevices.push({ id: mac, name: name });
+              }
             });
-            knownDevices.sort();
           }
         } catch (e) {
           console.error(e);
         }
 
-        knownDevices.forEach((dev) => {
-          const row = new Adw.ActionRow({ title: dev });
-          const btn = new Gtk.Button({
-            icon_name: 'object-select-symbolic',
-            valign: Gtk.Align.CENTER,
-          });
-          btn.add_css_class('flat');
-          // @ts-ignore
-          btn.connect('clicked', () => {
-            tempConfig.deviceId = dev;
-            btDeviceExpander.subtitle = dev;
-            btDeviceExpander.expanded = false;
-            validate();
-          });
-          row.add_suffix(btn);
-          btDeviceExpander.add_row(row);
+        knownBtDevices.forEach((d) => btDeviceModel.append(d.name));
+        // Add None option at the beginning
+        btDeviceModel.splice(0, 0, ['None']);
+
+        const btDeviceRow = new Adw.ComboRow({
+          title: 'Connect to Device',
+          model: btDeviceModel,
+          selected: tempConfig.deviceId
+            ? Math.max(
+                0,
+                knownBtDevices.findIndex((d) => d.id === tempConfig.deviceId) +
+                  1
+              )
+            : 0,
         });
+
+        // Adjust selection logic
+        if (tempConfig.deviceId) {
+          const idx = knownBtDevices.findIndex(
+            (d) => d.id === tempConfig.deviceId
+          );
+          if (idx >= 0) btDeviceRow.selected = idx + 1;
+        }
+
+        bluetoothGroup.add(btDeviceRow);
+
+        const btTimeoutRow = new Adw.SpinRow({
+          title: 'Connection Timeout (s)',
+          adjustment: new Gtk.Adjustment({
+            lower: 5,
+            upper: 300,
+            step_increment: 5,
+            value: tempConfig.timeout || 30,
+          }),
+        });
+        bluetoothGroup.add(btTimeoutRow);
+
+        const btIntervalRow = new Adw.SpinRow({
+          title: 'Retry Interval (s)',
+          adjustment: new Gtk.Adjustment({
+            lower: 1,
+            upper: 60,
+            step_increment: 1,
+            value: tempConfig.interval || 5,
+          }),
+        });
+        bluetoothGroup.add(btIntervalRow);
 
         // Display (Dark Mode, Night Light, Orientation)
         // Create separate rows for each to avoid dynamic add/remove issues
@@ -1229,6 +1307,47 @@ export class RoutineEditor {
           selected: tempConfig.orientation === 'landscape' ? 1 : 0,
         });
         displayGroup.add(orientationRow);
+
+        // Refresh Rate
+        const refreshRateModel = new Gtk.StringList();
+        let availableRates: number[] = [60]; // Default
+        try {
+          // @ts-ignore
+          const GLib = imports.gi.GLib;
+          const [success, stdout] =
+            GLib.spawn_command_line_sync('xrandr --current');
+          if (success && stdout) {
+            const output = new TextDecoder().decode(stdout);
+            const rates: number[] = [];
+            const lines = output.split('\n');
+            for (const line of lines) {
+              if (line.includes('*')) {
+                const rateMatches = line.matchAll(/(\d+\.\d+)/g);
+                for (const match of rateMatches) {
+                  const rate = Math.round(parseFloat(match[1]));
+                  if (rate > 0 && !rates.includes(rate)) {
+                    rates.push(rate);
+                  }
+                }
+                break;
+              }
+            }
+            availableRates = rates.sort((a, b) => b - a);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+
+        availableRates.forEach((rate) => refreshRateModel.append(`${rate} Hz`));
+        const initialIndex = tempConfig.rate
+          ? availableRates.indexOf(tempConfig.rate)
+          : 0;
+        const refreshRateRow = new Adw.ComboRow({
+          title: 'Refresh Rate',
+          model: refreshRateModel,
+          selected: initialIndex >= 0 ? initialIndex : 0,
+        });
+        displayGroup.add(refreshRateRow);
 
         // Screen Timeout
         const timeoutRow = new Adw.SpinRow({
@@ -1335,31 +1454,45 @@ export class RoutineEditor {
 
           addBtn.sensitive = isValid;
         };
-
         const updateVisibility = () => {
           const selectedType = actionTypes[typeRow.selected].id;
           currentType = selectedType;
 
-          wifiGroup.visible = selectedType === 'wifi';
-          bluetoothGroup.visible = selectedType === 'bluetooth';
-          btDeviceGroup.visible = selectedType === 'bluetooth_device';
-          airplaneGroup.visible = selectedType === 'airplane_mode';
-          volumeGroup.visible = selectedType === 'volume';
-          brightnessGroup.visible = selectedType === 'brightness';
-          dndGroup.visible = selectedType === 'dnd';
-          wallpaperGroup.visible = selectedType === 'wallpaper';
-          timeoutGroup.visible = selectedType === 'screen_timeout';
-          powerGroup.visible = selectedType === 'power_saver';
+          wifiGroup.visible = currentType === 'wifi';
+          bluetoothGroup.visible = currentType === 'bluetooth';
+          // btDeviceGroup.visible = false; // Removed
+          airplaneGroup.visible = currentType === 'airplane_mode';
+          volumeGroup.visible = currentType === 'volume';
+          brightnessGroup.visible = currentType === 'brightness';
+          displayGroup.visible =
+            currentType === 'dark_mode' ||
+            currentType === 'night_light' ||
+            currentType === 'screen_orientation' ||
+            currentType === 'refresh_rate';
+          timeoutGroup.visible = currentType === 'screen_timeout';
+          powerGroup.visible = currentType === 'power_saver';
+          functionGroup.visible = currentType === 'launch_app';
+          dndGroup.visible = currentType === 'dnd';
+          wallpaperGroup.visible = currentType === 'wallpaper';
 
-          // Display Group Logic
-          displayGroup.visible = [
-            'dark_mode',
-            'night_light',
-            'screen_orientation',
-          ].includes(selectedType);
+          // Sub-visibility for Wifi/Bluetooth
+          if (currentType === 'wifi') {
+            const wifiEnabled = wifiToggle.active;
+            wifiSsidRow.visible = wifiEnabled;
+            wifiTimeoutRow.visible = wifiEnabled && wifiSsidRow.selected > 0;
+            wifiIntervalRow.visible = wifiEnabled && wifiSsidRow.selected > 0;
+          }
+
+          if (currentType === 'bluetooth') {
+            const btEnabled = bluetoothToggle.active;
+            btDeviceRow.visible = btEnabled;
+            btTimeoutRow.visible = btEnabled && btDeviceRow.selected > 0;
+            btIntervalRow.visible = btEnabled && btDeviceRow.selected > 0;
+          }
           darkModeRow.visible = selectedType === 'dark_mode';
           nightLightRow.visible = selectedType === 'night_light';
           orientationRow.visible = selectedType === 'screen_orientation';
+          refreshRateRow.visible = selectedType === 'refresh_rate';
 
           // Function Group Logic
           functionGroup.visible = [
@@ -1375,6 +1508,15 @@ export class RoutineEditor {
 
         // @ts-ignore
         typeRow.connect('notify::selected', updateVisibility);
+        // @ts-ignore
+        wifiToggle.connect('notify::active', updateVisibility);
+        // @ts-ignore
+        wifiSsidRow.connect('notify::selected', updateVisibility);
+        // @ts-ignore
+        bluetoothToggle.connect('notify::active', updateVisibility);
+        // @ts-ignore
+        btDeviceRow.connect('notify::selected', updateVisibility);
+
         updateVisibility();
 
         // @ts-ignore
@@ -1387,8 +1529,6 @@ export class RoutineEditor {
             finalConfig = { enabled: darkModeToggle.active };
           } else if (currentType === 'night_light') {
             finalConfig = { enabled: nightLightToggle.active };
-          } else if (currentType === 'bluetooth') {
-            finalConfig = { enabled: bluetoothToggle.active };
           } else if (currentType === 'open_app') {
             finalConfig = { appIds: Array.from(selectedApps) };
           } else if (currentType === 'volume') {
@@ -1404,13 +1544,26 @@ export class RoutineEditor {
           } else if (currentType === 'open_link') {
             finalConfig = { url: linkEntry.text };
           } else if (currentType === 'wifi') {
-            finalConfig = { enabled: wifiToggle.active };
+            finalConfig = {
+              enabled: wifiToggle.active,
+              ssid:
+                wifiSsidRow.selected > 0
+                  ? knownSsids[wifiSsidRow.selected - 1]
+                  : undefined,
+              timeout: wifiTimeoutRow.value,
+              interval: wifiIntervalRow.value,
+            };
           } else if (currentType === 'airplane_mode') {
             finalConfig = { enabled: airplaneToggle.active };
-          } else if (currentType === 'bluetooth_device') {
+          } else if (currentType === 'bluetooth') {
             finalConfig = {
-              deviceId: tempConfig.deviceId,
-              action: btActionRow.selected === 0 ? 'connect' : 'disconnect',
+              enabled: bluetoothToggle.active,
+              deviceId:
+                btDeviceRow.selected > 0
+                  ? knownBtDevices[btDeviceRow.selected - 1].id
+                  : undefined,
+              timeout: btTimeoutRow.value,
+              interval: btIntervalRow.value,
             };
           } else if (currentType === 'screen_timeout') {
             finalConfig = { seconds: timeoutRow.value };
@@ -1419,6 +1572,8 @@ export class RoutineEditor {
               orientation:
                 orientationRow.selected === 0 ? 'portrait' : 'landscape',
             };
+          } else if (currentType === 'refresh_rate') {
+            finalConfig = { rate: availableRates[refreshRateRow.selected] };
           } else if (currentType === 'power_saver') {
             finalConfig = { enabled: powerToggle.active };
           } else if (currentType === 'screenshot') {
@@ -1437,7 +1592,6 @@ export class RoutineEditor {
       };
 
       // Track added action rows
-      let actionRows: any[] = [];
 
       const refreshActions = () => {
         actionRows.forEach((row) => actionGroup.remove(row));

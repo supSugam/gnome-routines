@@ -64,32 +64,32 @@ gnome-extensions enable gnome-routines@supSugam.com
 ## Actions
 
 ### Connections
-- WiFi on/off
-- Bluetooth on/off
-- Connect/disconnect specific Bluetooth device
-- Airplane Mode on/off
+- **WiFi**: On/Off, Auto-connect to specific SSID (with retry timeout/interval)
+- **Bluetooth**: On/Off, Auto-connect to specific Device (with retry timeout/interval)
+- **Airplane Mode**: On/Off
 
 ### Display
-- Dark Mode on/off
-- Night Light on/off
-- Screen timeout (seconds)
-- Screen orientation (portrait/landscape)
+- **Dark Mode**: On/Off
+- **Night Light**: On/Off
+- **Screen Timeout**: Set delay in seconds
+- **Screen Orientation**: Portrait/Landscape
+- **Refresh Rate**: Set specific refresh rate (Hz)
 
 ### Sounds
-- Volume level (0-100%)
-- Brightness level (0-100%)
+- **Volume**: Set level (0-100%)
+- **Brightness**: Set level (0-100%)
 
 ### Power
-- Battery Saver on/off
+- **Power Saver**: On/Off
 
 ### System
-- Do Not Disturb on/off
-- Wallpaper (file path or URI)
+- **Do Not Disturb**: On/Off
+- **Wallpaper**: Set from file path or URI
 
 ### Functions
-- Open link (URL)
-- Take screenshot
-- Open apps (multi-select)
+- **Open Link**: Open URL in default browser
+- **Take Screenshot**: Capture screen
+- **Open Apps**: Launch multiple applications
 
 ---
 
@@ -111,6 +111,7 @@ THEN:
   - Enable Night Light
   - Enable Dark Mode
   - Set screen timeout to 5 minutes
+  - Set refresh rate to 60Hz
 ```
 
 ### Focus Mode
@@ -119,6 +120,7 @@ IF: VS Code OR Terminal is running
 THEN:
   - Enable Do Not Disturb
   - Disable Bluetooth
+  - Connect to "Work WiFi" (Try for 30s)
 ```
 
 ### Gaming
@@ -128,6 +130,7 @@ THEN:
   - Disable Night Light
   - Set volume to 80%
   - Disable screen timeout
+  - Set refresh rate to 144Hz
 ```
 
 ### Home WiFi
@@ -148,16 +151,18 @@ THEN:
 4. Add actions (THEN behaviors)
 5. Save
 
-Routines activate when ALL triggers match (AND logic by default). Change to OR logic in routine settings if needed.
-
-When a routine deactivates, actions revert to their previous state (not just toggle).
+**Key Features:**
+- **Logic**: Routines activate when ALL triggers match (AND logic).
+- **Reactivity**: Changes take effect immediately without restarting.
+- **State Persistence**: When a routine ends, actions revert to their previous state (e.g., Wi-Fi reconnects to the previous network, Bluetooth state restores).
 
 ---
 
 ## Development
 
 ```bash
-npm run build        # Build once
+npm run reinstall    # Build, package, and install extension (requires shell restart)
+npm run build        # Build only
 npm run watch        # Watch mode
 ```
 

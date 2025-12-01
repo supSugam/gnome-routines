@@ -1,80 +1,219 @@
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 
+const delay = (ms: number) =>
+  new Promise((resolve) => {
+    // @ts-ignore
+    const GLib = imports.gi.GLib;
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+      resolve(null);
+      return GLib.SOURCE_REMOVE;
+    });
+  });
+
 export class WifiAction extends BaseAction {
-    private adapter: SystemAdapter;
+  private initialState: boolean | null = null;
+  private initialSsid: string | null = null;
 
-    constructor(id: string, config: { enabled: boolean }, adapter: SystemAdapter) {
-        super(id, 'wifi', config);
-        this.adapter = adapter;
+  constructor(
+    id: string,
+    config: {
+      enabled: boolean;
+      ssid?: string;
+      timeout?: number;
+      interval?: number;
+    },
+    adapter: SystemAdapter
+  ) {
+    super(id, 'wifi', config, adapter);
+  }
+
+  async execute(): Promise<void> {
+    // Capture state if not already captured (to avoid overwriting on re-execution if not reverted)
+    if (this.initialState === null) {
+      this.initialState = this.adapter.getWifiState();
+      this.initialSsid = this.adapter.getCurrentWifiSSID();
     }
 
-    async execute(): Promise<void> {
-        this.adapter.setWifi(this.config.enabled);
-    }
+    this.adapter.setWifi(this.config.enabled);
 
-    async revert(): Promise<void> {
-        // Revert to previous state?
-        // For simplicity, we just toggle back
-        this.adapter.setWifi(!this.config.enabled);
+    if (this.config.enabled && this.config.ssid) {
+      const timeout = (this.config.timeout || 30) * 1000;
+      const interval = (this.config.interval || 5) * 1000;
+      const startTime = Date.now();
+
+      console.log('[WifiAction] Starting auto-connect to ' + this.config.ssid);
+
+      // Initial attempt
+      this.adapter.connectToWifi(this.config.ssid);
+
+      while (Date.now() - startTime < timeout) {
+        await delay(interval);
+
+        const currentSSID = this.adapter.getCurrentWifiSSID();
+        if (currentSSID === this.config.ssid) {
+          console.log(
+            '[WifiAction] Successfully connected to ' + this.config.ssid
+          );
+          return;
+        }
+
+        console.log(
+          '[WifiAction] Retrying connection to ' + this.config.ssid + '...'
+        );
+        this.adapter.connectToWifi(this.config.ssid);
+      }
+      console.warn('[WifiAction] Timed out connecting to ' + this.config.ssid);
     }
+  }
+
+  async revert(): Promise<void> {
+    if (this.initialState !== null) {
+      console.log(
+        `[WifiAction] Reverting state. Enabled: ${this.initialState}, SSID: ${this.initialSsid}`
+      );
+      this.adapter.setWifi(this.initialState);
+      if (this.initialState && this.initialSsid) {
+        // If it was on and connected, try to reconnect
+        // We don't wait for it, just trigger
+        this.adapter.connectToWifi(this.initialSsid);
+      }
+      // Reset state capture
+      this.initialState = null;
+      this.initialSsid = null;
+    } else {
+      // Fallback if no state captured (shouldn't happen if executed)
+      this.adapter.setWifi(!this.config.enabled);
+    }
+  }
 }
 
 export class BluetoothAction extends BaseAction {
-    private adapter: SystemAdapter;
+  private initialState: boolean | null = null;
+  // Bluetooth is complex, capturing "connected device" is hard because multiple can be connected.
+  // We'll capture enabled state.
+  // If user wants to restore connection, we might need to capture list of connected devices?
+  // User said: "if on then connected to previously connected network if available" (referring to Wifi).
+  // For Bluetooth, let's try to restore enabled state. Reconnecting to specific devices might be tricky without knowing which one was "primary".
+  // But we can try to capture connected devices and reconnect them?
+  // Let's stick to enabled state for now, as Bluetooth auto-connect usually handles known devices.
 
-    constructor(id: string, config: { enabled: boolean }, adapter: SystemAdapter) {
-        super(id, 'bluetooth', config);
-        this.adapter = adapter;
+  constructor(
+    id: string,
+    config: {
+      enabled: boolean;
+      deviceId?: string;
+      timeout?: number;
+      interval?: number;
+    },
+    adapter: SystemAdapter
+  ) {
+    super(id, 'bluetooth', config, adapter);
+  }
+
+  async execute(): Promise<void> {
+    if (this.initialState === null) {
+      this.initialState = this.adapter.getBluetooth();
     }
 
-    async execute(): Promise<void> {
-        this.adapter.setBluetooth(this.config.enabled);
-    }
+    this.adapter.setBluetooth(this.config.enabled);
 
-    async revert(): Promise<void> {
-        this.adapter.setBluetooth(!this.config.enabled);
+    if (this.config.enabled && this.config.deviceId) {
+      const timeout = (this.config.timeout || 30) * 1000;
+      const interval = (this.config.interval || 5) * 1000;
+      const startTime = Date.now();
+
+      console.log(
+        '[BluetoothAction] Starting auto-connect to ' + this.config.deviceId
+      );
+
+      // Initial attempt
+      this.adapter.connectBluetoothDevice(this.config.deviceId);
+
+      while (Date.now() - startTime < timeout) {
+        await delay(interval);
+
+        const connectedDevices = this.adapter.getConnectedBluetoothDevices();
+        // Check if device ID (MAC or Name) is in connected list
+        // Adapter returns names/aliases usually, but we store MAC/ID.
+        // We need to be careful about matching.
+        // Assuming getConnectedBluetoothDevices returns what we need or we check loosely.
+        // For now, simple check.
+        if (
+          connectedDevices.includes(this.config.deviceId) ||
+          connectedDevices.some((d) => d.includes(this.config.deviceId!))
+        ) {
+          console.log(
+            '[BluetoothAction] Successfully connected to ' +
+              this.config.deviceId
+          );
+          return;
+        }
+
+        console.log(
+          '[BluetoothAction] Retrying connection to ' +
+            this.config.deviceId +
+            '...'
+        );
+        this.adapter.connectBluetoothDevice(this.config.deviceId);
+      }
+      console.warn(
+        '[BluetoothAction] Timed out connecting to ' + this.config.deviceId
+      );
     }
+  }
+
+  async revert(): Promise<void> {
+    if (this.initialState !== null) {
+      this.adapter.setBluetooth(this.initialState);
+      this.initialState = null;
+    } else {
+      this.adapter.setBluetooth(!this.config.enabled);
+    }
+  }
 }
 
+// Deprecated - kept for backward compatibility if needed, but ActionFactory should handle migration
 export class BluetoothDeviceAction extends BaseAction {
-    private adapter: SystemAdapter;
+  constructor(
+    id: string,
+    config: { deviceId: string; action: 'connect' | 'disconnect' },
+    adapter: SystemAdapter
+  ) {
+    super(id, 'bluetooth_device', config, adapter);
+  }
 
-    constructor(id: string, config: { deviceId: string, action: 'connect' | 'disconnect' }, adapter: SystemAdapter) {
-        super(id, 'bluetooth_device', config);
-        this.adapter = adapter;
+  async execute(): Promise<void> {
+    if (this.config.action === 'connect') {
+      this.adapter.connectBluetoothDevice(this.config.deviceId);
+    } else {
+      this.adapter.disconnectBluetoothDevice(this.config.deviceId);
     }
+  }
 
-    async execute(): Promise<void> {
-        if (this.config.action === 'connect') {
-            this.adapter.connectBluetoothDevice(this.config.deviceId);
-        } else {
-            this.adapter.disconnectBluetoothDevice(this.config.deviceId);
-        }
+  async revert(): Promise<void> {
+    if (this.config.action === 'connect') {
+      this.adapter.disconnectBluetoothDevice(this.config.deviceId);
+    } else {
+      this.adapter.connectBluetoothDevice(this.config.deviceId);
     }
-
-    async revert(): Promise<void> {
-        if (this.config.action === 'connect') {
-            this.adapter.disconnectBluetoothDevice(this.config.deviceId);
-        } else {
-            this.adapter.connectBluetoothDevice(this.config.deviceId);
-        }
-    }
+  }
 }
 
 export class AirplaneModeAction extends BaseAction {
-    private adapter: SystemAdapter;
+  constructor(
+    id: string,
+    config: { enabled: boolean },
+    adapter: SystemAdapter
+  ) {
+    super(id, 'airplane_mode', config, adapter);
+  }
 
-    constructor(id: string, config: { enabled: boolean }, adapter: SystemAdapter) {
-        super(id, 'airplane_mode', config);
-        this.adapter = adapter;
-    }
+  async execute(): Promise<void> {
+    this.adapter.setAirplaneMode(this.config.enabled);
+  }
 
-    async execute(): Promise<void> {
-        this.adapter.setAirplaneMode(this.config.enabled);
-    }
-
-    async revert(): Promise<void> {
-        this.adapter.setAirplaneMode(!this.config.enabled);
-    }
+  async revert(): Promise<void> {
+    this.adapter.setAirplaneMode(!this.config.enabled);
+  }
 }

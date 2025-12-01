@@ -77,6 +77,8 @@ export interface SystemAdapter {
   getScreenTimeout(): number;
   setScreenOrientation(orientation: 'portrait' | 'landscape'): void;
   setRefreshRate(rate: number): void;
+  getRefreshRate(): number;
+  getAvailableRefreshRates(): number[];
 
   // New Actions - Power
   setPowerSaver(enabled: boolean): void;

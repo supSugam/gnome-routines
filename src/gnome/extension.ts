@@ -21,28 +21,16 @@ export default class GnomeRoutinesExt extends Extension {
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);
-    this.manager = new RoutineManager(storage, this.adapter);
+    this.manager = new RoutineManager(storage, this.adapter, settings);
 
     // Load routines
     this.manager.load();
 
     // Watch for settings changes (when user toggles routines in prefs)
     this.settingsChangedId = settings.connect('changed::routines', () => {
-      console.log('[GnomeRoutines] Settings changed, updating enabled states');
+      console.log('[GnomeRoutines] Settings changed, reloading routines...');
       if (this.manager) {
-        // Get updated routines from settings
-        const updatedRoutines = JSON.parse(settings.get_string('routines'));
-
-        // Update enabled flags for existing routine instances
-        updatedRoutines.forEach((updatedRoutine: any) => {
-          const existing = this.manager!.getRoutine(updatedRoutine.id);
-          if (existing) {
-            existing.enabled = updatedRoutine.enabled;
-          }
-        });
-
-        // Re-evaluate to activate/deactivate based on new enabled states
-        this.manager.evaluate();
+        this.manager.reload();
       }
     });
 

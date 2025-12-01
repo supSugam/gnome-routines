@@ -2,6 +2,8 @@ import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 import { StateManager } from '../stateManager.js';
 
+export { RefreshRateAction } from './refreshRate.js';
+
 export class DarkModeAction extends BaseAction {
     private stateManager: StateManager;
     private routineId: string;

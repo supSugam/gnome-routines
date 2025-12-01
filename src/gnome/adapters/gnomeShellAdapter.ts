@@ -184,10 +184,28 @@ export class GnomeShellAdapter implements SystemAdapter {
         const error = stderr
           ? new TextDecoder().decode(stderr)
           : 'unknown error';
-        console.error(`[GnomeShellAdapter] bluetoothctl failed:`, error);
+        console.warn(
+          `[GnomeShellAdapter] bluetoothctl failed, trying rfkill. Error: ${error}`
+        );
+        // Fallback to rfkill
+        const rfkillCommand = enabled
+          ? 'rfkill unblock bluetooth'
+          : 'rfkill block bluetooth';
+        GLib.spawn_command_line_async(rfkillCommand);
       }
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to set Bluetooth:', e);
+      // Try rfkill as last resort
+      try {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        const rfkillCommand = enabled
+          ? 'rfkill unblock bluetooth'
+          : 'rfkill block bluetooth';
+        GLib.spawn_command_line_async(rfkillCommand);
+      } catch (err) {
+        console.error('[GnomeShellAdapter] rfkill fallback failed:', err);
+      }
     }
   }
 
@@ -220,13 +238,37 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setWifi(enabled: boolean): void {
-    // Requires NMClient
-    console.log(`Setting Wifi to ${enabled}`);
+    console.log(`[GnomeShellAdapter] Setting Wifi to ${enabled}`);
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const cmd = enabled ? 'nmcli radio wifi on' : 'nmcli radio wifi off';
+      GLib.spawn_command_line_async(cmd);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set Wifi:', e);
+    }
   }
 
   async connectToWifi(ssid: string): Promise<boolean> {
-    console.log(`Connecting to Wifi ${ssid}`);
-    return true;
+    console.log(`[GnomeShellAdapter] Connecting to Wifi ${ssid}`);
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // nmcli device wifi connect <ssid>
+      // This is blocking and might take time.
+      // We should probably use async spawn but we need result.
+      // For now, use sync but with timeout if possible? No, sync blocks shell.
+      // Use async and return true (optimistic) or implement proper async wrapper.
+      // Since we have retry logic in Action, we can just trigger it here.
+
+      // Use connection up to activate existing profile by name (SSID/ID)
+      const cmd = `nmcli connection up "${ssid}"`;
+      GLib.spawn_command_line_async(cmd);
+      return true;
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to connect to Wifi:', e);
+      return false;
+    }
   }
 
   // Network Tracking
@@ -491,9 +533,111 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setRefreshRate(rate: number): void {
-    // Extremely complex on GNOME. Requires DBus DisplayConfig.
-    // Skipping for now or using a placeholder log.
-    console.warn('[GnomeShellAdapter] Set Refresh Rate not fully implemented.');
+    console.log(`[GnomeShellAdapter] Setting refresh rate to ${rate}Hz`);
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      
+      // Use xrandr to set refresh rate
+      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      if (success && stdout) {
+        const output = new TextDecoder().decode(stdout);
+        console.log(`[GnomeShellAdapter] xrandr output length: ${output.length}`);
+        
+        // Find connected display and current resolution
+        const lines = output.split('\n');
+        let displayName = '';
+        let currentResolution = '';
+        
+        for (const line of lines) {
+          if (line.includes(' connected')) {
+            displayName = line.split(' ')[0];
+            console.log(`[GnomeShellAdapter] Found display: ${displayName}`);
+          }
+          // Find current resolution from the line with * (current mode)
+          if (line.includes('*')) {
+             const trimmed = line.trim();
+             currentResolution = trimmed.split(' ')[0];
+             console.log(`[GnomeShellAdapter] Current resolution: ${currentResolution}`);
+          }
+        }
+        
+        if (displayName && currentResolution) {
+          // Set refresh rate with explicit mode
+          const cmd = `xrandr --output ${displayName} --mode ${currentResolution} --rate ${rate}`;
+          console.log(`[GnomeShellAdapter] Executing: ${cmd}`);
+          const [res, out, err] = GLib.spawn_command_line_sync(cmd);
+          if (!res) {
+             console.error(`[GnomeShellAdapter] xrandr execution failed. Stderr: ${err ? new TextDecoder().decode(err) : 'none'}`);
+          } else {
+             console.log(`[GnomeShellAdapter] xrandr executed successfully.`);
+          }
+        } else {
+          console.warn(`[GnomeShellAdapter] Could not determine display (${displayName}) or resolution (${currentResolution})`);
+        }
+      } else {
+        console.warn('[GnomeShellAdapter] xrandr command failed');
+      }
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set refresh rate:', e);
+    }
+  }
+
+  getRefreshRate(): number {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      if (success && stdout) {
+        const output = new TextDecoder().decode(stdout);
+        // Find current refresh rate (marked with *)
+        // Regex: look for number followed by *
+        const match = output.match(/(\d+\.\d+)\*/);
+        if (match) {
+          const rate = Math.round(parseFloat(match[1]));
+          console.log(`[GnomeShellAdapter] Current refresh rate: ${rate}Hz`);
+          return rate;
+        }
+      }
+      console.warn('[GnomeShellAdapter] Could not detect current refresh rate, defaulting to 60');
+      return 60; // Default fallback
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to get refresh rate:', e);
+      return 60;
+    }
+  }
+
+  getAvailableRefreshRates(): number[] {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      if (success && stdout) {
+        const output = new TextDecoder().decode(stdout);
+        const rates: number[] = [];
+        const lines = output.split('\n');
+        for (const line of lines) {
+          if (line.includes('*')) {
+            // Extract all rates from this line
+            const rateMatches = line.matchAll(/(\d+\.\d+)/g);
+            for (const match of rateMatches) {
+              const rate = Math.round(parseFloat(match[1]));
+              if (rate > 0 && !rates.includes(rate)) {
+                rates.push(rate);
+              }
+            }
+            break;
+          }
+        }
+        const sortedRates = rates.sort((a, b) => b - a);
+        console.log(`[GnomeShellAdapter] Available refresh rates: ${sortedRates.join(', ')}`);
+        return sortedRates;
+      }
+      return [60]; // Default fallback
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to get available refresh rates:', e);
+      return [60];
+    }
   }
 
   setPowerSaver(enabled: boolean): void {
