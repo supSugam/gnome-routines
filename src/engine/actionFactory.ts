@@ -3,6 +3,7 @@ import { WallpaperAction } from './actions/wallpaper.js';
 import { DndAction } from './actions/dnd.js';
 import { VolumeAction } from './actions/volume.js';
 import { BrightnessAction } from './actions/brightness.js';
+import { KeyboardBrightnessAction } from './actions/keyboardBrightness.js';
 import {
   WifiAction,
   BluetoothAction,
@@ -91,6 +92,8 @@ export class ActionFactory {
         return new VolumeAction(data.id, data.config, adapter);
       case 'brightness':
         return new BrightnessAction(data.id, data.config, adapter);
+      case 'keyboard_brightness':
+        return new KeyboardBrightnessAction(data.id, data.config, adapter);
       default:
         console.warn(`Unknown action type: ${data.type}`);
         return null;

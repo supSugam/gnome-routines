@@ -113,10 +113,10 @@ export class BluetoothAction extends BaseAction {
 
   async execute(): Promise<void> {
     if (this.initialState === null) {
-      this.initialState = this.adapter.getBluetooth();
+      this.initialState = await this.adapter.getBluetooth();
     }
 
-    this.adapter.setBluetooth(this.config.enabled);
+    await this.adapter.setBluetooth(this.config.enabled);
 
     if (this.config.enabled && this.config.deviceId) {
       const timeout = (this.config.timeout || 30) * 1000;
@@ -128,12 +128,13 @@ export class BluetoothAction extends BaseAction {
       );
 
       // Initial attempt
-      this.adapter.connectBluetoothDevice(this.config.deviceId);
+      await this.adapter.connectBluetoothDevice(this.config.deviceId);
 
       while (Date.now() - startTime < timeout) {
         await delay(interval);
 
-        const connectedDevices = this.adapter.getConnectedBluetoothDevices();
+        const connectedDevices =
+          await this.adapter.getConnectedBluetoothDevices();
 
         // Robust matching: check name OR address
         const isConnected = connectedDevices.some(
@@ -156,7 +157,7 @@ export class BluetoothAction extends BaseAction {
             this.config.deviceId +
             '...'
         );
-        this.adapter.connectBluetoothDevice(this.config.deviceId);
+        await this.adapter.connectBluetoothDevice(this.config.deviceId);
       }
       console.warn(
         '[BluetoothAction] Timed out connecting to ' + this.config.deviceId
@@ -166,10 +167,10 @@ export class BluetoothAction extends BaseAction {
 
   async revert(): Promise<void> {
     if (this.initialState !== null) {
-      this.adapter.setBluetooth(this.initialState);
+      await this.adapter.setBluetooth(this.initialState);
       this.initialState = null;
     } else {
-      this.adapter.setBluetooth(!this.config.enabled);
+      await this.adapter.setBluetooth(!this.config.enabled);
     }
   }
 }

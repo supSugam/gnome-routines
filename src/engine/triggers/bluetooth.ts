@@ -4,6 +4,7 @@ import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 export class BluetoothTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
+  private _timeoutId: number = 0;
 
   constructor(
     id: string,
@@ -20,12 +21,12 @@ export class BluetoothTrigger extends BaseTrigger {
   async check(): Promise<boolean> {
     // Power state check
     if (this.config.state === 'enabled' || this.config.state === 'disabled') {
-      const isEnabled = this.adapter.getBluetoothPowerState();
+      const isEnabled = await this.adapter.getBluetoothPowerState();
       return this.config.state === 'enabled' ? isEnabled : !isEnabled;
     }
 
     // Connection state check
-    const connectedDevices = this.adapter.getConnectedBluetoothDevices();
+    const connectedDevices = await this.adapter.getConnectedBluetoothDevices();
 
     // If specific devices are configured
     if (this.config.deviceIds && this.config.deviceIds.length > 0) {
@@ -71,35 +72,26 @@ export class BluetoothTrigger extends BaseTrigger {
         this.emit('triggered');
       });
 
-      // Polling fallback for device connection
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      let lastState = false;
-
       // Initial check
-      this.check().then((state) => (lastState = state));
-
-      GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
-        this.check()
-          .then((currentState) => {
-            if (currentState !== lastState) {
-              console.log(
-                `[BluetoothTrigger] Polling detected state change: ${lastState} -> ${currentState}`
-              );
-              lastState = currentState;
-              if (currentState) {
-                console.log(`[BluetoothTrigger] Triggered via polling`);
-                this.emit('triggered');
-              }
-            }
-          })
-          .catch((e) => {
-            console.error('[BluetoothTrigger] Polling check failed:', e);
-          });
-        return GLib.SOURCE_CONTINUE;
+      this.check().then((state) => {
+        if (state) {
+          console.log(`[BluetoothTrigger] Initial check: Triggered`);
+          this.emit('triggered');
+        }
       });
     }
 
     this._isActivated = true;
+  }
+
+  deactivate(): void {
+    if (this._timeoutId > 0) {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      GLib.source_remove(this._timeoutId);
+      this._timeoutId = 0;
+      console.log(`[BluetoothTrigger] Polling timer removed`);
+    }
+    this._isActivated = false;
   }
 }

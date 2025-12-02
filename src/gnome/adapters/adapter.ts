@@ -7,15 +7,15 @@ export interface SystemAdapter {
   getDND(): boolean;
   setBrightness(percentage: number): void;
   getBrightness(): number;
-  setVolume(percentage: number): void;
-  getVolume(): number;
-  setBluetoothVolume(percentage: number): boolean;
+  setVolume(percentage: number): Promise<void>;
+  getVolume(): Promise<number>;
+  setBluetoothVolume(percentage: number): Promise<boolean>;
   setSinkVolume(sinkName: string, percentage: number): void;
   getBluetoothAudioSinkName(): string | null;
   setWallpaper(uri: string): void;
   getWallpaper(): string;
-  setBluetooth(enabled: boolean): void;
-  getBluetooth(): boolean;
+  setBluetooth(enabled: boolean): Promise<void>;
+  getBluetooth(): Promise<boolean>;
 
   // Connectivity
   setWifi(enabled: boolean): void;
@@ -40,9 +40,9 @@ export interface SystemAdapter {
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void;
 
   // Bluetooth Tracking
-  getBluetoothPowerState(): boolean;
+  getBluetoothPowerState(): Promise<boolean>;
   onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void;
-  getConnectedBluetoothDevices(): { name: string; address: string }[]; // Returns list of device objects
+  getConnectedBluetoothDevices(): Promise<{ name: string; address: string }[]>; // Returns list of device objects
   onBluetoothDeviceStateChanged(callback: () => void): void;
 
   // Power & Battery
@@ -67,7 +67,7 @@ export interface SystemAdapter {
   onWiredHeadphonesStateChanged(callback: (isConnected: boolean) => void): void;
 
   // New Actions - Connections
-  connectBluetoothDevice(id: string): void;
+  connectBluetoothDevice(id: string): Promise<void>;
   disconnectBluetoothDevice(id: string): void;
   setAirplaneMode(enabled: boolean): void;
 
@@ -91,4 +91,7 @@ export interface SystemAdapter {
   openLink(url: string): void;
   takeScreenshot(): void;
   openApp(appIds: string[]): void;
+  // New Actions - Keyboard
+  setKeyboardBrightness(percentage: number): void;
+  getKeyboardBrightness(): Promise<number>;
 }

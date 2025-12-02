@@ -36,7 +36,7 @@ export class RoutineManager implements RoutineManagerInterface {
         console.error(`[RoutineManager] Failed to hydrate routine: ${r.name}`);
       }
     });
-    
+
     console.log(
       `[RoutineManager] Total active routines: ${this.routines.size}`
     );
@@ -146,7 +146,31 @@ export class RoutineManager implements RoutineManagerInterface {
     return this.routines.get(id);
   }
 
+  private _evaluationCount: number = 0;
+  private _lastResetTime: number = Date.now();
+
   async evaluate(): Promise<void> {
+    // Safety Circuit Breaker
+    const now = Date.now();
+    if (now - this._lastResetTime > 60000) {
+      this._evaluationCount = 0;
+      this._lastResetTime = now;
+    }
+
+    this._evaluationCount++;
+    if (this._evaluationCount > 100) {
+      if (this._evaluationCount === 101) {
+        console.error(
+          '[RoutineManager] CRITICAL: Excessive routine evaluations detected (>100/min). Pausing evaluations for safety.'
+        );
+        this.adapter.showNotification(
+          'Gnome Routines Error',
+          'Excessive activity detected. Routines paused for safety.'
+        );
+      }
+      return;
+    }
+
     for (const routine of this.routines.values()) {
       // Ensure triggers are activated if routine is enabled
       if (routine.enabled) {
@@ -166,7 +190,7 @@ export class RoutineManager implements RoutineManagerInterface {
         routine.triggers,
         routine.matchType || 'all'
       );
-      
+
       if (shouldBeActive && !routine.isActive) {
         console.log(`[RoutineManager] Activating routine ${routine.name}`);
         this.activateRoutine(routine);
@@ -187,7 +211,7 @@ export class RoutineManager implements RoutineManagerInterface {
           trigger.constructor.name
         }, has activate: ${typeof trigger.activate}`
       );
-      
+
       if (trigger.activate && !trigger._isActivated) {
         // Mark as activated BEFORE calling activate() to prevent infinite recursion
         // if the trigger emits 'triggered' synchronously during activation (like AppTrigger)
@@ -283,6 +307,38 @@ export class RoutineManager implements RoutineManagerInterface {
     // Execute revert actions in reverse order
     for (let i = routine.actions.length - 1; i >= 0; i--) {
       const action = routine.actions[i];
+      const onDeactivate = action.onDeactivate;
+
+      if (onDeactivate) {
+        if (onDeactivate.type === 'keep') {
+          console.log(`[RoutineManager] Keeping state for action ${action.id}`);
+          continue;
+        } else if (onDeactivate.type === 'custom' && onDeactivate.config) {
+          console.log(
+            `[RoutineManager] Executing custom deactivation for action ${action.id}`
+          );
+          // Create a temporary action to execute the custom config
+          const customAction = ActionFactory.create(
+            { ...action, config: onDeactivate.config }, // Reuse type and ID, swap config
+            this.adapter,
+            this.stateManager,
+            routine.id
+          );
+          if (customAction) {
+            try {
+              await customAction.execute();
+            } catch (e) {
+              console.error(
+                `[RoutineManager] Failed to execute custom deactivation for ${action.id}:`,
+                e
+              );
+            }
+          }
+          continue;
+        }
+      }
+
+      // Default behavior: Revert
       if (action.revert) {
         try {
           await action.revert();

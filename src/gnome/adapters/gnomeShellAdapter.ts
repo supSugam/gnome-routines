@@ -93,82 +93,159 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  setVolume(percentage: number): void {
+  async setVolume(percentage: number): Promise<void> {
     console.log(`[GnomeShellAdapter] Setting volume to: ${percentage}%`);
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
-      const command = `pactl set-sink-volume @DEFAULT_SINK@ ${percentage}%`;
-      GLib.spawn_command_line_async(command);
-      console.log(
-        `[GnomeShellAdapter] Volume set command executed: ${command}`
-      );
+      // @ts-ignore
+      const Gio = imports.gi.Gio;
+
+      const command = [
+        'pactl',
+        'set-sink-volume',
+        '@DEFAULT_SINK@',
+        `${percentage}%`,
+      ];
+
+      return new Promise((resolve) => {
+        try {
+          const proc = new Gio.Subprocess({
+            argv: command,
+            flags: Gio.SubprocessFlags.NONE,
+          });
+          proc.init(null);
+          proc.wait_check_async(null, (proc: any, res: any) => {
+            try {
+              proc.wait_check_finish(res);
+              console.log(`[GnomeShellAdapter] Volume set command executed`);
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Failed to set volume (async):',
+                e
+              );
+            }
+            resolve();
+          });
+        } catch (e) {
+          console.error('[GnomeShellAdapter] Failed to spawn set volume:', e);
+          resolve();
+        }
+      });
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to set volume:', e);
     }
   }
 
-  getVolume(): number {
-    try {
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      const [res, out, err, status] = GLib.spawn_command_line_sync(
-        'pactl get-sink-volume @DEFAULT_SINK@'
-      );
+  getVolume(): Promise<number> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
 
-      if (status === 0) {
-        const output = new TextDecoder().decode(out);
-        // Parse output like: "Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB"
-        const match = output.match(/(\d+)%/);
-        if (match) {
-          return parseInt(match[1], 10);
-        }
+        const proc = new Gio.Subprocess({
+          argv: ['pactl', 'get-sink-volume', '@DEFAULT_SINK@'],
+          flags: Gio.SubprocessFlags.STDOUT_PIPE,
+        });
+        proc.init(null);
+
+        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+          try {
+            const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
+            if (ok && stdout) {
+              // Parse output like: "Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB"
+              const match = stdout.match(/(\d+)%/);
+              if (match) {
+                resolve(parseInt(match[1], 10));
+                return;
+              }
+            }
+            resolve(50);
+          } catch (e) {
+            console.error(
+              '[GnomeShellAdapter] Failed to get volume (async):',
+              e
+            );
+            resolve(50);
+          }
+        });
+      } catch (e) {
+        console.error('[GnomeShellAdapter] Failed to initiate get volume:', e);
+        resolve(50);
       }
-      return 50;
-    } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get volume:', e);
-      return 50;
-    }
+    });
   }
 
-  setBluetoothVolume(percentage: number): boolean {
-    try {
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      // List sinks to find Bluetooth ones
-      const [res, out, err, status] = GLib.spawn_command_line_sync(
-        'pactl list short sinks'
-      );
+  setBluetoothVolume(percentage: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
 
-      if (status !== 0) {
-        console.error('[GnomeShellAdapter] Failed to list sinks');
-        return false;
+        // List sinks to find Bluetooth ones
+        const proc = new Gio.Subprocess({
+          argv: ['pactl', 'list', 'short', 'sinks'],
+          flags: Gio.SubprocessFlags.STDOUT_PIPE,
+        });
+        proc.init(null);
+
+        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+          try {
+            const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
+            if (!ok || !stdout) {
+              resolve(false);
+              return;
+            }
+
+            const lines = stdout.split('\n');
+            let found = false;
+            let promises = [];
+
+            for (const line of lines) {
+              if (line.includes('bluez_output')) {
+                const parts = line.split('\t');
+                const sinkName = parts[1];
+                console.log(
+                  `[GnomeShellAdapter] Found Bluetooth sink: ${sinkName}`
+                );
+
+                // We need to set volume for this sink
+                // We can fire and forget, or wait. Let's fire and forget for individual sinks but track if we found any.
+                const subProc = new Gio.Subprocess({
+                  argv: [
+                    'pactl',
+                    'set-sink-volume',
+                    sinkName,
+                    `${percentage}%`,
+                  ],
+                  flags: Gio.SubprocessFlags.NONE,
+                });
+                subProc.init(null);
+                // No need to wait for completion for the return value, but good for cleanup
+                found = true;
+              }
+            }
+            resolve(found);
+          } catch (e) {
+            console.error(
+              '[GnomeShellAdapter] Failed to set Bluetooth volume (async):',
+              e
+            );
+            resolve(false);
+          }
+        });
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to initiate set Bluetooth volume:',
+          e
+        );
+        resolve(false);
       }
-
-      const output = new TextDecoder().decode(out);
-      const lines = output.split('\n');
-      let found = false;
-
-      for (const line of lines) {
-        // Look for bluez output
-        // Example: 2	bluez_output.XX_XX_XX_XX_XX_XX.a2dp-sink	module-bluez5-device.c	s16le 2ch 44100Hz	SUSPENDED
-        if (line.includes('bluez_output')) {
-          const parts = line.split('\t');
-          const sinkName = parts[1];
-          console.log(`[GnomeShellAdapter] Found Bluetooth sink: ${sinkName}`);
-
-          const command = `pactl set-sink-volume ${sinkName} ${percentage}%`;
-          GLib.spawn_command_line_async(command);
-          console.log(`[GnomeShellAdapter] Executed: ${command}`);
-          found = true;
-        }
-      }
-
-      return found;
-    } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set Bluetooth volume:', e);
-      return false;
-    }
+    });
   }
 
   setSinkVolume(sinkName: string, percentage: number): void {
@@ -206,77 +283,117 @@ export class GnomeShellAdapter implements SystemAdapter {
     return uri;
   }
 
-  setBluetooth(enabled: boolean): void {
+  setBluetooth(enabled: boolean): Promise<void> {
     console.log(`[GnomeShellAdapter] Setting Bluetooth to: ${enabled}`);
-    try {
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-
-      // Use bluetoothctl (BlueZ control) - most reliable method
-      const command = enabled
-        ? 'bluetoothctl power on'
-        : 'bluetoothctl power off';
-      const [success, stdout, stderr] = GLib.spawn_command_line_sync(command);
-
-      if (success) {
-        console.log(
-          `[GnomeShellAdapter] Bluetooth ${
-            enabled ? 'enabled' : 'disabled'
-          } via bluetoothctl`
-        );
-      } else {
-        const error = stderr
-          ? new TextDecoder().decode(stderr)
-          : 'unknown error';
-        console.warn(
-          `[GnomeShellAdapter] bluetoothctl failed, trying rfkill. Error: ${error}`
-        );
-        // Fallback to rfkill
-        const rfkillCommand = enabled
-          ? 'rfkill unblock bluetooth'
-          : 'rfkill block bluetooth';
-        GLib.spawn_command_line_async(rfkillCommand);
-      }
-    } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set Bluetooth:', e);
-      // Try rfkill as last resort
+    return new Promise((resolve) => {
       try {
         // @ts-ignore
         const GLib = imports.gi.GLib;
-        const rfkillCommand = enabled
-          ? 'rfkill unblock bluetooth'
-          : 'rfkill block bluetooth';
-        GLib.spawn_command_line_async(rfkillCommand);
-      } catch (err) {
-        console.error('[GnomeShellAdapter] rfkill fallback failed:', err);
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
+
+        // Use bluetoothctl (BlueZ control) - most reliable method
+        const command = enabled
+          ? ['bluetoothctl', 'power', 'on']
+          : ['bluetoothctl', 'power', 'off'];
+
+        const proc = new Gio.Subprocess({
+          argv: command,
+          flags: Gio.SubprocessFlags.NONE,
+        });
+        proc.init(null);
+        proc.wait_check_async(null, (proc: any, res: any) => {
+          try {
+            proc.wait_check_finish(res);
+            console.log(
+              `[GnomeShellAdapter] Bluetooth ${
+                enabled ? 'enabled' : 'disabled'
+              } via bluetoothctl`
+            );
+          } catch (e) {
+            console.warn(
+              `[GnomeShellAdapter] bluetoothctl failed, trying rfkill: ${e}`
+            );
+            // Fallback to rfkill
+            const rfkillCommand = enabled
+              ? 'rfkill unblock bluetooth'
+              : 'rfkill block bluetooth';
+            GLib.spawn_command_line_async(rfkillCommand);
+          }
+          resolve();
+        });
+      } catch (e) {
+        console.error('[GnomeShellAdapter] Failed to set Bluetooth:', e);
+        // Try rfkill as last resort
+        try {
+          // @ts-ignore
+          const GLib = imports.gi.GLib;
+          const rfkillCommand = enabled
+            ? 'rfkill unblock bluetooth'
+            : 'rfkill block bluetooth';
+          GLib.spawn_command_line_async(rfkillCommand);
+        } catch (err) {
+          console.error('[GnomeShellAdapter] rfkill fallback failed:', err);
+        }
+        resolve();
       }
-    }
+    });
   }
 
-  getBluetooth(): boolean {
+  async getBluetooth(): Promise<boolean> {
+    // We can use bluetoothctl show or DBus
+    // Using DBus is faster for state checks
     try {
       // @ts-ignore
-      const GLib = imports.gi.GLib;
+      const Gio = imports.gi.Gio;
+      const proxy = new Gio.DBusProxy({
+        g_connection: Gio.DBus.system,
+        g_name: 'org.bluez',
+        g_object_path: '/org/bluez/hci0',
+        g_interface_name: 'org.bluez.Adapter1',
+      });
 
-      // Check Bluetooth status via bluetoothctl
-      const command = 'bluetoothctl show';
-      const [success, stdout] = GLib.spawn_command_line_sync(command);
-
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        // Look for "Powered: yes" or "Powered: no"
-        const match = output.match(/Powered:\s*(yes|no)/i);
-        if (match) {
-          const isOn = match[1].toLowerCase() === 'yes';
-          console.log(
-            `[GnomeShellAdapter] Bluetooth state: ${isOn ? 'on' : 'off'}`
-          );
-          return isOn;
-        }
+      // Try DBus property read first
+      const result = proxy.get_cached_property('Powered');
+      if (result) {
+        return result.get_boolean();
       }
-      return false;
+
+      // Fallback to bluetoothctl if DBus fails or not cached
+      return new Promise((resolve) => {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
+
+        const proc = new Gio.Subprocess({
+          argv: ['bluetoothctl', 'show'],
+          flags: Gio.SubprocessFlags.STDOUT_PIPE,
+        });
+        proc.init(null);
+
+        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+          try {
+            const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
+            if (ok && stdout) {
+              const match = stdout.match(/Powered:\s*(yes|no)/i);
+              if (match) {
+                resolve(match[1].toLowerCase() === 'yes');
+                return;
+              }
+            }
+            resolve(false);
+          } catch (e) {
+            console.error(
+              '[GnomeShellAdapter] Failed to get Bluetooth state (async):',
+              e
+            );
+            resolve(false);
+          }
+        });
+      });
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Bluetooth state:', e);
+      console.error('[GnomeShellAdapter] Failed to get Bluetooth power:', e);
       return false;
     }
   }
@@ -419,44 +536,77 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   // --- New Actions Implementation ---
 
-  connectBluetoothDevice(id: string): void {
-    try {
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      // bluetoothctl connect <MAC>
-      // We stored 'Name' in triggers, but for connection we ideally need MAC.
-      // If we only have Name, we might need to resolve it.
-      // But wait, the trigger UI stored the Name (alias).
-      // We should probably update the trigger/action UI to store MAC address as ID and Name as label.
-      // For now, let's try to connect by Name (bluetoothctl might not support it directly without lookup).
-      // Let's do a lookup first if it looks like a name.
-      let mac = id;
-      if (!id.includes(':')) {
-        const [success, stdout] = GLib.spawn_command_line_sync(
-          'bluetoothctl devices'
-        );
-        if (success && stdout) {
-          const output = new TextDecoder().decode(stdout);
-          const lines = output.split('\n');
-          for (const line of lines) {
-            if (line.includes(id)) {
-              const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-              if (match && match[2] === id) {
-                mac = match[1];
-                break;
-              }
-            }
-          }
-        }
-      }
+  connectBluetoothDevice(id: string): Promise<void> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
 
-      GLib.spawn_command_line_async(`bluetoothctl connect ${mac}`);
-    } catch (e) {
-      console.error(
-        '[GnomeShellAdapter] Failed to connect bluetooth device:',
-        e
-      );
-    }
+        let mac = id;
+        // If id is not a MAC address (e.g. alias), try to resolve it via DBus
+        if (!id.includes(':')) {
+          // We can use the ObjectManager logic we implemented in getConnectedBluetoothDevices
+          // But for now, let's assume the user provides a MAC or we can't easily resolve it without a full scan.
+          // Actually, we can try to connect to the alias directly? No, bluetoothctl needs MAC usually.
+          // Let's try to resolve it using async bluetoothctl devices list if needed, OR just assume MAC for now to be safe/fast.
+          // The user said "selected (already known bluetooth device)".
+          // If we want to be robust, we should implement async resolution.
+
+          const proc = new Gio.Subprocess({
+            argv: ['bluetoothctl', 'devices'],
+            flags: Gio.SubprocessFlags.STDOUT_PIPE,
+          });
+          proc.init(null);
+          proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+            try {
+              const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
+              if (ok && stdout) {
+                const lines = stdout.split('\n');
+                for (const line of lines) {
+                  if (line.includes(id)) {
+                    const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
+                    if (match && match[2] === id) {
+                      mac = match[1];
+                      break;
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Failed to resolve bluetooth device (async):',
+                e
+              );
+            }
+
+            // Proceed to connect with resolved MAC or original ID
+            const connectProc = new Gio.Subprocess({
+              argv: ['bluetoothctl', 'connect', mac],
+              flags: Gio.SubprocessFlags.NONE,
+            });
+            connectProc.init(null);
+            resolve();
+          });
+          return;
+        }
+
+        // If it looks like a MAC, just connect
+        const connectProc = new Gio.Subprocess({
+          argv: ['bluetoothctl', 'connect', mac],
+          flags: Gio.SubprocessFlags.NONE,
+        });
+        connectProc.init(null);
+        resolve();
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to connect bluetooth device:',
+          e
+        );
+        resolve();
+      }
+    });
   }
 
   disconnectBluetoothDevice(id: string): void {
@@ -797,6 +947,104 @@ export class GnomeShellAdapter implements SystemAdapter {
       console.error('[GnomeShellAdapter] Failed to open apps:', e);
     }
   }
+  setKeyboardBrightness(percentage: number): void {
+    console.log(
+      `[GnomeShellAdapter] Setting keyboard brightness to: ${percentage}%`
+    );
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // @ts-ignore
+      const Gio = imports.gi.Gio;
+
+      const value = Math.max(0, Math.min(100, percentage));
+
+      Gio.DBus.session.call(
+        'org.gnome.SettingsDaemon.Power',
+        '/org/gnome/SettingsDaemon/Power',
+        'org.freedesktop.DBus.Properties',
+        'Set',
+        new GLib.Variant('(ssv)', [
+          'org.gnome.SettingsDaemon.Power.Keyboard',
+          'Brightness',
+          new GLib.Variant('i', value),
+        ]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
+          try {
+            connection.call_finish(res);
+            console.log(
+              `[GnomeShellAdapter] Keyboard brightness set to ${value}%`
+            );
+          } catch (e) {
+            console.error(
+              '[GnomeShellAdapter] Failed to set keyboard brightness (async):',
+              e
+            );
+          }
+        }
+      );
+    } catch (e) {
+      console.error(
+        '[GnomeShellAdapter] Failed to initiate keyboard brightness set:',
+        e
+      );
+    }
+  }
+
+  getKeyboardBrightness(): Promise<number> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
+
+        Gio.DBus.session.call(
+          'org.gnome.SettingsDaemon.Power',
+          '/org/gnome/SettingsDaemon/Power',
+          'org.freedesktop.DBus.Properties',
+          'Get',
+          new GLib.Variant('(ss)', [
+            'org.gnome.SettingsDaemon.Power.Keyboard',
+            'Brightness',
+          ]),
+          null,
+          Gio.DBusCallFlags.NONE,
+          -1,
+          null,
+          (connection: any, res: any) => {
+            try {
+              const result = connection.call_finish(res);
+              // Result is a tuple containing a variant: (<50>,)
+              const variant = result.get_child_value(0); // The variant inside the tuple
+              const value = variant.get_variant().get_int32(); // Unpack variant 'i'
+              console.log(
+                `[GnomeShellAdapter] Got keyboard brightness: ${value}%`
+              );
+              resolve(value);
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Failed to get keyboard brightness (async):',
+                e
+              );
+              resolve(0); // Default to 0 on error
+            }
+          }
+        );
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to initiate keyboard brightness get:',
+          e
+        );
+        resolve(0);
+      }
+    });
+  }
+
   getWifiPowerState(): boolean {
     try {
       // @ts-ignore
@@ -827,44 +1075,8 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  // Bluetooth Tracking
-  getBluetoothPowerState(): boolean {
-    // We can use bluetoothctl show or DBus
-    // Using DBus is faster for state checks
-    try {
-      // @ts-ignore
-      const Gio = imports.gi.Gio;
-      const proxy = new Gio.DBusProxy({
-        g_connection: Gio.DBus.system,
-        g_name: 'org.bluez',
-        g_object_path: '/org/bluez/hci0',
-        g_interface_name: 'org.bluez.Adapter1',
-      });
-      // We need to initialize it synchronously or just read property if cached
-      // But simpler to just use bluetoothctl for now as we did for actions,
-      // OR use the cached property from a persistent proxy if we had one.
-      // Let's stick to bluetoothctl for reliability as requested by user previously,
-      // unless it's too slow.
-      // Actually, for triggers, we need to be fast.
-      // Let's try DBus property read.
-      const result = proxy.get_cached_property('Powered');
-      if (result) {
-        return result.get_boolean();
-      }
-      // Fallback to bluetoothctl if DBus fails or not cached
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      const [success, stdout] =
-        GLib.spawn_command_line_sync('bluetoothctl show');
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        return output.includes('Powered: yes');
-      }
-      return false;
-    } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Bluetooth power:', e);
-      return false;
-    }
+  async getBluetoothPowerState(): Promise<boolean> {
+    return this.getBluetooth();
   }
 
   onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void {
@@ -906,75 +1118,90 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  getConnectedBluetoothDevices(): { name: string; address: string }[] {
-    try {
-      // @ts-ignore
-      const Gio = imports.gi.Gio;
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
+  getConnectedBluetoothDevices(): Promise<{ name: string; address: string }[]> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const Gio = imports.gi.Gio;
+        // @ts-ignore
+        const GLib = imports.gi.GLib;
 
-      // Use DBus ObjectManager to get all objects from BlueZ
-      const result = Gio.DBus.system.call_sync(
-        'org.bluez',
-        '/',
-        'org.freedesktop.DBus.ObjectManager',
-        'GetManagedObjects',
-        null,
-        null,
-        Gio.DBusCallFlags.NONE,
-        -1,
-        null
-      );
+        // Use DBus ObjectManager to get all objects from BlueZ
+        Gio.DBus.system.call(
+          'org.bluez',
+          '/',
+          'org.freedesktop.DBus.ObjectManager',
+          'GetManagedObjects',
+          null,
+          null,
+          Gio.DBusCallFlags.NONE,
+          -1,
+          null,
+          (connection: any, res: any) => {
+            try {
+              const result = connection.call_finish(res);
+              if (!result) {
+                resolve([]);
+                return;
+              }
 
-      if (!result) return [];
+              // Unpack the result: (a{oa{sa{sv}}})
+              const [objects] = result.deep_unpack();
+              const devices: { name: string; address: string }[] = [];
 
-      // Unpack the result: (a{oa{sa{sv}}})
-      const [objects] = result.deep_unpack();
-      const devices: { name: string; address: string }[] = [];
+              const unpackVariant = (val: any): any => {
+                if (val instanceof GLib.Variant) {
+                  return val.deep_unpack();
+                }
+                return val;
+              };
 
-      const unpackVariant = (val: any): any => {
-        if (val instanceof GLib.Variant) {
-          return val.deep_unpack();
-        }
-        return val;
-      };
+              for (const objectPath in objects) {
+                const interfaces = objects[objectPath];
+                if ('org.bluez.Device1' in interfaces) {
+                  const deviceProps = interfaces['org.bluez.Device1'];
 
-      for (const objectPath in objects) {
-        const interfaces = objects[objectPath];
-        if ('org.bluez.Device1' in interfaces) {
-          const deviceProps = interfaces['org.bluez.Device1'];
+                  // Properties in a{sv} are Variants, need to unpack
+                  const connected = unpackVariant(deviceProps.Connected);
 
-          // Properties in a{sv} are Variants, need to unpack
-          const connected = unpackVariant(deviceProps.Connected);
+                  // Check if connected
+                  if (connected === true) {
+                    const alias = unpackVariant(deviceProps.Alias);
+                    const name = unpackVariant(deviceProps.Name);
+                    const address = unpackVariant(deviceProps.Address);
 
-          // Check if connected
-          if (connected === true) {
-            const alias = unpackVariant(deviceProps.Alias);
-            const name = unpackVariant(deviceProps.Name);
-            const address = unpackVariant(deviceProps.Address);
+                    const finalName = alias || name || 'Unknown Device';
+                    const finalAddress = address || '';
 
-            const finalName = alias || name || 'Unknown Device';
-            const finalAddress = address || '';
+                    console.log(
+                      `[GnomeShellAdapter] Found connected device: ${finalName} (${finalAddress})`
+                    );
+                    devices.push({ name: finalName, address: finalAddress });
+                  }
+                }
+              }
 
-            console.log(
-              `[GnomeShellAdapter] Found connected device: ${finalName} (${finalAddress})`
-            );
-            devices.push({ name: finalName, address: finalAddress });
+              console.log(
+                `[GnomeShellAdapter] Total connected devices found: ${devices.length}`
+              );
+              resolve(devices);
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Failed to get connected Bluetooth devices via DBus (async):',
+                e
+              );
+              resolve([]);
+            }
           }
-        }
+        );
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to initiate Bluetooth devices get:',
+          e
+        );
+        resolve([]);
       }
-
-      console.log(
-        `[GnomeShellAdapter] Total connected devices found: ${devices.length}`
-      );
-      return devices;
-    } catch (e) {
-      console.error(
-        '[GnomeShellAdapter] Failed to get connected Bluetooth devices via DBus:',
-        e
-      );
-      return [];
-    }
+    });
   }
 
   onBluetoothDeviceStateChanged(callback: () => void): void {
@@ -985,7 +1212,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       // Subscribe to PropertiesChanged on org.bluez.Device1
       // When 'Connected' property changes
       Gio.DBus.system.signal_subscribe(
-        null, // Listen to all senders (was 'org.bluez')
+        'org.bluez', // Listen only to org.bluez
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -1000,11 +1227,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           params: any
         ) => {
           const [interfaceName, changedProps] = params.deep_unpack();
-          console.log(
-            `[GnomeShellAdapter] DBus Signal: ${interfaceName} ${JSON.stringify(
-              changedProps
-            )}`
-          );
+          console.log(`[GnomeShellAdapter] DBus Signal: ${interfaceName}`);
           if (
             interfaceName === 'org.bluez.Device1' &&
             changedProps.Connected !== undefined

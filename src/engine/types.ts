@@ -7,12 +7,18 @@ export interface Trigger {
     on(event: 'activate' | 'deactivate', callback: () => void): void;
 }
 
+export interface OnDeactivateConfig {
+  type: 'revert' | 'keep' | 'custom';
+  config?: any;
+}
+
 export interface Action {
-    id: string;
-    type: string;
-    config: Record<string, any>;
-    execute(): Promise<void> | void;
-    revert?(): Promise<void> | void;
+  id: string;
+  type: string;
+  config: Record<string, any>;
+  onDeactivate?: OnDeactivateConfig;
+  execute(): Promise<void> | void;
+  revert?(): Promise<void> | void;
 }
 
 export interface Routine {
