@@ -98,21 +98,11 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
-
-      // Use pactl (PulseAudio/PipeWire control) - works universally
       const command = `pactl set-sink-volume @DEFAULT_SINK@ ${percentage}%`;
-      const [success, stdout, stderr] = GLib.spawn_command_line_sync(command);
-
-      if (success) {
-        console.log(
-          `[GnomeShellAdapter] Volume set to ${percentage}% via pactl`
-        );
-      } else {
-        const error = stderr
-          ? new TextDecoder().decode(stderr)
-          : 'unknown error';
-        console.error(`[GnomeShellAdapter] pactl failed:`, error);
-      }
+      GLib.spawn_command_line_async(command);
+      console.log(
+        `[GnomeShellAdapter] Volume set command executed: ${command}`
+      );
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to set volume:', e);
     }
@@ -122,19 +112,16 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
+      const [res, out, err, status] = GLib.spawn_command_line_sync(
+        'pactl get-sink-volume @DEFAULT_SINK@'
+      );
 
-      // Get current volume via pactl
-      const command = 'pactl get-sink-volume @DEFAULT_SINK@';
-      const [success, stdout] = GLib.spawn_command_line_sync(command);
-
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        // Output format: "Volume: front-left: 32768 /  50% / -18.06 dB,   front-right: 32768 /  50% / -18.06 dB"
+      if (status === 0) {
+        const output = new TextDecoder().decode(out);
+        // Parse output like: "Volume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB"
         const match = output.match(/(\d+)%/);
         if (match) {
-          const volume = parseInt(match[1]);
-          console.log(`[GnomeShellAdapter] Current volume: ${volume}%`);
-          return volume;
+          return parseInt(match[1], 10);
         }
       }
       return 50;
@@ -142,6 +129,63 @@ export class GnomeShellAdapter implements SystemAdapter {
       console.error('[GnomeShellAdapter] Failed to get volume:', e);
       return 50;
     }
+  }
+
+  setBluetoothVolume(percentage: number): boolean {
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      // List sinks to find Bluetooth ones
+      const [res, out, err, status] = GLib.spawn_command_line_sync(
+        'pactl list short sinks'
+      );
+
+      if (status !== 0) {
+        console.error('[GnomeShellAdapter] Failed to list sinks');
+        return false;
+      }
+
+      const output = new TextDecoder().decode(out);
+      const lines = output.split('\n');
+      let found = false;
+
+      for (const line of lines) {
+        // Look for bluez output
+        // Example: 2	bluez_output.XX_XX_XX_XX_XX_XX.a2dp-sink	module-bluez5-device.c	s16le 2ch 44100Hz	SUSPENDED
+        if (line.includes('bluez_output')) {
+          const parts = line.split('\t');
+          const sinkName = parts[1];
+          console.log(`[GnomeShellAdapter] Found Bluetooth sink: ${sinkName}`);
+
+          const command = `pactl set-sink-volume ${sinkName} ${percentage}%`;
+          GLib.spawn_command_line_async(command);
+          console.log(`[GnomeShellAdapter] Executed: ${command}`);
+          found = true;
+        }
+      }
+
+      return found;
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set Bluetooth volume:', e);
+      return false;
+    }
+  }
+
+  setSinkVolume(sinkName: string, percentage: number): void {
+    // Legacy support if needed
+    try {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      const command = `pactl set-sink-volume ${sinkName} ${percentage}%`;
+      GLib.spawn_command_line_async(command);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set sink volume:', e);
+    }
+  }
+
+  getBluetoothAudioSinkName(): string | null {
+    // Re-implement if needed, but setBluetoothVolume handles it now
+    return null;
   }
 
   setWallpaper(uri: string): void {
@@ -537,18 +581,21 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
-      
+
       // Use xrandr to set refresh rate
-      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      const [success, stdout] =
+        GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
         const output = new TextDecoder().decode(stdout);
-        console.log(`[GnomeShellAdapter] xrandr output length: ${output.length}`);
-        
+        console.log(
+          `[GnomeShellAdapter] xrandr output length: ${output.length}`
+        );
+
         // Find connected display and current resolution
         const lines = output.split('\n');
         let displayName = '';
         let currentResolution = '';
-        
+
         for (const line of lines) {
           if (line.includes(' connected')) {
             displayName = line.split(' ')[0];
@@ -556,24 +603,32 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
           // Find current resolution from the line with * (current mode)
           if (line.includes('*')) {
-             const trimmed = line.trim();
-             currentResolution = trimmed.split(' ')[0];
-             console.log(`[GnomeShellAdapter] Current resolution: ${currentResolution}`);
+            const trimmed = line.trim();
+            currentResolution = trimmed.split(' ')[0];
+            console.log(
+              `[GnomeShellAdapter] Current resolution: ${currentResolution}`
+            );
           }
         }
-        
+
         if (displayName && currentResolution) {
           // Set refresh rate with explicit mode
           const cmd = `xrandr --output ${displayName} --mode ${currentResolution} --rate ${rate}`;
           console.log(`[GnomeShellAdapter] Executing: ${cmd}`);
           const [res, out, err] = GLib.spawn_command_line_sync(cmd);
           if (!res) {
-             console.error(`[GnomeShellAdapter] xrandr execution failed. Stderr: ${err ? new TextDecoder().decode(err) : 'none'}`);
+            console.error(
+              `[GnomeShellAdapter] xrandr execution failed. Stderr: ${
+                err ? new TextDecoder().decode(err) : 'none'
+              }`
+            );
           } else {
-             console.log(`[GnomeShellAdapter] xrandr executed successfully.`);
+            console.log(`[GnomeShellAdapter] xrandr executed successfully.`);
           }
         } else {
-          console.warn(`[GnomeShellAdapter] Could not determine display (${displayName}) or resolution (${currentResolution})`);
+          console.warn(
+            `[GnomeShellAdapter] Could not determine display (${displayName}) or resolution (${currentResolution})`
+          );
         }
       } else {
         console.warn('[GnomeShellAdapter] xrandr command failed');
@@ -587,7 +642,8 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
-      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      const [success, stdout] =
+        GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
         const output = new TextDecoder().decode(stdout);
         // Find current refresh rate (marked with *)
@@ -599,7 +655,9 @@ export class GnomeShellAdapter implements SystemAdapter {
           return rate;
         }
       }
-      console.warn('[GnomeShellAdapter] Could not detect current refresh rate, defaulting to 60');
+      console.warn(
+        '[GnomeShellAdapter] Could not detect current refresh rate, defaulting to 60'
+      );
       return 60; // Default fallback
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to get refresh rate:', e);
@@ -611,7 +669,8 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
-      const [success, stdout] = GLib.spawn_command_line_sync('xrandr --current');
+      const [success, stdout] =
+        GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
         const output = new TextDecoder().decode(stdout);
         const rates: number[] = [];
@@ -630,12 +689,19 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         }
         const sortedRates = rates.sort((a, b) => b - a);
-        console.log(`[GnomeShellAdapter] Available refresh rates: ${sortedRates.join(', ')}`);
+        console.log(
+          `[GnomeShellAdapter] Available refresh rates: ${sortedRates.join(
+            ', '
+          )}`
+        );
         return sortedRates;
       }
       return [60]; // Default fallback
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get available refresh rates:', e);
+      console.error(
+        '[GnomeShellAdapter] Failed to get available refresh rates:',
+        e
+      );
       return [60];
     }
   }
@@ -840,37 +906,71 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  getConnectedBluetoothDevices(): string[] {
+  getConnectedBluetoothDevices(): { name: string; address: string }[] {
     try {
       // @ts-ignore
       const Gio = imports.gi.Gio;
-      // We need to use ObjectManager to find all devices
-      // This is complex in raw DBus without a generated proxy.
-      // Alternative: bluetoothctl devices Connected
       // @ts-ignore
       const GLib = imports.gi.GLib;
-      const [success, stdout] = GLib.spawn_command_line_sync(
-        'bluetoothctl devices Connected'
+
+      // Use DBus ObjectManager to get all objects from BlueZ
+      const result = Gio.DBus.system.call_sync(
+        'org.bluez',
+        '/',
+        'org.freedesktop.DBus.ObjectManager',
+        'GetManagedObjects',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null
       );
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        // Output format: "Device XX:XX:XX:XX:XX:XX Name"
-        const devices: string[] = [];
-        output.split('\n').forEach((line) => {
-          const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-          if (match) {
-            // We use the Name (alias) for user friendliness, or MAC?
-            // User asked for "known bluetooth devices". Usually names are better.
-            // Let's store Name.
-            devices.push(match[2]);
+
+      if (!result) return [];
+
+      // Unpack the result: (a{oa{sa{sv}}})
+      const [objects] = result.deep_unpack();
+      const devices: { name: string; address: string }[] = [];
+
+      const unpackVariant = (val: any): any => {
+        if (val instanceof GLib.Variant) {
+          return val.deep_unpack();
+        }
+        return val;
+      };
+
+      for (const objectPath in objects) {
+        const interfaces = objects[objectPath];
+        if ('org.bluez.Device1' in interfaces) {
+          const deviceProps = interfaces['org.bluez.Device1'];
+
+          // Properties in a{sv} are Variants, need to unpack
+          const connected = unpackVariant(deviceProps.Connected);
+
+          // Check if connected
+          if (connected === true) {
+            const alias = unpackVariant(deviceProps.Alias);
+            const name = unpackVariant(deviceProps.Name);
+            const address = unpackVariant(deviceProps.Address);
+
+            const finalName = alias || name || 'Unknown Device';
+            const finalAddress = address || '';
+
+            console.log(
+              `[GnomeShellAdapter] Found connected device: ${finalName} (${finalAddress})`
+            );
+            devices.push({ name: finalName, address: finalAddress });
           }
-        });
-        return devices;
+        }
       }
-      return [];
+
+      console.log(
+        `[GnomeShellAdapter] Total connected devices found: ${devices.length}`
+      );
+      return devices;
     } catch (e) {
       console.error(
-        '[GnomeShellAdapter] Failed to get connected Bluetooth devices:',
+        '[GnomeShellAdapter] Failed to get connected Bluetooth devices via DBus:',
         e
       );
       return [];
@@ -885,7 +985,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       // Subscribe to PropertiesChanged on org.bluez.Device1
       // When 'Connected' property changes
       Gio.DBus.system.signal_subscribe(
-        'org.bluez',
+        null, // Listen to all senders (was 'org.bluez')
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -900,10 +1000,18 @@ export class GnomeShellAdapter implements SystemAdapter {
           params: any
         ) => {
           const [interfaceName, changedProps] = params.deep_unpack();
+          console.log(
+            `[GnomeShellAdapter] DBus Signal: ${interfaceName} ${JSON.stringify(
+              changedProps
+            )}`
+          );
           if (
             interfaceName === 'org.bluez.Device1' &&
             changedProps.Connected !== undefined
           ) {
+            console.log(
+              `[GnomeShellAdapter] Bluetooth device connected state changed: ${changedProps.Connected}`
+            );
             callback();
           }
         }
@@ -917,6 +1025,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   // Power & Battery
+
   getBatteryLevel(): number {
     try {
       // @ts-ignore

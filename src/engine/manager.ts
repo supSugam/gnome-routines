@@ -18,11 +18,28 @@ export class RoutineManager implements RoutineManagerInterface {
   }
 
   async load() {
+    console.log('[RoutineManager] load() called');
     const rawRoutines = await this.storage.loadRoutines();
+    console.log(
+      `[RoutineManager] Loaded ${rawRoutines.length} raw routines from storage`
+    );
+
     rawRoutines.forEach((r) => {
+      console.log(`[RoutineManager] Hydrating routine: ${r.name} (${r.id})`);
       const routine = this._hydrate(r);
-      if (routine) this.routines.set(routine.id, routine);
+      if (routine) {
+        this.routines.set(routine.id, routine);
+        console.log(
+          `[RoutineManager] Routine hydrated and added: ${routine.name}`
+        );
+      } else {
+        console.error(`[RoutineManager] Failed to hydrate routine: ${r.name}`);
+      }
     });
+    
+    console.log(
+      `[RoutineManager] Total active routines: ${this.routines.size}`
+    );
     this.evaluate();
   }
 
@@ -149,10 +166,12 @@ export class RoutineManager implements RoutineManagerInterface {
         routine.triggers,
         routine.matchType || 'all'
       );
-
+      
       if (shouldBeActive && !routine.isActive) {
+        console.log(`[RoutineManager] Activating routine ${routine.name}`);
         this.activateRoutine(routine);
       } else if (!shouldBeActive && routine.isActive) {
+        console.log(`[RoutineManager] Deactivating routine ${routine.name}`);
         this.deactivateRoutine(routine);
       }
     }
@@ -160,6 +179,15 @@ export class RoutineManager implements RoutineManagerInterface {
 
   private activateTriggers(routine: Routine) {
     routine.triggers.forEach((trigger: any) => {
+      console.log(
+        `[RoutineManager] Checking trigger activation for ${trigger.id} (active: ${trigger._isActivated})`
+      );
+      console.log(
+        `[RoutineManager] Trigger type: ${
+          trigger.constructor.name
+        }, has activate: ${typeof trigger.activate}`
+      );
+      
       if (trigger.activate && !trigger._isActivated) {
         // Mark as activated BEFORE calling activate() to prevent infinite recursion
         // if the trigger emits 'triggered' synchronously during activation (like AppTrigger)
@@ -169,12 +197,18 @@ export class RoutineManager implements RoutineManagerInterface {
         if (trigger.on) {
           trigger.on('triggered', () => {
             console.log(
-              `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}`
+              `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}. Evaluating...`
             );
             this.evaluate();
           });
-          trigger.on('activate', () => this.evaluate());
-          trigger.on('deactivate', () => this.evaluate());
+          trigger.on('activate', () => {
+            console.log(`[RoutineManager] Trigger ${trigger.id} activated`);
+            this.evaluate();
+          });
+          trigger.on('deactivate', () => {
+            console.log(`[RoutineManager] Trigger ${trigger.id} deactivated`);
+            this.evaluate();
+          });
         }
 
         try {

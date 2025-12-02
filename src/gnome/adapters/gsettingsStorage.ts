@@ -17,8 +17,15 @@ export class GSettingsStorageAdapter implements StorageAdapter {
 
     async loadRoutines(): Promise<Routine[]> {
         const json = this.settings.get_string('routines');
+        console.log(
+          `[GSettingsStorageAdapter] Raw JSON from settings: ${json}`
+        );
         try {
-            return JSON.parse(json);
+            const parsed = JSON.parse(json);
+            console.log(
+              `[GSettingsStorageAdapter] Parsed ${parsed.length} routines`
+            );
+            return parsed;
         } catch (e) {
             console.error('Failed to parse routines from GSettings:', e);
             return [];

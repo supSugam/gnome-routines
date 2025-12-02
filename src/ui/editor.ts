@@ -63,6 +63,9 @@ export class RoutineEditor {
       // @ts-ignore
       saveBtn.connect('clicked', () => {
         console.log('[Editor] Save clicked');
+        // Update name from entry
+        this.routine.name = nameEntry.text;
+
         if (!this.routine.name) {
           console.log('[Editor] Name is empty');
           // TODO: Show error
@@ -317,7 +320,7 @@ export class RoutineEditor {
           // @ts-ignore
           const GLib = imports.gi.GLib;
           const [success, stdout] = GLib.spawn_command_line_sync(
-            'bluetoothctl devices'
+            '/usr/bin/bluetoothctl devices'
           );
           if (success && stdout) {
             const output = new TextDecoder().decode(stdout);

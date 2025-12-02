@@ -134,15 +134,16 @@ export class BluetoothAction extends BaseAction {
         await delay(interval);
 
         const connectedDevices = this.adapter.getConnectedBluetoothDevices();
-        // Check if device ID (MAC or Name) is in connected list
-        // Adapter returns names/aliases usually, but we store MAC/ID.
-        // We need to be careful about matching.
-        // Assuming getConnectedBluetoothDevices returns what we need or we check loosely.
-        // For now, simple check.
-        if (
-          connectedDevices.includes(this.config.deviceId) ||
-          connectedDevices.some((d) => d.includes(this.config.deviceId!))
-        ) {
+
+        // Robust matching: check name OR address
+        const isConnected = connectedDevices.some(
+          (d) =>
+            d.name === this.config.deviceId ||
+            d.address === this.config.deviceId ||
+            d.name.includes(this.config.deviceId!)
+        );
+
+        if (isConnected) {
           console.log(
             '[BluetoothAction] Successfully connected to ' +
               this.config.deviceId

@@ -9,6 +9,9 @@ export interface SystemAdapter {
   getBrightness(): number;
   setVolume(percentage: number): void;
   getVolume(): number;
+  setBluetoothVolume(percentage: number): boolean;
+  setSinkVolume(sinkName: string, percentage: number): void;
+  getBluetoothAudioSinkName(): string | null;
   setWallpaper(uri: string): void;
   getWallpaper(): string;
   setBluetooth(enabled: boolean): void;
@@ -39,7 +42,7 @@ export interface SystemAdapter {
   // Bluetooth Tracking
   getBluetoothPowerState(): boolean;
   onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void;
-  getConnectedBluetoothDevices(): string[]; // Returns list of device names/aliases
+  getConnectedBluetoothDevices(): { name: string; address: string }[]; // Returns list of device objects
   onBluetoothDeviceStateChanged(callback: () => void): void;
 
   // Power & Battery
