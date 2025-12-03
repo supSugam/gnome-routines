@@ -4,6 +4,7 @@ import { DndAction } from './actions/dnd.js';
 import { VolumeAction } from './actions/volume.js';
 import { BrightnessAction } from './actions/brightness.js';
 import { KeyboardBrightnessAction } from './actions/keyboardBrightness.js';
+import { ClipboardAction } from './actions/clipboard.js';
 import {
   WifiAction,
   BluetoothAction,
@@ -113,6 +114,9 @@ export class ActionFactory {
         break;
       case 'keyboard_brightness':
         action = new KeyboardBrightnessAction(data.id, data.config, adapter);
+        break;
+      case 'clipboard':
+        action = new ClipboardAction(data.id, data.config, adapter);
         break;
       default:
         console.warn(`Unknown action type: ${data.type}`);

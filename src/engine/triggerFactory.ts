@@ -5,6 +5,7 @@ import { WifiTrigger } from './triggers/wifi.js';
 import { BluetoothTrigger } from './triggers/bluetooth.js';
 import { BatteryTrigger } from './triggers/battery.js';
 import { SystemTrigger } from './triggers/system.js';
+import { ClipboardTrigger } from './triggers/clipboard.js';
 
 export class TriggerFactory {
   static create(data: any, adapter: any): Trigger | null {
@@ -21,6 +22,8 @@ export class TriggerFactory {
         return new BatteryTrigger(data.id, data.config, adapter);
       case 'system':
         return new SystemTrigger(data.id, data.config, adapter);
+      case 'clipboard':
+        return new ClipboardTrigger(data.id, data.config, adapter);
       default:
         console.warn(`Unknown trigger type: ${data.type}`);
         return null;

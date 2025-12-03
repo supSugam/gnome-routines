@@ -208,7 +208,6 @@ export class RoutineEditor {
 
       let tempConfig = JSON.parse(JSON.stringify(trigger.config));
       let currentType = trigger.type;
-
       const triggerTypes = [
         { id: 'time', title: 'Time' },
         { id: 'app', title: 'App Opened' },
@@ -219,6 +218,7 @@ export class RoutineEditor {
         { id: 'dark_mode', title: 'Dark Mode' },
         { id: 'airplane_mode', title: 'Airplane Mode' },
         { id: 'headphones', title: 'Wired Headphones' },
+        { id: 'clipboard', title: 'Clipboard Change' },
       ];
 
       const typeModel = new Gtk.StringList({
@@ -238,12 +238,14 @@ export class RoutineEditor {
       const bluetoothGroup = new Adw.PreferencesGroup();
       const batteryGroup = new Adw.PreferencesGroup();
       const systemGroup = new Adw.PreferencesGroup(); // For simple on/off system triggers
+      const clipboardGroup = new Adw.PreferencesGroup(); // New Clipboard group
       content.add(timeGroup);
       content.add(appGroup);
       content.add(wifiGroup);
       content.add(bluetoothGroup);
       content.add(batteryGroup);
       content.add(systemGroup);
+      content.add(clipboardGroup); // Add Clipboard group to content
 
       // Wifi UI
       const wifiModel = new Gtk.StringList({
@@ -472,6 +474,45 @@ export class RoutineEditor {
       });
       systemGroup.add(systemStateRow);
 
+      // --- Clipboard Trigger UI ---
+      const clipboardTypeModel = new Gtk.StringList({
+        strings: ['Any Content', 'Text', 'Image', 'Custom Regex'],
+      });
+      const clipboardTypeRow = new Adw.ComboRow({
+        title: 'Content Type',
+        model: clipboardTypeModel,
+      });
+      clipboardGroup.add(clipboardTypeRow);
+
+      const clipboardRegexEntry = new Adw.EntryRow({
+        title: 'Regex Pattern',
+        text: tempConfig.regex || '',
+      });
+      clipboardGroup.add(clipboardRegexEntry);
+
+      // Initialize selection
+      const cbTypes = ['any', 'text', 'image', 'regex'];
+      if (tempConfig.contentType && cbTypes.includes(tempConfig.contentType)) {
+        clipboardTypeRow.selected = cbTypes.indexOf(tempConfig.contentType);
+      } else {
+        clipboardTypeRow.selected = 0;
+      }
+
+      const updateClipboardTriggerUI = () => {
+        const isRegex = clipboardTypeRow.selected === 3;
+        clipboardRegexEntry.visible = isRegex;
+      };
+      // @ts-ignore
+      clipboardTypeRow.connect('notify::selected', () => {
+        tempConfig.contentType = cbTypes[clipboardTypeRow.selected];
+        updateClipboardTriggerUI();
+      });
+      // @ts-ignore
+      clipboardRegexEntry.connect('changed', () => {
+        tempConfig.regex = clipboardRegexEntry.text;
+      });
+      updateClipboardTriggerUI();
+
       // --- Time Config UI ---
       // Sub-type selector for Time
       const timeTypeRow = new Adw.ComboRow({
@@ -615,6 +656,11 @@ export class RoutineEditor {
             isValid = false;
             errorMsg = 'Select at least one app';
           }
+        } else if (currentType === 'clipboard') {
+          if (tempConfig.contentType === 'regex' && !tempConfig.regex) {
+            isValid = false;
+            errorMsg = 'Regex pattern is required';
+          }
         }
 
         addBtn.sensitive = isValid;
@@ -757,6 +803,7 @@ export class RoutineEditor {
         wifiGroup.visible = selectedType === 'wifi';
         bluetoothGroup.visible = selectedType === 'bluetooth';
         batteryGroup.visible = selectedType === 'battery';
+        clipboardGroup.visible = selectedType === 'clipboard';
 
         // Map specific types to 'system' group
         const isSystem = [
@@ -853,6 +900,11 @@ export class RoutineEditor {
                 : currentType === 'headphones'
                 ? 'disconnected'
                 : 'off',
+          };
+        } else if (currentType === 'clipboard') {
+          finalConfig = {
+            contentType: tempConfig.contentType || 'any',
+            regex: tempConfig.regex,
           };
         }
 
@@ -1014,23 +1066,24 @@ export class RoutineEditor {
       let currentType = action.type;
 
       const actionTypes = [
-        { id: 'wifi', title: 'Wifi' },
-        { id: 'bluetooth', title: 'Bluetooth' },
-        { id: 'airplane_mode', title: 'Airplane Mode' },
-        { id: 'volume', title: 'Volume' },
-        { id: 'brightness', title: 'Brightness' },
-        { id: 'keyboard_brightness', title: 'Keyboard Brightness' },
-        { id: 'dark_mode', title: 'Dark Mode' },
-        { id: 'night_light', title: 'Night Light' },
+        { id: 'wallpaper', title: 'Set Wallpaper' },
+        { id: 'dnd', title: 'Do Not Disturb' },
+        { id: 'volume', title: 'Set Volume' },
+        { id: 'brightness', title: 'Set Brightness' },
+        { id: 'keyboard_brightness', title: 'Set Keyboard Brightness' },
+        { id: 'wifi', title: 'Wifi Control' },
+        { id: 'bluetooth', title: 'Bluetooth Control' },
+        { id: 'open_app', title: 'Open App' },
         { id: 'screen_timeout', title: 'Screen Timeout' },
         { id: 'screen_orientation', title: 'Screen Orientation' },
         { id: 'refresh_rate', title: 'Refresh Rate' },
-        { id: 'power_saver', title: 'Battery Saver' },
+        { id: 'dark_mode', title: 'Dark Mode' },
+        { id: 'night_light', title: 'Night Light' },
+        { id: 'power_saver', title: 'Power Saver' },
+        { id: 'airplane_mode', title: 'Airplane Mode' },
+        { id: 'clipboard', title: 'Clipboard' },
         { id: 'open_link', title: 'Open Link' },
-        { id: 'open_app', title: 'Open App' },
         { id: 'screenshot', title: 'Take Screenshot' },
-        { id: 'dnd', title: 'Do Not Disturb' },
-        { id: 'wallpaper', title: 'Set Wallpaper' },
       ];
 
       const typeModel = new Gtk.StringList({
@@ -1047,80 +1100,63 @@ export class RoutineEditor {
       }
       group.add(typeRow);
 
-      const dndGroup = new Adw.PreferencesGroup();
-      const wifiGroup = new Adw.PreferencesGroup();
-      const bluetoothGroup = new Adw.PreferencesGroup();
-      const airplaneGroup = new Adw.PreferencesGroup();
-      const volumeGroup = new Adw.PreferencesGroup();
-      const brightnessGroup = new Adw.PreferencesGroup();
-      const keyboardBrightnessGroup = new Adw.PreferencesGroup();
-      const displayGroup = new Adw.PreferencesGroup(); // Dark mode, Night light, Orientation
-      const timeoutGroup = new Adw.PreferencesGroup();
-      const powerGroup = new Adw.PreferencesGroup();
-      const functionGroup = new Adw.PreferencesGroup(); // Link, App
-      const wallpaperGroup = new Adw.PreferencesGroup();
+      // --- Action Specific UIs ---
 
-      content.add(wifiGroup);
-      content.add(bluetoothGroup);
-      content.add(airplaneGroup);
+      // Wallpaper
+      const wallpaperGroup = new Adw.PreferencesGroup();
+      // DND
+      const dndGroup = new Adw.PreferencesGroup();
+      // Volume
+      const volumeGroup = new Adw.PreferencesGroup();
+      // Brightness
+      const brightnessGroup = new Adw.PreferencesGroup();
+      // Keyboard Brightness
+      const kbBrightnessGroup = new Adw.PreferencesGroup();
+      // Wifi
+      const wifiGroup = new Adw.PreferencesGroup();
+      // Bluetooth
+      const bluetoothGroup = new Adw.PreferencesGroup();
+      // App
+      const appGroup = new Adw.PreferencesGroup();
+      // Screen Timeout
+      const timeoutGroup = new Adw.PreferencesGroup();
+      // Orientation
+      const orientationGroup = new Adw.PreferencesGroup();
+      // Refresh Rate
+      const refreshRateGroup = new Adw.PreferencesGroup();
+      // Dark Mode
+      const darkModeGroup = new Adw.PreferencesGroup();
+      // Night Light
+      const nightLightGroup = new Adw.PreferencesGroup();
+      // Power Saver
+      const powerSaverGroup = new Adw.PreferencesGroup();
+      // Airplane Mode
+      const airplaneModeGroup = new Adw.PreferencesGroup();
+      // Clipboard
+      const clipboardGroup = new Adw.PreferencesGroup();
+      // Open Link
+      const openLinkGroup = new Adw.PreferencesGroup();
+      // Screenshot
+      const screenshotGroup = new Adw.PreferencesGroup();
+
+      content.add(wallpaperGroup);
+      content.add(dndGroup);
       content.add(volumeGroup);
       content.add(brightnessGroup);
-      content.add(keyboardBrightnessGroup);
-      content.add(displayGroup);
+      content.add(kbBrightnessGroup);
+      content.add(wifiGroup);
+      content.add(bluetoothGroup);
+      content.add(appGroup);
       content.add(timeoutGroup);
-      content.add(powerGroup);
-      content.add(functionGroup);
-      content.add(dndGroup);
-      content.add(wallpaperGroup);
-
-      const dndRow = new Adw.ActionRow({ title: 'Enable DND' });
-      const dndToggle = new Gtk.Switch({
-        active: tempConfig.enabled !== false,
-      });
-      dndToggle.valign = Gtk.Align.CENTER;
-      dndRow.add_suffix(dndToggle);
-      dndGroup.add(dndRow);
-
-      const volumeRow = new Adw.SpinRow({
-        title: 'Volume Level (%)',
-        adjustment: new Gtk.Adjustment({
-          lower: 0,
-          upper: 100,
-          step_increment: 5,
-          value: tempConfig.level ?? 50,
-        }),
-      });
-      volumeGroup.add(volumeRow);
-
-      const brightnessRow = new Adw.SpinRow({
-        title: 'Brightness Level (%)',
-        adjustment: new Gtk.Adjustment({
-          lower: 0,
-          upper: 100,
-          step_increment: 5,
-          value: tempConfig.level ?? 50,
-        }),
-      });
-      brightnessGroup.add(brightnessRow);
-
-      const keyboardBrightnessRow = new Adw.SpinRow({
-        title: 'Keyboard Brightness Level (%)',
-        adjustment: new Gtk.Adjustment({
-          lower: 0,
-          upper: 100,
-          step_increment: 5,
-          value: tempConfig.level ?? 50,
-        }),
-      });
-      keyboardBrightnessGroup.add(keyboardBrightnessRow);
-
-      const uriEntry = new Adw.EntryRow({
-        title: 'Image URI',
-        text: tempConfig.uri || 'file://',
-      });
-      wallpaperGroup.add(uriEntry);
-
-      // --- New Action UIs ---
+      content.add(orientationGroup);
+      content.add(refreshRateGroup);
+      content.add(darkModeGroup);
+      content.add(nightLightGroup);
+      content.add(powerSaverGroup);
+      content.add(airplaneModeGroup);
+      content.add(clipboardGroup);
+      content.add(openLinkGroup);
+      content.add(screenshotGroup);
 
       // Wifi
       const wifiRow = new Adw.ActionRow({ title: 'Enable Wifi' });
@@ -1193,17 +1229,6 @@ export class RoutineEditor {
         }),
       });
       wifiGroup.add(wifiIntervalRow);
-
-      // Airplane Mode
-      const airplaneRow = new Adw.ActionRow({
-        title: 'Enable Airplane Mode',
-      });
-      const airplaneToggle = new Gtk.Switch({
-        active: tempConfig.enabled !== false,
-      });
-      airplaneToggle.valign = Gtk.Align.CENTER;
-      airplaneRow.add_suffix(airplaneToggle);
-      airplaneGroup.add(airplaneRow);
 
       // Bluetooth
       const bluetoothRow = new Adw.ActionRow({
@@ -1288,35 +1313,87 @@ export class RoutineEditor {
       });
       bluetoothGroup.add(btIntervalRow);
 
-      // Display (Dark Mode, Night Light, Orientation)
-      // Create separate rows for each to avoid dynamic add/remove issues
+      // Keyboard Brightness
+      const kbBrightnessRow = new Adw.SpinRow({
+        title: 'Keyboard Brightness (%)',
+        adjustment: new Gtk.Adjustment({
+          lower: 0,
+          upper: 100,
+          step_increment: 5,
+          value: tempConfig.level ?? 50,
+        }),
+      });
+      kbBrightnessGroup.add(kbBrightnessRow);
+
+      // @ts-ignore
+      kbBrightnessRow.connect('notify::value', () => {
+        tempConfig.level = kbBrightnessRow.value;
+      });
+
+      // Airplane Mode
+      const airplaneRow = new Adw.ActionRow({ title: 'Enable Airplane Mode' });
+      const airplaneToggle = new Gtk.Switch({
+        active: tempConfig.enabled !== false,
+      });
+      airplaneToggle.valign = Gtk.Align.CENTER;
+      airplaneRow.add_suffix(airplaneToggle);
+      airplaneModeGroup.add(airplaneRow);
+
+      // @ts-ignore
+      airplaneToggle.connect('notify::active', () => {
+        tempConfig.enabled = airplaneToggle.active;
+      });
+
+      // Dark Mode
       const darkModeRow = new Adw.ActionRow({ title: 'Enable Dark Mode' });
       const darkModeToggle = new Gtk.Switch({
         active: tempConfig.enabled !== false,
       });
       darkModeToggle.valign = Gtk.Align.CENTER;
       darkModeRow.add_suffix(darkModeToggle);
-      displayGroup.add(darkModeRow);
+      darkModeGroup.add(darkModeRow);
 
-      const nightLightRow = new Adw.ActionRow({
-        title: 'Enable Night Light',
+      // @ts-ignore
+      darkModeToggle.connect('notify::active', () => {
+        tempConfig.enabled = darkModeToggle.active;
       });
+
+      // Night Light
+      const nightLightRow = new Adw.ActionRow({ title: 'Enable Night Light' });
       const nightLightToggle = new Gtk.Switch({
         active: tempConfig.enabled !== false,
       });
       nightLightToggle.valign = Gtk.Align.CENTER;
       nightLightRow.add_suffix(nightLightToggle);
-      displayGroup.add(nightLightRow);
+      nightLightGroup.add(nightLightRow);
 
+      // @ts-ignore
+      nightLightToggle.connect('notify::active', () => {
+        tempConfig.enabled = nightLightToggle.active;
+      });
+
+      // Screen Orientation
       const orientationModel = new Gtk.StringList({
-        strings: ['Portrait', 'Landscape'],
+        strings: ['Normal', 'Left', 'Right', 'Upside Down'],
       });
       const orientationRow = new Adw.ComboRow({
         title: 'Orientation',
         model: orientationModel,
-        selected: tempConfig.orientation === 'landscape' ? 1 : 0,
       });
-      displayGroup.add(orientationRow);
+      orientationGroup.add(orientationRow);
+
+      const orientations = ['normal', 'left', 'right', 'upside-down'];
+      if (
+        tempConfig.orientation &&
+        orientations.includes(tempConfig.orientation)
+      ) {
+        orientationRow.selected = orientations.indexOf(tempConfig.orientation);
+      }
+
+      // @ts-ignore
+      orientationRow.connect('notify::selected', () => {
+        tempConfig.orientation = orientations[orientationRow.selected];
+      });
 
       // Refresh Rate
       const refreshRateModel = new Gtk.StringList();
@@ -1357,7 +1434,7 @@ export class RoutineEditor {
         model: refreshRateModel,
         selected: initialIndex >= 0 ? initialIndex : 0,
       });
-      displayGroup.add(refreshRateRow);
+      refreshRateGroup.add(refreshRateRow);
 
       // Screen Timeout
       const timeoutRow = new Adw.SpinRow({
@@ -1378,14 +1455,14 @@ export class RoutineEditor {
       });
       powerToggle.valign = Gtk.Align.CENTER;
       powerRow.add_suffix(powerToggle);
-      powerGroup.add(powerRow);
+      powerSaverGroup.add(powerRow);
 
       // Functions
       const linkEntry = new Adw.EntryRow({
         title: 'URL',
         text: tempConfig.url || 'https://',
       });
-      functionGroup.add(linkEntry);
+      openLinkGroup.add(linkEntry);
 
       // App Picker (Multi-select with Search)
       const appExpander = new Adw.ExpanderRow({
@@ -1394,7 +1471,7 @@ export class RoutineEditor {
           ? `${tempConfig.appIds.length} apps selected`
           : 'None selected',
       });
-      functionGroup.add(appExpander);
+      appGroup.add(appExpander);
 
       const appSearchEntry = new Gtk.SearchEntry({
         placeholder_text: 'Search Apps...',
@@ -1452,6 +1529,103 @@ export class RoutineEditor {
       );
       refreshAppList();
 
+      const dndRow = new Adw.ActionRow({ title: 'Enable DND' });
+      const dndToggle = new Gtk.Switch({
+        active: tempConfig.enabled !== false,
+      });
+      dndToggle.valign = Gtk.Align.CENTER;
+      dndRow.add_suffix(dndToggle);
+      dndGroup.add(dndRow);
+
+      const volumeRow = new Adw.SpinRow({
+        title: 'Volume Level (%)',
+        adjustment: new Gtk.Adjustment({
+          lower: 0,
+          upper: 100,
+          step_increment: 5,
+          value: tempConfig.level ?? 50,
+        }),
+      });
+      volumeGroup.add(volumeRow);
+
+      const brightnessRow = new Adw.SpinRow({
+        title: 'Brightness Level (%)',
+        adjustment: new Gtk.Adjustment({
+          lower: 0,
+          upper: 100,
+          step_increment: 5,
+          value: tempConfig.level ?? 50,
+        }),
+      });
+      brightnessGroup.add(brightnessRow);
+
+      const keyboardBrightnessRow = new Adw.SpinRow({
+        title: 'Keyboard Brightness Level (%)',
+        adjustment: new Gtk.Adjustment({
+          lower: 0,
+          upper: 100,
+          step_increment: 5,
+          value: tempConfig.level ?? 50,
+        }),
+      });
+      kbBrightnessGroup.add(keyboardBrightnessRow);
+
+      const uriEntry = new Adw.EntryRow({
+        title: 'Image URI',
+        text: tempConfig.uri || 'file://',
+      });
+      wallpaperGroup.add(uriEntry);
+
+      // Clipboard Action UI
+      const clipboardOpModel = new Gtk.StringList({
+        strings: ['Clear', 'Replace Text'],
+      });
+      const clipboardOpRow = new Adw.ComboRow({
+        title: 'Operation',
+        model: clipboardOpModel,
+      });
+      clipboardGroup.add(clipboardOpRow);
+
+      const clipboardFindEntry = new Adw.EntryRow({
+        title: 'Find Regex',
+        text: tempConfig.find || '',
+      });
+      clipboardGroup.add(clipboardFindEntry);
+
+      const clipboardReplaceEntry = new Adw.EntryRow({
+        title: 'Replace With',
+        text: tempConfig.replace || '',
+      });
+      clipboardGroup.add(clipboardReplaceEntry);
+
+      // Initialize selection and visibility
+      if (tempConfig.operation === 'replace') {
+        clipboardOpRow.selected = 1;
+      } else {
+        clipboardOpRow.selected = 0;
+      }
+
+      const updateClipboardUI = () => {
+        const isReplace = clipboardOpRow.selected === 1;
+        clipboardFindEntry.visible = isReplace;
+        clipboardReplaceEntry.visible = isReplace;
+      };
+      // @ts-ignore
+      clipboardOpRow.connect('notify::selected', () => {
+        tempConfig.operation =
+          clipboardOpRow.selected === 1 ? 'replace' : 'clear';
+        updateClipboardUI();
+      });
+      // @ts-ignore
+      clipboardFindEntry.connect('changed', () => {
+        tempConfig.find = clipboardFindEntry.text;
+      });
+      // @ts-ignore
+      clipboardReplaceEntry.connect('changed', () => {
+        tempConfig.replace = clipboardReplaceEntry.text;
+      });
+      updateClipboardUI();
+
       const validate = () => {
         let isValid = true;
         if (currentType === 'wallpaper' && !uriEntry.text) isValid = false;
@@ -1470,21 +1644,22 @@ export class RoutineEditor {
 
         wifiGroup.visible = currentType === 'wifi';
         bluetoothGroup.visible = currentType === 'bluetooth';
-        // btDeviceGroup.visible = false; // Removed
-        airplaneGroup.visible = currentType === 'airplane_mode';
+        airplaneModeGroup.visible = currentType === 'airplane_mode';
         volumeGroup.visible = currentType === 'volume';
         brightnessGroup.visible = currentType === 'brightness';
-        keyboardBrightnessGroup.visible = currentType === 'keyboard_brightness';
-        displayGroup.visible =
-          currentType === 'dark_mode' ||
-          currentType === 'night_light' ||
-          currentType === 'screen_orientation' ||
-          currentType === 'refresh_rate';
+        kbBrightnessGroup.visible = currentType === 'keyboard_brightness';
+        darkModeGroup.visible = currentType === 'dark_mode';
+        nightLightGroup.visible = currentType === 'night_light';
+        orientationGroup.visible = currentType === 'screen_orientation';
+        refreshRateGroup.visible = currentType === 'refresh_rate';
         timeoutGroup.visible = currentType === 'screen_timeout';
-        powerGroup.visible = currentType === 'power_saver';
-        functionGroup.visible = currentType === 'launch_app';
+        powerSaverGroup.visible = currentType === 'power_saver';
+        clipboardGroup.visible = currentType === 'clipboard';
+        openLinkGroup.visible = currentType === 'open_link';
+        appGroup.visible = currentType === 'open_app';
         dndGroup.visible = currentType === 'dnd';
         wallpaperGroup.visible = currentType === 'wallpaper';
+        screenshotGroup.visible = currentType === 'screenshot';
 
         // Sub-visibility for Wifi/Bluetooth
         if (currentType === 'wifi') {
@@ -1500,34 +1675,16 @@ export class RoutineEditor {
           btTimeoutRow.visible = btEnabled && btDeviceRow.selected > 0;
           btIntervalRow.visible = btEnabled && btDeviceRow.selected > 0;
         }
-        darkModeRow.visible = selectedType === 'dark_mode';
-        nightLightRow.visible = selectedType === 'night_light';
-        orientationRow.visible = selectedType === 'screen_orientation';
-        refreshRateRow.visible = selectedType === 'refresh_rate';
 
         // Function Group Logic
-        functionGroup.visible = [
-          'open_link',
-          'open_app',
-          'screenshot',
-        ].includes(selectedType);
-        linkEntry.visible = selectedType === 'open_link';
-        appExpander.visible = selectedType === 'open_app';
+        linkEntry.visible = currentType === 'open_link';
+        appExpander.visible = currentType === 'open_app';
 
         validate();
       };
 
       // @ts-ignore
       typeRow.connect('notify::selected', updateVisibility);
-      // @ts-ignore
-      wifiToggle.connect('notify::active', updateVisibility);
-      // @ts-ignore
-      wifiSsidRow.connect('notify::selected', updateVisibility);
-      // @ts-ignore
-      bluetoothToggle.connect('notify::active', updateVisibility);
-      // @ts-ignore
-      btDeviceRow.connect('notify::selected', updateVisibility);
-
       updateVisibility();
 
       // @ts-ignore
@@ -1589,6 +1746,12 @@ export class RoutineEditor {
           finalConfig = { rate: availableRates[refreshRateRow.selected] };
         } else if (currentType === 'power_saver') {
           finalConfig = { enabled: powerToggle.active };
+        } else if (currentType === 'clipboard') {
+          finalConfig = {
+            operation: clipboardOpRow.selected === 1 ? 'replace' : 'clear',
+            find: clipboardFindEntry.text,
+            replace: clipboardReplaceEntry.text,
+          };
         } else if (currentType === 'screenshot') {
           finalConfig = {};
         }

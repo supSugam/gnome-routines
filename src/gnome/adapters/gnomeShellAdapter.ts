@@ -1498,6 +1498,81 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
+  // Clipboard
+  getClipboardContent(): Promise<{
+    type: 'text' | 'image' | 'other';
+    content?: string;
+  }> {
+    return new Promise((resolve) => {
+      try {
+        // @ts-ignore
+        const St = imports.gi.St;
+        const clipboard = St.Clipboard.get_default();
+
+        clipboard.get_text(
+          St.ClipboardType.CLIPBOARD,
+          (clipboard: any, text: string) => {
+            if (text) {
+              resolve({ type: 'text', content: text });
+            } else {
+              resolve({ type: 'other' });
+            }
+          }
+        );
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to get clipboard content:',
+          e
+        );
+        resolve({ type: 'other' });
+      }
+    });
+  }
+
+  setClipboardText(text: string): void {
+    try {
+      // @ts-ignore
+      const St = imports.gi.St;
+      const clipboard = St.Clipboard.get_default();
+      clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
+    } catch (e) {
+      console.error('[GnomeShellAdapter] Failed to set clipboard text:', e);
+    }
+  }
+
+  clearClipboard(): void {
+    this.setClipboardText('');
+  }
+
+  onClipboardChanged(callback: () => void): void {
+    // St.Clipboard has no signals. We must poll.
+    // @ts-ignore
+    const GLib = imports.gi.GLib;
+    // @ts-ignore
+    const St = imports.gi.St;
+    const clipboard = St.Clipboard.get_default();
+
+    let lastContent: string | null = null;
+
+    // Initialize lastContent
+    clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb: any, text: string) => {
+      lastContent = text;
+    });
+
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+      clipboard.get_text(
+        St.ClipboardType.CLIPBOARD,
+        (cb: any, text: string) => {
+          if (text !== lastContent) {
+            lastContent = text;
+            callback();
+          }
+        }
+      );
+      return GLib.SOURCE_CONTINUE;
+    });
+  }
+
   destroy() {
     if (this.appListenerId) {
       // @ts-ignore

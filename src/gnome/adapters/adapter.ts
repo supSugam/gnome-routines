@@ -94,4 +94,12 @@ export interface SystemAdapter {
   // New Actions - Keyboard
   setKeyboardBrightness(percentage: number): void;
   getKeyboardBrightness(): Promise<number>;
+  // Clipboard
+  getClipboardContent(): Promise<{
+    type: 'text' | 'image' | 'other';
+    content?: string;
+  }>;
+  setClipboardText(text: string): void;
+  clearClipboard(): void;
+  onClipboardChanged(callback: () => void): void;
 }
