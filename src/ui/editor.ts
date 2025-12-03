@@ -1087,7 +1087,7 @@ export class RoutineEditor {
           lower: 0,
           upper: 100,
           step_increment: 5,
-          value: tempConfig.level || 50,
+          value: tempConfig.level ?? 50,
         }),
       });
       volumeGroup.add(volumeRow);
@@ -1098,7 +1098,7 @@ export class RoutineEditor {
           lower: 0,
           upper: 100,
           step_increment: 5,
-          value: tempConfig.level || 50,
+          value: tempConfig.level ?? 50,
         }),
       });
       brightnessGroup.add(brightnessRow);
@@ -1109,7 +1109,7 @@ export class RoutineEditor {
           lower: 0,
           upper: 100,
           step_increment: 5,
-          value: tempConfig.level || 50,
+          value: tempConfig.level ?? 50,
         }),
       });
       keyboardBrightnessGroup.add(keyboardBrightnessRow);
@@ -1178,7 +1178,7 @@ export class RoutineEditor {
           lower: 5,
           upper: 300,
           step_increment: 5,
-          value: tempConfig.timeout || 30,
+          value: tempConfig.timeout ?? 30,
         }),
       });
       wifiGroup.add(wifiTimeoutRow);
@@ -1189,7 +1189,7 @@ export class RoutineEditor {
           lower: 1,
           upper: 60,
           step_increment: 1,
-          value: tempConfig.interval || 5,
+          value: tempConfig.interval ?? 5,
         }),
       });
       wifiGroup.add(wifiIntervalRow);
@@ -1272,7 +1272,7 @@ export class RoutineEditor {
           lower: 5,
           upper: 300,
           step_increment: 5,
-          value: tempConfig.timeout || 30,
+          value: tempConfig.timeout ?? 30,
         }),
       });
       bluetoothGroup.add(btTimeoutRow);
@@ -1283,7 +1283,7 @@ export class RoutineEditor {
           lower: 1,
           upper: 60,
           step_increment: 1,
-          value: tempConfig.interval || 5,
+          value: tempConfig.interval ?? 5,
         }),
       });
       bluetoothGroup.add(btIntervalRow);
@@ -1366,7 +1366,7 @@ export class RoutineEditor {
           lower: 10,
           upper: 3600,
           step_increment: 10,
-          value: tempConfig.seconds || 300,
+          value: tempConfig.seconds ?? 300,
         }),
       });
       timeoutGroup.add(timeoutRow);
@@ -1679,13 +1679,33 @@ export class RoutineEditor {
       endRows = [];
 
       this.routine.actions.forEach((action: any) => {
+        const getEndSummary = () => {
+          const type = action.onDeactivate?.type || 'revert';
+          if (type === 'revert')
+            return 'Return to status before routine started';
+          if (type === 'keep') return "Don't change anything";
+          if (type === 'custom') {
+            if (action.onDeactivate?.config) {
+              // Create a dummy action to generate summary
+              const dummy = { ...action, config: action.onDeactivate.config };
+              return `Custom: ${getActionSummary(dummy)}`;
+            }
+            return 'Custom: Not configured';
+          }
+          return '';
+        };
+
         const row = new Adw.ActionRow({
-          title: action.type,
-          subtitle: getActionSummary(action),
+          title: getActionSummary(action), // Show main action as title
+          subtitle: getEndSummary(),
         });
 
         // Dropdown for behavior
-        const behaviors = ['Revert (Default)', 'Keep State', 'Custom Action'];
+        const behaviors = [
+          'Return to status before routine started',
+          "Don't change anything",
+          'Custom (Set action again)',
+        ];
         const model = new Gtk.StringList({ strings: behaviors });
         const combo = new Gtk.DropDown({
           model: model,
@@ -1718,6 +1738,12 @@ export class RoutineEditor {
           action.onDeactivate.type = type;
 
           configBtn.visible = type === 'custom';
+          row.subtitle = getEndSummary();
+
+          // Auto-open config if custom selected and no config
+          if (type === 'custom' && !action.onDeactivate.config) {
+            configBtn.emit('clicked');
+          }
         });
 
         // @ts-ignore
@@ -1735,6 +1761,7 @@ export class RoutineEditor {
             console.log(
               `[Editor] Saved custom deactivation config for ${action.type}`
             );
+            row.subtitle = getEndSummary(); // Update subtitle immediately
           });
         });
 

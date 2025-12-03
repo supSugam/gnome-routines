@@ -33,70 +33,96 @@ export class ActionFactory {
     stateManager: StateManager,
     routineId: string
   ): Action | null {
+    let action: Action | null = null;
+
     switch (data.type) {
       case 'wallpaper':
-        return new WallpaperAction(data.id, data.config, adapter);
+        action = new WallpaperAction(data.id, data.config, adapter);
+        break;
       case 'dnd':
-        return new DndAction(data.id, data.config, adapter);
+        action = new DndAction(data.id, data.config, adapter);
+        break;
       case 'wifi':
-        return new WifiAction(data.id, data.config, adapter);
+        action = new WifiAction(data.id, data.config, adapter);
+        break;
       case 'bluetooth':
-        return new BluetoothAction(data.id, data.config, adapter);
+        action = new BluetoothAction(data.id, data.config, adapter);
+        break;
       case 'bluetooth_device':
-        return new BluetoothDeviceAction(data.id, data.config, adapter);
+        action = new BluetoothDeviceAction(data.id, data.config, adapter);
+        break;
       case 'airplane_mode':
-        return new AirplaneModeAction(data.id, data.config, adapter);
+        action = new AirplaneModeAction(data.id, data.config, adapter);
+        break;
       case 'dark_mode':
-        return new DarkModeAction(
+        action = new DarkModeAction(
           data.id,
           data.config,
           adapter,
           stateManager,
           routineId
         );
+        break;
       case 'night_light':
-        return new NightLightAction(
+        action = new NightLightAction(
           data.id,
           data.config,
           adapter,
           stateManager,
           routineId
         );
+        break;
       case 'screen_timeout':
-        return new ScreenTimeoutAction(
+        action = new ScreenTimeoutAction(
           data.id,
           data.config,
           adapter,
           stateManager,
           routineId
         );
+        break;
       case 'screen_orientation':
-        return new ScreenOrientationAction(data.id, data.config, adapter);
+        action = new ScreenOrientationAction(data.id, data.config, adapter);
+        break;
       case 'refresh_rate':
-        return new RefreshRateAction(
+        action = new RefreshRateAction(
           data.id,
           data.config,
           adapter,
           stateManager,
           routineId
         );
+        break;
       case 'power_saver':
-        return new PowerSaverAction(data.id, data.config, adapter);
+        action = new PowerSaverAction(data.id, data.config, adapter);
+        break;
       case 'open_link':
-        return new OpenLinkAction(data.id, data.config, adapter);
+        action = new OpenLinkAction(data.id, data.config, adapter);
+        break;
       case 'screenshot':
-        return new ScreenshotAction(data.id, data.config, adapter);
+        action = new ScreenshotAction(data.id, data.config, adapter);
+        break;
       case 'open_app':
-        return new OpenAppAction(data.id, data.config, adapter);
+        action = new OpenAppAction(data.id, data.config, adapter);
+        break;
       case 'volume':
-        return new VolumeAction(data.id, data.config, adapter);
+        action = new VolumeAction(data.id, data.config, adapter);
+        break;
       case 'brightness':
-        return new BrightnessAction(data.id, data.config, adapter);
+        action = new BrightnessAction(data.id, data.config, adapter);
+        break;
       case 'keyboard_brightness':
-        return new KeyboardBrightnessAction(data.id, data.config, adapter);
+        action = new KeyboardBrightnessAction(data.id, data.config, adapter);
+        break;
       default:
         console.warn(`Unknown action type: ${data.type}`);
         return null;
     }
+
+    if (action && data.onDeactivate) {
+      action.onDeactivate = data.onDeactivate;
+    }
+
+    return action;
   }
 }

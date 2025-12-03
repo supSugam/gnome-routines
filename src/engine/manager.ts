@@ -317,6 +317,11 @@ export class RoutineManager implements RoutineManagerInterface {
           console.log(
             `[RoutineManager] Executing custom deactivation for action ${action.id}`
           );
+          console.log(
+            `[RoutineManager] Custom config: ${JSON.stringify(
+              onDeactivate.config
+            )}`
+          );
           // Create a temporary action to execute the custom config
           const customAction = ActionFactory.create(
             { ...action, config: onDeactivate.config }, // Reuse type and ID, swap config

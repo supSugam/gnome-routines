@@ -9,7 +9,11 @@ export class KeyboardBrightnessAction extends BaseAction {
     }
 
     async execute(): Promise<void> {
-        console.log(`[KeyboardBrightnessAction] Setting keyboard brightness to: ${this.config.level}%`);
+        console.log(
+          `[KeyboardBrightnessAction] Setting keyboard brightness to: ${
+            this.config.level
+          }% (Type: ${typeof this.config.level})`
+        );
         try {
             this.previousBrightness = await this.adapter.getKeyboardBrightness();
             console.log(`[KeyboardBrightnessAction] Previous brightness: ${this.previousBrightness}%`);
