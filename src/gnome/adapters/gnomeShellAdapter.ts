@@ -1557,19 +1557,62 @@ export class GnomeShellAdapter implements SystemAdapter {
     // Initialize lastContent
     clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb: any, text: string) => {
       lastContent = text;
-    });
-
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-      clipboard.get_text(
-        St.ClipboardType.CLIPBOARD,
-        (cb: any, text: string) => {
-          if (text !== lastContent) {
-            lastContent = text;
-            callback();
-          }
-        }
+      console.log(
+        `[GnomeShellAdapter] Clipboard INIT. Content: "${text}" (Type: ${typeof text})`
       );
-      return GLib.SOURCE_CONTINUE;
+
+      // Start polling only after initialization
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+        clipboard.get_text(
+          St.ClipboardType.CLIPBOARD,
+          (cb: any, newText: string) => {
+            // If content hasn't changed, skip
+            if (newText === lastContent) {
+              return;
+            }
+
+            // Ignore transitions TO empty/null (happens on wake/unlock)
+            // Only care about transitions TO actual content
+            if (newText === null || newText === undefined || newText === '') {
+              console.log(
+                `[GnomeShellAdapter] Clipboard became empty/null. Ignoring (likely system event).`
+              );
+              // Keep lastContent - don't update it
+              return;
+            }
+
+            // If we get here, clipboard changed to non-empty content
+            // But skip if lastContent was also empty (initial setup)
+            if (
+              lastContent === null ||
+              lastContent === undefined ||
+              lastContent === ''
+            ) {
+              console.log(
+                `[GnomeShellAdapter] Clipboard initial content detected: "${newText}". No trigger.`
+              );
+              lastContent = newText;
+              return;
+            }
+
+            // Real clipboard change detected!
+            console.log(
+              `[GnomeShellAdapter] Clipboard CHANGE DETECTED! Old: "${lastContent}" -> New: "${newText}"`
+            );
+
+            lastContent = newText;
+            try {
+              callback();
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Error in clipboard callback:',
+                e
+              );
+            }
+          }
+        );
+        return GLib.SOURCE_CONTINUE;
+      });
     });
   }
 

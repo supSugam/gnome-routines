@@ -221,9 +221,16 @@ export class RoutineManager implements RoutineManagerInterface {
         if (trigger.on) {
           trigger.on('triggered', () => {
             console.log(
-              `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}. Evaluating...`
+              `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}.`
             );
-            this.evaluate();
+            if (routine.isActive) {
+              console.log(
+                `[RoutineManager] Routine is already active. Re-executing actions for event trigger.`
+              );
+              this.activateRoutine(routine);
+            } else {
+              this.evaluate();
+            }
           });
           trigger.on('activate', () => {
             console.log(`[RoutineManager] Trigger ${trigger.id} activated`);

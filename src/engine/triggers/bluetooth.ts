@@ -5,6 +5,7 @@ export class BluetoothTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
   private _timeoutId: number = 0;
+  private _hasWitnessedChange: boolean = false;
 
   constructor(
     id: string,
@@ -19,6 +20,12 @@ export class BluetoothTrigger extends BaseTrigger {
   }
 
   async check(): Promise<boolean> {
+    // If we haven't witnessed a change event yet, ignore the state
+    // This prevents triggering on restart/unlock if state is already met
+    if (!this._hasWitnessedChange) {
+      return false;
+    }
+
     // Power state check
     if (this.config.state === 'enabled' || this.config.state === 'disabled') {
       const isEnabled = await this.adapter.getBluetoothPowerState();
@@ -62,6 +69,7 @@ export class BluetoothTrigger extends BaseTrigger {
         console.log(
           `[BluetoothTrigger] Bluetooth power changed to: ${isEnabled}`
         );
+        this._hasWitnessedChange = true;
         this.emit('triggered');
       });
     } else {
@@ -69,16 +77,11 @@ export class BluetoothTrigger extends BaseTrigger {
         console.log(
           `[BluetoothTrigger] Bluetooth device state changed event received`
         );
+        this._hasWitnessedChange = true;
         this.emit('triggered');
       });
 
-      // Initial check
-      this.check().then((state) => {
-        if (state) {
-          console.log(`[BluetoothTrigger] Initial check: Triggered`);
-          this.emit('triggered');
-        }
-      });
+      // Removed initial check block to prevent triggering on load
     }
 
     this._isActivated = true;
@@ -93,5 +96,6 @@ export class BluetoothTrigger extends BaseTrigger {
       console.log(`[BluetoothTrigger] Polling timer removed`);
     }
     this._isActivated = false;
+    this._hasWitnessedChange = false; // Reset on deactivate
   }
 }
