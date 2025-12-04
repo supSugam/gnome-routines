@@ -183,13 +183,14 @@ export class RoutineEditor {
       group.add(typeRow);
 
       // Container for dynamic editor content
-      const editorGroup = new Adw.PreferencesGroup();
+      let editorGroup = new Adw.PreferencesGroup();
       content.add(editorGroup);
 
       const updateEditor = () => {
         content.remove(editorGroup);
         const newEditorGroup = new Adw.PreferencesGroup();
         content.add(newEditorGroup);
+        editorGroup = newEditorGroup;
 
         const selectedType = triggerTypes[typeRow.selected].id;
         currentType = selectedType;
@@ -403,13 +404,14 @@ export class RoutineEditor {
       });
       group.add(typeRow);
 
-      const editorGroup = new Adw.PreferencesGroup();
+      let editorGroup = new Adw.PreferencesGroup();
       content.add(editorGroup);
 
       const updateEditor = () => {
         content.remove(editorGroup);
         const newEditorGroup = new Adw.PreferencesGroup();
         content.add(newEditorGroup);
+        editorGroup = newEditorGroup;
 
         const selectedType = actionTypes[typeRow.selected].id;
         currentType = selectedType;

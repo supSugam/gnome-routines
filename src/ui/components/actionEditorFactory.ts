@@ -19,11 +19,15 @@ import { ScreenTimeoutActionEditor } from '../features/display/screenTimeoutActi
 import { ScreenOrientationActionEditor } from '../features/display/screenOrientationActionEditor.js';
 import { ScreenshotActionEditor } from '../features/system/screenshotActionEditor.js';
 import { NotificationActionEditor } from '../features/system/notificationActionEditor.js';
-import { ClearClipboardActionEditor } from '../features/clipboard/clearClipboardActionEditor.js';
+import { ClipboardActionEditor } from '../features/clipboard/clipboardActionEditor.js';
 import { OpenLinkActionEditor } from '../features/system/openLinkActionEditor.js';
 
 export class ActionEditorFactory {
-  static create(type: string, config: any, onChange: () => void): BaseEditor | null {
+  static create(
+    type: string,
+    config: any,
+    onChange: () => void
+  ): BaseEditor | null {
     switch (type) {
       case ActionType.OPEN_APP:
         return new OpenAppActionEditor(config, onChange);
@@ -64,8 +68,8 @@ export class ActionEditorFactory {
       case ActionType.NOTIFICATION:
         return new NotificationActionEditor(config, onChange);
       case ActionType.CLEAR_CLIPBOARD:
-        return new ClearClipboardActionEditor(config, onChange);
-      case 'open_link': // ActionType.OPEN_LINK might be missing in Enum or named differently?
+        return new ClipboardActionEditor(config, onChange);
+      case ActionType.OPEN_LINK:
         return new OpenLinkActionEditor(config, onChange);
       default:
         console.warn(`No editor found for action type: ${type}`);

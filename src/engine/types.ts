@@ -145,9 +145,14 @@ export interface OpenLinkActionConfig {
 }
 
 export interface ClipboardActionConfig {
-  operation: 'clear' | 'replace';
+  operation: 'clear' | 'replace' | 'none';
   find?: string;
   replace?: string;
+  sanitize?: boolean;
+  sanitizeConfig?: {
+    mode: 'predefined' | 'merge' | 'custom';
+    domainRules?: { pattern: string; params: string[] }[];
+  };
 }
 
 export type ActionConfig =
