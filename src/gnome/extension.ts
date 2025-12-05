@@ -1,14 +1,15 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { RoutineManager } from '../engine/manager.js';
 import { GnomeShellAdapter } from './adapters/gnomeShellAdapter.js';
-import { Routine } from '../engine/types.js';
-
 
 import GnomeRoutinesIndicator from '../ui/panelMenu.js';
 // @ts-ignore
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { GSettingsStorageAdapter } from './adapters/gsettingsStorage.js';
+
+import debugLog from '../utils/log.js';
+globalThis.debugLog = debugLog;
 
 export default class GnomeRoutinesExt extends Extension {
   private manager: RoutineManager | null = null;
@@ -17,7 +18,7 @@ export default class GnomeRoutinesExt extends Extension {
   private settingsChangedId: number | null = null;
 
   enable() {
-    console.log('[GnomeRoutines] Enabling extension version 1.0.0');
+    debugLog('[GnomeRoutines] Enabling extension version 1.0.0');
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);
@@ -28,7 +29,7 @@ export default class GnomeRoutinesExt extends Extension {
 
     // Watch for settings changes (when user toggles routines in prefs)
     this.settingsChangedId = settings.connect('changed::routines', () => {
-      console.log('[GnomeRoutines] Settings changed, reloading routines...');
+      debugLog('[GnomeRoutines] Settings changed, reloading routines...');
       if (this.manager) {
         this.manager.reload();
       }
@@ -40,7 +41,7 @@ export default class GnomeRoutinesExt extends Extension {
   }
 
   disable() {
-    console.log('Disabling Gnome Routines');
+    debugLog('Disabling Gnome Routines');
 
     // Disconnect settings watcher
     if (this.settingsChangedId !== null) {

@@ -9,12 +9,12 @@ export class VolumeAction extends BaseAction {
   }
 
   async execute(): Promise<void> {
-    console.log(
+    debugLog(
       `[VolumeAction] Starting volume enforcement. Target: ${this.config.level}%`
     );
     try {
       this.previousVolume = await this.adapter.getVolume();
-      console.log(`[VolumeAction] Initial volume: ${this.previousVolume}%`);
+      debugLog(`[VolumeAction] Initial volume: ${this.previousVolume}%`);
 
       // @ts-ignore
       const GLib = imports.gi.GLib;
@@ -39,7 +39,7 @@ export class VolumeAction extends BaseAction {
           // Fallback/Force system volume (often needed if sink is default)
           await this.adapter.setVolume(this.config.level);
 
-          console.log(
+          debugLog(
             `[VolumeAction] Enforced volume to ${this.config.level}% (was ${currentVolume}%)`
           );
         } else {
@@ -48,14 +48,14 @@ export class VolumeAction extends BaseAction {
 
         // Exit if stable for 2 seconds
         if (stableCount >= stabilityThreshold) {
-          console.log(
+          debugLog(
             `[VolumeAction] Volume stable at ${this.config.level}% for 2s. Finishing.`
           );
           return;
         }
 
         if (attempts >= maxAttempts) {
-          console.log(
+          debugLog(
             `[VolumeAction] Enforcement finished (max attempts reached)`
           );
           return;
@@ -77,12 +77,10 @@ export class VolumeAction extends BaseAction {
 
   async revert(): Promise<void> {
     if (this.previousVolume !== null) {
-      console.log(
-        `[VolumeAction] Reverting volume to: ${this.previousVolume}%`
-      );
+      debugLog(`[VolumeAction] Reverting volume to: ${this.previousVolume}%`);
       try {
         await this.adapter.setVolume(this.previousVolume);
-        console.log(`[VolumeAction] Volume reverted successfully`);
+        debugLog(`[VolumeAction] Volume reverted successfully`);
       } catch (e) {
         console.error(`[VolumeAction] Failed to revert:`, e);
       }

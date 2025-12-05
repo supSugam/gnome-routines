@@ -2,6 +2,7 @@ import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore
 import GLib from 'gi://GLib';
+import { TriggerType } from '../types.js';
 
 export class ClipboardTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
@@ -11,7 +12,7 @@ export class ClipboardTrigger extends BaseTrigger {
     config: { contentType: 'any' | 'text' | 'image' | 'regex'; regex?: string },
     adapter: SystemAdapter
   ) {
-    super(id, 'clipboard', config);
+    super(id, TriggerType.CLIPBOARD, config);
     this.adapter = adapter;
   }
 
@@ -19,25 +20,34 @@ export class ClipboardTrigger extends BaseTrigger {
   private debounceId: number | null = null;
 
   activate(): void {
+    debugLog(
+      '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'
+    );
     this.adapter.onClipboardChanged(() => {
+      debugLog(
+        '[ClipboardTrigger] Adapter reported change. Scheduling debounce...'
+      );
       if (this.debounceId) {
+        debugLog('[ClipboardTrigger] Clearing previous debounce.');
         GLib.source_remove(this.debounceId);
         this.debounceId = null;
       }
 
       this.debounceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         this.debounceId = null;
-        console.log(
+        debugLog(
           `[ClipboardTrigger] Clipboard content changed (debounced). Checking match...`
         );
         // We need to verify if it matches the config before setting the flag
         this.verifyMatch().then((isMatch) => {
           if (isMatch) {
-            console.log(
+            debugLog(
               `[ClipboardTrigger] Match confirmed. Setting trigger flag.`
             );
             this._hasTriggered = true;
             this.emit('triggered');
+          } else {
+            debugLog('[ClipboardTrigger] Match failed.');
           }
         });
         return false;

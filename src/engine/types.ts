@@ -144,14 +144,20 @@ export interface OpenLinkActionConfig {
   url: string;
 }
 
+export enum SanitizationMode {
+  PREDEFINED = 'predefined',
+  MERGE = 'merge',
+  CUSTOM = 'custom',
+}
+
 export interface ClipboardActionConfig {
   operation: 'clear' | 'replace' | 'none';
   find?: string;
   replace?: string;
   sanitize?: boolean;
   sanitizeConfig?: {
-    mode: 'predefined' | 'merge' | 'custom';
-    domainRules?: { pattern: string; params: string[] }[];
+    mode: SanitizationMode;
+    domainRules?: { domain: string; params: string[] }[];
   };
 }
 

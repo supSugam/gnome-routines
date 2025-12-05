@@ -18,12 +18,18 @@ export class BatteryTrigger extends BaseTrigger {
     async check(): Promise<boolean> {
         if (this.config.mode === 'status') {
             const isCharging = this.adapter.isCharging();
-            console.log(`[BatteryTrigger] Checking status. Current: ${isCharging ? 'charging' : 'discharging'}, Target: ${this.config.status}`);
+            debugLog(
+              `[BatteryTrigger] Checking status. Current: ${
+                isCharging ? 'charging' : 'discharging'
+              }, Target: ${this.config.status}`
+            );
             return this.config.status === 'charging' ? isCharging : !isCharging;
         } else {
             const currentLevel = this.adapter.getBatteryLevel();
             const targetLevel = this.config.level || 0;
-            console.log(`[BatteryTrigger] Checking level. Current: ${currentLevel}, Target: ${this.config.levelType} ${targetLevel}`);
+            debugLog(
+              `[BatteryTrigger] Checking level. Current: ${currentLevel}, Target: ${this.config.levelType} ${targetLevel}`
+            );
             
             if (this.config.levelType === 'below') {
                 return currentLevel < targetLevel;
@@ -36,9 +42,11 @@ export class BatteryTrigger extends BaseTrigger {
     activate(): void {
         if (this._isActivated) return;
         
-        console.log(`[BatteryTrigger] Activating listener`);
+        debugLog(`[BatteryTrigger] Activating listener`);
         this.adapter.onBatteryStateChanged((level, isCharging) => {
-            console.log(`[BatteryTrigger] Battery state changed: ${level}%, Charging: ${isCharging}`);
+            debugLog(
+              `[BatteryTrigger] Battery state changed: ${level}%, Charging: ${isCharging}`
+            );
             this.emit('triggered');
         });
         

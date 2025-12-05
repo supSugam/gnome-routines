@@ -14,7 +14,9 @@ export class WifiTrigger extends BaseTrigger {
         // Power state check
         if (this.config.state === 'enabled' || this.config.state === 'disabled') {
             const isEnabled = this.adapter.getWifiPowerState();
-            console.log(`[WifiTrigger] Checking power state. Current: ${isEnabled}, Target: ${this.config.state}`);
+            debugLog(
+              `[WifiTrigger] Checking power state. Current: ${isEnabled}, Target: ${this.config.state}`
+            );
             return this.config.state === 'enabled' ? isEnabled : !isEnabled;
         }
 
@@ -22,7 +24,9 @@ export class WifiTrigger extends BaseTrigger {
         const isConnected = this.adapter.getWifiState();
         const currentSSID = this.adapter.getCurrentWifiSSID();
         
-        console.log(`[WifiTrigger] Checking connection state. Current: ${isConnected} (${currentSSID}), Target: ${this.config.state}`);
+        debugLog(
+          `[WifiTrigger] Checking connection state. Current: ${isConnected} (${currentSSID}), Target: ${this.config.state}`
+        );
         
         // If specific networks are configured
         if (this.config.ssids && this.config.ssids.length > 0) {
@@ -46,18 +50,23 @@ export class WifiTrigger extends BaseTrigger {
     activate(): void {
         if (this._isActivated) return;
         
-        console.log(`[WifiTrigger] Activating listener for ${this.config.state}`);
-        
-        if (this.config.state === 'enabled' || this.config.state === 'disabled') {
-            this.adapter.onWifiPowerStateChanged((isEnabled: boolean) => {
-                console.log(`[WifiTrigger] Wifi power changed to: ${isEnabled}`);
-                this.emit('triggered');
-            });
+        debugLog(`[WifiTrigger] Activating listener for ${this.config.state}`);
+
+        if (
+          this.config.state === 'enabled' ||
+          this.config.state === 'disabled'
+        ) {
+          this.adapter.onWifiPowerStateChanged((isEnabled: boolean) => {
+            debugLog(`[WifiTrigger] Wifi power changed to: ${isEnabled}`);
+            this.emit('triggered');
+          });
         } else {
-            this.adapter.onWifiStateChanged((isConnected: boolean) => {
-                console.log(`[WifiTrigger] Wifi connection state changed to: ${isConnected}`);
-                this.emit('triggered');
-            });
+          this.adapter.onWifiStateChanged((isConnected: boolean) => {
+            debugLog(
+              `[WifiTrigger] Wifi connection state changed to: ${isConnected}`
+            );
+            this.emit('triggered');
+          });
         }
         
         this._isActivated = true;

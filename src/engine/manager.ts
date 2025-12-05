@@ -18,18 +18,18 @@ export class RoutineManager implements RoutineManagerInterface {
   }
 
   async load() {
-    console.log('[RoutineManager] load() called');
+    debugLog('[RoutineManager] load() called');
     const rawRoutines = await this.storage.loadRoutines();
-    console.log(
+    debugLog(
       `[RoutineManager] Loaded ${rawRoutines.length} raw routines from storage`
     );
 
     rawRoutines.forEach((r) => {
-      console.log(`[RoutineManager] Hydrating routine: ${r.name} (${r.id})`);
+      debugLog(`[RoutineManager] Hydrating routine: ${r.name} (${r.id})`);
       const routine = this._hydrate(r);
       if (routine) {
         this.routines.set(routine.id, routine);
-        console.log(
+        debugLog(
           `[RoutineManager] Routine hydrated and added: ${routine.name}`
         );
       } else {
@@ -37,14 +37,12 @@ export class RoutineManager implements RoutineManagerInterface {
       }
     });
 
-    console.log(
-      `[RoutineManager] Total active routines: ${this.routines.size}`
-    );
+    debugLog(`[RoutineManager] Total active routines: ${this.routines.size}`);
     this.evaluate();
   }
 
   async reload() {
-    console.log('[RoutineManager] Reloading routines from settings...');
+    debugLog('[RoutineManager] Reloading routines from settings...');
     const rawRoutines = await this.storage.loadRoutines();
     const newRoutineMap = new Map<string, Routine>();
 
@@ -57,7 +55,7 @@ export class RoutineManager implements RoutineManagerInterface {
     // 1. Handle Removed
     for (const id of this.routines.keys()) {
       if (!newRoutineMap.has(id)) {
-        console.log(`[RoutineManager] Routine ${id} removed`);
+        debugLog(`[RoutineManager] Routine ${id} removed`);
         this._removeRoutine(id);
       }
     }
@@ -67,7 +65,7 @@ export class RoutineManager implements RoutineManagerInterface {
       const existing = this.routines.get(id);
       if (!existing) {
         // Added
-        console.log(`[RoutineManager] Routine ${id} added`);
+        debugLog(`[RoutineManager] Routine ${id} added`);
         this.routines.set(id, newRoutine);
       } else {
         // Modified - Replace
@@ -75,7 +73,7 @@ export class RoutineManager implements RoutineManagerInterface {
         // But since we don't have raw of existing easily, we just replace.
         // To avoid flicker, we could check if enabled/triggers/actions changed.
         // For now, simple replace.
-        console.log(`[RoutineManager] Routine ${id} updated`);
+        debugLog(`[RoutineManager] Routine ${id} updated`);
         this._removeRoutine(id); // Deactivates if active
         this.routines.set(id, newRoutine);
       }
@@ -89,6 +87,10 @@ export class RoutineManager implements RoutineManagerInterface {
       const triggers = rawRoutine.triggers
         .map((t: any) => TriggerFactory.create(t, this.adapter))
         .filter((t: any) => t !== null) as Trigger[];
+      
+      debugLog(
+        `[RoutineManager] Hydrating actions for ${rawRoutine.name}. Raw count: ${rawRoutine.actions?.length}`
+      );
       const actions = rawRoutine.actions
         .map((a: any) =>
           ActionFactory.create(
@@ -192,10 +194,10 @@ export class RoutineManager implements RoutineManagerInterface {
       );
 
       if (shouldBeActive && !routine.isActive) {
-        console.log(`[RoutineManager] Activating routine ${routine.name}`);
+        debugLog(`[RoutineManager] Activating routine ${routine.name}`);
         this.activateRoutine(routine);
       } else if (!shouldBeActive && routine.isActive) {
-        console.log(`[RoutineManager] Deactivating routine ${routine.name}`);
+        debugLog(`[RoutineManager] Deactivating routine ${routine.name}`);
         this.deactivateRoutine(routine);
       }
     }
@@ -203,10 +205,10 @@ export class RoutineManager implements RoutineManagerInterface {
 
   private activateTriggers(routine: Routine) {
     routine.triggers.forEach((trigger: any) => {
-      console.log(
+      debugLog(
         `[RoutineManager] Checking trigger activation for ${trigger.id} (active: ${trigger._isActivated})`
       );
-      console.log(
+      debugLog(
         `[RoutineManager] Trigger type: ${
           trigger.constructor.name
         }, has activate: ${typeof trigger.activate}`
@@ -220,24 +222,25 @@ export class RoutineManager implements RoutineManagerInterface {
         // Listen for changes
         if (trigger.on) {
           trigger.on('triggered', () => {
-            console.log(
+            debugLog(
               `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}.`
             );
             if (routine.isActive) {
-              console.log(
+              debugLog(
                 `[RoutineManager] Routine is already active. Re-executing actions for event trigger.`
               );
               this.activateRoutine(routine);
             } else {
+              debugLog(`[RoutineManager] Routine not active. Evaluating...`);
               this.evaluate();
             }
           });
           trigger.on('activate', () => {
-            console.log(`[RoutineManager] Trigger ${trigger.id} activated`);
+            debugLog(`[RoutineManager] Trigger ${trigger.id} activated`);
             this.evaluate();
           });
           trigger.on('deactivate', () => {
-            console.log(`[RoutineManager] Trigger ${trigger.id} deactivated`);
+            debugLog(`[RoutineManager] Trigger ${trigger.id} deactivated`);
             this.evaluate();
           });
         }
@@ -294,9 +297,13 @@ export class RoutineManager implements RoutineManagerInterface {
   }
 
   private async activateRoutine(routine: Routine) {
-    console.log(`Activating routine: ${routine.name}`);
+    debugLog(`Activating routine: ${routine.name}`);
+    debugLog(`[RoutineManager] Routine has ${routine.actions.length} actions.`);
     routine.isActive = true;
     for (const action of routine.actions) {
+      debugLog(
+        `[RoutineManager] Executing action ${action.id} (Type: ${action.type})`
+      );
       try {
         await action.execute();
       } catch (e) {
@@ -309,7 +316,7 @@ export class RoutineManager implements RoutineManagerInterface {
   }
 
   private async deactivateRoutine(routine: Routine) {
-    console.log(`Deactivating routine: ${routine.name}`);
+    debugLog(`Deactivating routine: ${routine.name}`);
     routine.isActive = false;
     // Execute revert actions in reverse order
     for (let i = routine.actions.length - 1; i >= 0; i--) {
@@ -318,13 +325,13 @@ export class RoutineManager implements RoutineManagerInterface {
 
       if (onDeactivate) {
         if (onDeactivate.type === 'keep') {
-          console.log(`[RoutineManager] Keeping state for action ${action.id}`);
+          debugLog(`[RoutineManager] Keeping state for action ${action.id}`);
           continue;
         } else if (onDeactivate.type === 'custom' && onDeactivate.config) {
-          console.log(
+          debugLog(
             `[RoutineManager] Executing custom deactivation for action ${action.id}`
           );
-          console.log(
+          debugLog(
             `[RoutineManager] Custom config: ${JSON.stringify(
               onDeactivate.config
             )}`

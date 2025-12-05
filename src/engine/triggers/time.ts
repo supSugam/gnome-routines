@@ -72,7 +72,7 @@ export class TimeTrigger extends BaseTrigger {
   activate(): void {
     if (this.intervalId) return;
 
-    console.log(`[TimeTrigger] Activating polling for ${this.id}`);
+    debugLog(`[TimeTrigger] Activating polling for ${this.id}`);
 
     // @ts-ignore
     const GLib = imports.gi.GLib;
@@ -90,7 +90,7 @@ export class TimeTrigger extends BaseTrigger {
 
   deactivate(): void {
     if (this.intervalId) {
-      console.log(`[TimeTrigger] Deactivating polling for ${this.id}`);
+      debugLog(`[TimeTrigger] Deactivating polling for ${this.id}`);
       // @ts-ignore
       const GLib = imports.gi.GLib;
       GLib.source_remove(this.intervalId);

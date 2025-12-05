@@ -9,17 +9,21 @@ export class KeyboardBrightnessAction extends BaseAction {
     }
 
     async execute(): Promise<void> {
-        console.log(
+        debugLog(
           `[KeyboardBrightnessAction] Setting keyboard brightness to: ${
             this.config.level
           }% (Type: ${typeof this.config.level})`
         );
         try {
             this.previousBrightness = await this.adapter.getKeyboardBrightness();
-            console.log(`[KeyboardBrightnessAction] Previous brightness: ${this.previousBrightness}%`);
+            debugLog(
+              `[KeyboardBrightnessAction] Previous brightness: ${this.previousBrightness}%`
+            );
             
             this.adapter.setKeyboardBrightness(this.config.level);
-            console.log(`[KeyboardBrightnessAction] Keyboard brightness set successfully`);
+            debugLog(
+              `[KeyboardBrightnessAction] Keyboard brightness set successfully`
+            );
         } catch (e) {
             console.error(`[KeyboardBrightnessAction] Failed to execute:`, e);
         }
@@ -27,10 +31,14 @@ export class KeyboardBrightnessAction extends BaseAction {
 
     revert(): void {
         if (this.previousBrightness !== null) {
-            console.log(`[KeyboardBrightnessAction] Reverting keyboard brightness to: ${this.previousBrightness}%`);
+            debugLog(
+              `[KeyboardBrightnessAction] Reverting keyboard brightness to: ${this.previousBrightness}%`
+            );
             try {
                 this.adapter.setKeyboardBrightness(this.previousBrightness);
-                console.log(`[KeyboardBrightnessAction] Keyboard brightness reverted successfully`);
+                debugLog(
+                  `[KeyboardBrightnessAction] Keyboard brightness reverted successfully`
+                );
             } catch (e) {
                 console.error(`[KeyboardBrightnessAction] Failed to revert:`, e);
             }

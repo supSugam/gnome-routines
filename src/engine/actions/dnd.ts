@@ -13,20 +13,20 @@ export class DndAction extends BaseAction {
   }
 
   execute(): void {
-    console.log(`[DNDAction] Setting DND to: ${this.config.enabled}`);
+    debugLog(`[DNDAction] Setting DND to: ${this.config.enabled}`);
     // Store current state before changing
     const settings = new (require('gi://Gio').Settings)({
       schema_id: 'org.gnome.desktop.notifications',
     });
     this.previousDndState = !settings.get_boolean('show-banners');
-    console.log(`[DNDAction] Previous DND state: ${this.previousDndState}`);
+    debugLog(`[DNDAction] Previous DND state: ${this.previousDndState}`);
 
     this.adapter.setDND(this.config.enabled);
   }
 
   revert(): void {
     if (this.previousDndState !== null) {
-      console.log(`[DNDAction] Reverting DND to: ${this.previousDndState}`);
+      debugLog(`[DNDAction] Reverting DND to: ${this.previousDndState}`);
       this.adapter.setDND(this.previousDndState);
     }
   }

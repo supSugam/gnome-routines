@@ -1,148 +1,242 @@
 import { BaseAction } from './base.js';
+import { SanitizationMode, ActionType } from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+// @ts-ignore
+import trackingParams from '../../data/tracking_params.json' assert { type: 'json' };
+import debugLog from '../../utils/log.js';
 
 export class ClipboardAction extends BaseAction {
-    constructor(id: string, config: { operation: 'clear' | 'replace', find?: string, replace?: string }, adapter: SystemAdapter) {
-        super(id, 'clipboard', config, adapter);
-    }
+  private predefinedRules: {
+    type: 'suffix' | 'contains';
+    value: string;
+    params: Set<string>;
+  }[] = [];
+  private globalParams: Set<string> = new Set();
+  private customRules: { domain: string; params: Set<string> }[] = [];
+  private rulesCompiled: boolean = false;
 
-    async execute(): Promise<void> {
-      console.log(
-        `[ClipboardAction] Executing operation: ${this.config.operation}`
-      );
+  constructor(
+    id: string,
+    config: { operation: 'clear' | 'replace'; find?: string; replace?: string },
+    adapter: SystemAdapter
+  ) {
+    super(id, ActionType.CLEAR_CLIPBOARD, config, adapter);
+  }
 
-      // 1. Handle Main Operation
-      if (this.config.operation === 'clear') {
-        this.adapter.clearClipboard();
-        console.log(`[ClipboardAction] Clipboard cleared.`);
-        return; // If cleared, no need to sanitize
-      } else if (this.config.operation === 'replace') {
-        const content = await this.adapter.getClipboardContent();
-        if (content.type === 'text' && content.content) {
-          let newText = content.content;
-          if (this.config.find && this.config.replace !== undefined) {
-            try {
-              const regex = new RegExp(this.config.find, 'g');
-              newText = newText.replace(regex, this.config.replace);
-              this.adapter.setClipboardText(newText);
-              console.log(`[ClipboardAction] Clipboard text replaced.`);
-            } catch (e) {
-              console.error(
-                `[ClipboardAction] Invalid regex or replace failed:`,
-                e
-              );
+  private compileRules() {
+    const mode =
+      this.config.sanitizeConfig?.mode || SanitizationMode.PREDEFINED;
+    const customRulesConfig = this.config.sanitizeConfig?.domainRules || [];
+
+    // Reset
+    this.predefinedRules = [];
+    this.globalParams = new Set();
+    this.customRules = [];
+
+    // 1. Load Predefined
+    if (
+      mode === SanitizationMode.PREDEFINED ||
+      mode === SanitizationMode.MERGE
+    ) {
+      Object.entries(trackingParams).forEach(([pattern, params]) => {
+        const paramSet = new Set(params as string[]);
+
+        if (pattern === '*') {
+          // Global params
+          this.globalParams = paramSet;
+        } else {
+          // Domain rules: *://*.instagram.com/* -> instagram.com
+          // *://*.amazon.*/* -> amazon.
+          let domainPart = pattern.replace('://', ''); // *://*.domain.com/* -> *.domain.com/*
+          const firstDot = domainPart.indexOf('.');
+          const lastSlash = domainPart.lastIndexOf('/');
+
+          if (firstDot !== -1 && lastSlash !== -1) {
+            // Extract between first dot (inclusive of dot if we want suffix?)
+            // Pattern: *.instagram.com/* -> .instagram.com
+            // Pattern: *.amazon.*/* -> .amazon.*
+
+            let hostPart = domainPart.substring(firstDot + 1, lastSlash); // instagram.com or amazon.*
+
+            if (hostPart.includes('*')) {
+              // contains match (e.g. amazon.* -> amazon.)
+              this.predefinedRules.push({
+                type: 'contains',
+                value: hostPart.replace('*', ''),
+                params: paramSet,
+              });
+            } else {
+              // suffix match
+              this.predefinedRules.push({
+                type: 'suffix',
+                value: hostPart,
+                params: paramSet,
+              });
             }
           }
-        } else {
-          console.log(
-            `[ClipboardAction] Clipboard content is not text, skipping replace.`
-          );
         }
-      }
+      });
+    }
 
-      // 2. Handle Sanitization (if enabled)
-      if (this.config.sanitize) {
-        const content = await this.adapter.getClipboardContent();
-        if (content.type === 'text' && content.content) {
+    // 2. Load Custom (Prefix based)
+    if (mode === SanitizationMode.CUSTOM || mode === SanitizationMode.MERGE) {
+      customRulesConfig.forEach(
+        (rule: { domain: string; params: string[] }) => {
+          this.customRules.push({
+            domain: rule.domain,
+            params: new Set(rule.params),
+          });
+        }
+      );
+    }
+
+    this.rulesCompiled = true;
+    debugLog(
+      `[ClipboardAction] Compiled rules: ${this.globalParams.size} global, ${this.predefinedRules.length} predefined, ${this.customRules.length} custom.`
+    );
+  }
+
+  async execute(): Promise<void> {
+    debugLog(`[ClipboardAction] Executing operation: ${this.config.operation}`);
+
+    // 1. Handle Clear Operation
+    if (this.config.operation === 'clear') {
+      this.adapter.clearClipboard();
+      debugLog(`[ClipboardAction] Clipboard cleared.`);
+      return;
+    }
+
+    // 2. Handle Replace & Sanitize
+    if (this.config.operation === 'replace' || this.config.sanitize) {
+      const content = await this.adapter.getClipboardContent();
+      if (content.type === 'text' && content.content) {
+        let text = content.content;
+        let dirty = false;
+
+        // A. Apply Replace
+        if (
+          this.config.operation === 'replace' &&
+          this.config.find &&
+          this.config.replace !== undefined
+        ) {
           try {
-            const url = new URL(content.content);
-            const params = new URLSearchParams(url.search);
-            const mode = this.config.sanitizeConfig?.mode || 'predefined';
-            const domainRules = this.config.sanitizeConfig?.domainRules || [];
-
-            const defaultParams = [
-              'utm_source',
-              'utm_medium',
-              'utm_campaign',
-              'utm_term',
-              'utm_content',
-              'fbclid',
-              'gclid',
-              'gclsrc',
-              'dclid',
-              'msclkid',
-              'zanpid',
-              '_ga',
-              '_gl',
-              'mc_eid',
-              'mc_cid',
-            ];
-
-            let paramsToRemove: Set<string> = new Set();
-
-            // Apply Predefined Rules
-            if (mode === 'predefined' || mode === 'merge') {
-              defaultParams.forEach((p) => paramsToRemove.add(p));
+            const regex = new RegExp(this.config.find, 'g');
+            const replaced = text.replace(regex, this.config.replace);
+            if (replaced !== text) {
+              text = replaced;
+              dirty = true;
+              debugLog(`[ClipboardAction] Text replacement applied.`);
             }
+          } catch (e) {
+            console.error(`[ClipboardAction] Replace regex error:`, e);
+          }
+        }
 
-            // Apply Domain Rules (Custom)
-            if (mode === 'custom' || mode === 'merge') {
-              const hostname = url.hostname;
-              domainRules.forEach(
-                (rule: { pattern: string; params: string[] }) => {
-                  // Simple glob matching: * -> .*
-                  // Escape dots
-                  let pattern = rule.pattern.replace(/\./g, '\\.');
-                  // Replace * with .*
-                  pattern = pattern.replace(/\*/g, '.*');
-                  // Anchor
-                  const regex = new RegExp(`^${pattern}$`);
+        // B. Apply Sanitization
+        if (this.config.sanitize) {
+          if (!this.rulesCompiled) this.compileRules();
 
-                  // Check if hostname matches OR full URL matches (user might provide full url pattern)
-                  // User example: *.instagram.com/*
-                  // If pattern contains /, match against full URL (without protocol maybe? or with?)
-                  // Let's match against hostname if no slash, or full href if slash.
+          // Robust URL Regex to find URLs in text
+          const urlRegex =
+            /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
 
+          const sanitizedText = text.replace(urlRegex, (matchedUrl) => {
+            try {
+              const url = new URL(matchedUrl);
+              let urlChanged = false;
+              const currentParams = url.searchParams;
+
+              // 1. Apply Global Params
+              this.globalParams.forEach((p) => {
+                if (currentParams.has(p)) {
+                  currentParams.delete(p);
+                  urlChanged = true;
+                }
+              });
+
+              // 2. Check for Custom Match (Highest Priority after global?)
+              // Actually custom rules might want to override or add to global.
+              // Current logic: Global runs first. Then we check specific rules.
+
+              let appliedCustom = false;
+              // Check Custom Rules (Prefix)
+              for (const rule of this.customRules) {
+                if (url.href.startsWith(rule.domain)) {
+                  debugLog(
+                    `[ClipboardAction] Applying custom rule for ${rule.domain}`
+                  );
+                  rule.params.forEach((p) => {
+                    if (currentParams.has(p)) {
+                      currentParams.delete(p);
+                      urlChanged = true;
+                    }
+                  });
+                  appliedCustom = true;
+                  break; // Apply first matching custom rule? Or all? Usually one specific rule per URL.
+                  // Let's stop at first match to avoid conflict/perf issues if they overlap (e.g. domain vs domain/path)
+                  // If we want "longest prefix", we should sort customRules by length descending in compile.
+                  // But here we just iterate.
+                }
+              }
+
+              // 3. Apply Predefined Domain Rules (if no custom rule applied? or always?)
+              // Requirement: "custom will override predefined if same match".
+              // Since we are matching defined domains vs suffixes, it's hard to strict "override".
+              // But if a custom rule handled it, maybe we skip predefined?
+              // User said "Merge" mode: "Common + Custom".
+              // If I defined a custom rule for instagram.com, I probably want THAT to run.
+              // If I didn't, run common.
+
+              if (!appliedCustom) {
+                const hostname = url.hostname;
+                for (const rule of this.predefinedRules) {
                   let match = false;
-                  if (rule.pattern.includes('/')) {
-                    // Match against full URL (stripped of protocol for easier matching?)
-                    // Or just full URL.
-                    // Let's try matching against hostname + pathname
-                    const urlPart = url.hostname + url.pathname;
-                    if (regex.test(urlPart) || regex.test(url.href)) {
-                      match = true;
-                    }
+                  if (rule.type === 'suffix') {
+                    match = hostname.endsWith(rule.value);
                   } else {
-                    if (regex.test(hostname)) {
-                      match = true;
-                    }
+                    match = hostname.includes(rule.value);
                   }
 
                   if (match) {
-                    rule.params.forEach((p: string) => paramsToRemove.add(p));
+                    rule.params.forEach((p) => {
+                      if (currentParams.has(p)) {
+                        currentParams.delete(p);
+                        urlChanged = true;
+                      }
+                    });
                   }
                 }
-              );
-            }
-
-            let changed = false;
-            paramsToRemove.forEach((p) => {
-              if (params.has(p)) {
-                params.delete(p);
-                changed = true;
               }
-            });
 
-            // Reconstruct URL
-            url.search = params.toString();
-
-            if (changed) {
-              this.adapter.setClipboardText(url.toString());
-              console.log(`[ClipboardAction] Sanitized URL: ${url.toString()}`);
-            } else {
-              console.log(
-                `[ClipboardAction] No tracking params found to remove.`
-              );
+              if (urlChanged) {
+                dirty = true;
+                debugLog(`[ClipboardAction] Sanitized URL: ${url.toString()}`);
+                return url.toString();
+              }
+            } catch (e) {
+              // Not a valid URL
             }
-          } catch (e) {
-            // Not a URL, skip
-          }
+            return matchedUrl;
+          });
+
+          text = sanitizedText;
         }
+
+        // Commit changes if any
+        if (dirty) {
+          this.adapter.setClipboardText(text);
+          debugLog(`[ClipboardAction] Clipboard updated.`);
+        } else {
+          debugLog(`[ClipboardAction] No changes needed.`);
+        }
+      } else {
+        debugLog(`[ClipboardAction] Clipboard content is not text, skipping.`);
       }
     }
+  }
 
-    revert(): void {
-        // Reverting clipboard changes is complex (need history).
-        // For now, no-op.
-    }
+  revert(): void {
+    // Reverting clipboard changes is complex (need history).
+    // For now, no-op.
+  }
 }

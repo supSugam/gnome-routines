@@ -68,19 +68,19 @@ export class RoutineEditor {
     });
     // @ts-ignore
     saveBtn.connect('clicked', () => {
-      console.log('[Editor] Save clicked');
+      debugLog('[Editor] Save clicked');
       // Update name from entry
       this.routine.name = nameEntry.text;
 
       if (!this.routine.name) {
-        console.log('[Editor] Name is empty');
+        debugLog('[Editor] Name is empty');
         // TODO: Show error
         return;
       }
       try {
-        console.log('[Editor] Calling onSave', JSON.stringify(this.routine));
+        debugLog('[Editor] Calling onSave', JSON.stringify(this.routine));
         this.onSave(this.routine);
-        console.log('[Editor] onSave completed');
+        debugLog('[Editor] onSave completed');
         this.window.close();
       } catch (e) {
         console.error('[Editor] Save failed', e);
@@ -615,7 +615,7 @@ export class RoutineEditor {
           editAction(dummyAction, false, (newConfig) => {
             if (!action.onDeactivate) action.onDeactivate = { type: 'custom' };
             action.onDeactivate.config = newConfig;
-            console.log(
+            debugLog(
               `[Editor] Saved custom deactivation config for ${action.type}`
             );
             row.subtitle = getEndSummary(); // Update subtitle immediately

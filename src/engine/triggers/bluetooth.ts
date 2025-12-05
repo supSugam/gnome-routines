@@ -60,21 +60,17 @@ export class BluetoothTrigger extends BaseTrigger {
   }
 
   activate(): void {
-    console.log(
-      `[BluetoothTrigger] Activating listener for ${this.config.state}`
-    );
+    debugLog(`[BluetoothTrigger] Activating listener for ${this.config.state}`);
 
     if (this.config.state === 'enabled' || this.config.state === 'disabled') {
       this.adapter.onBluetoothPowerStateChanged((isEnabled: boolean) => {
-        console.log(
-          `[BluetoothTrigger] Bluetooth power changed to: ${isEnabled}`
-        );
+        debugLog(`[BluetoothTrigger] Bluetooth power changed to: ${isEnabled}`);
         this._hasWitnessedChange = true;
         this.emit('triggered');
       });
     } else {
       this.adapter.onBluetoothDeviceStateChanged(() => {
-        console.log(
+        debugLog(
           `[BluetoothTrigger] Bluetooth device state changed event received`
         );
         this._hasWitnessedChange = true;
@@ -93,7 +89,7 @@ export class BluetoothTrigger extends BaseTrigger {
       const GLib = imports.gi.GLib;
       GLib.source_remove(this._timeoutId);
       this._timeoutId = 0;
-      console.log(`[BluetoothTrigger] Polling timer removed`);
+      debugLog(`[BluetoothTrigger] Polling timer removed`);
     }
     this._isActivated = false;
     this._hasWitnessedChange = false; // Reset on deactivate

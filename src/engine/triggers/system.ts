@@ -32,7 +32,9 @@ export class SystemTrigger extends BaseTrigger {
         }
 
         const targetState = this.config.state === 'on' || this.config.state === 'connected';
-        console.log(`[SystemTrigger] Checking ${this.config.type}. Current: ${currentState}, Target: ${targetState}`);
+        debugLog(
+          `[SystemTrigger] Checking ${this.config.type}. Current: ${currentState}, Target: ${targetState}`
+        );
         
         return currentState === targetState;
     }
@@ -40,10 +42,12 @@ export class SystemTrigger extends BaseTrigger {
     activate(): void {
         if (this._isActivated) return;
         
-        console.log(`[SystemTrigger] Activating listener for ${this.config.type}`);
+        debugLog(`[SystemTrigger] Activating listener for ${this.config.type}`);
         
         const callback = (state: boolean) => {
-            console.log(`[SystemTrigger] ${this.config.type} changed to: ${state}`);
+            debugLog(
+              `[SystemTrigger] ${this.config.type} changed to: ${state}`
+            );
             this.emit('triggered');
         };
 

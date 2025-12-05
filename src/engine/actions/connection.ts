@@ -42,7 +42,7 @@ export class WifiAction extends BaseAction {
       const interval = (this.config.interval || 5) * 1000;
       const startTime = Date.now();
 
-      console.log('[WifiAction] Starting auto-connect to ' + this.config.ssid);
+      debugLog('[WifiAction] Starting auto-connect to ' + this.config.ssid);
 
       // Initial attempt
       this.adapter.connectToWifi(this.config.ssid);
@@ -52,13 +52,13 @@ export class WifiAction extends BaseAction {
 
         const currentSSID = this.adapter.getCurrentWifiSSID();
         if (currentSSID === this.config.ssid) {
-          console.log(
+          debugLog(
             '[WifiAction] Successfully connected to ' + this.config.ssid
           );
           return;
         }
 
-        console.log(
+        debugLog(
           '[WifiAction] Retrying connection to ' + this.config.ssid + '...'
         );
         this.adapter.connectToWifi(this.config.ssid);
@@ -69,7 +69,7 @@ export class WifiAction extends BaseAction {
 
   async revert(): Promise<void> {
     if (this.initialState !== null) {
-      console.log(
+      debugLog(
         `[WifiAction] Reverting state. Enabled: ${this.initialState}, SSID: ${this.initialSsid}`
       );
       this.adapter.setWifi(this.initialState);
@@ -123,7 +123,7 @@ export class BluetoothAction extends BaseAction {
       const interval = (this.config.interval || 5) * 1000;
       const startTime = Date.now();
 
-      console.log(
+      debugLog(
         '[BluetoothAction] Starting auto-connect to ' + this.config.deviceId
       );
 
@@ -145,14 +145,14 @@ export class BluetoothAction extends BaseAction {
         );
 
         if (isConnected) {
-          console.log(
+          debugLog(
             '[BluetoothAction] Successfully connected to ' +
               this.config.deviceId
           );
           return;
         }
 
-        console.log(
+        debugLog(
           '[BluetoothAction] Retrying connection to ' +
             this.config.deviceId +
             '...'

@@ -9,13 +9,17 @@ export class BrightnessAction extends BaseAction {
     }
 
     execute(): void {
-        console.log(`[BrightnessAction] Setting brightness to: ${this.config.level}%`);
+        debugLog(
+          `[BrightnessAction] Setting brightness to: ${this.config.level}%`
+        );
         try {
             this.previousBrightness = this.adapter.getBrightness();
-            console.log(`[BrightnessAction] Previous brightness: ${this.previousBrightness}%`);
+            debugLog(
+              `[BrightnessAction] Previous brightness: ${this.previousBrightness}%`
+            );
             
             this.adapter.setBrightness(this.config.level);
-            console.log(`[BrightnessAction] Brightness set successfully`);
+            debugLog(`[BrightnessAction] Brightness set successfully`);
         } catch (e) {
             console.error(`[BrightnessAction] Failed to execute:`, e);
         }
@@ -23,10 +27,12 @@ export class BrightnessAction extends BaseAction {
 
     revert(): void {
         if (this.previousBrightness !== null) {
-            console.log(`[BrightnessAction] Reverting brightness to: ${this.previousBrightness}%`);
+            debugLog(
+              `[BrightnessAction] Reverting brightness to: ${this.previousBrightness}%`
+            );
             try {
                 this.adapter.setBrightness(this.previousBrightness);
-                console.log(`[BrightnessAction] Brightness reverted successfully`);
+                debugLog(`[BrightnessAction] Brightness reverted successfully`);
             } catch (e) {
                 console.error(`[BrightnessAction] Failed to revert:`, e);
             }

@@ -9,7 +9,7 @@ export class WallpaperAction extends BaseAction {
     }
 
     execute(): void {
-        console.log(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
+        debugLog(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
         this.previousWallpaper = this.adapter.getWallpaper();
         this.adapter.setWallpaper(this.config.uri);
     }

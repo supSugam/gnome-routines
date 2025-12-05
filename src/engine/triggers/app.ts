@@ -21,7 +21,7 @@ export class AppTrigger extends BaseTrigger {
     const installChangedId = this._appSystem.connect(
       'app-state-changed',
       () => {
-        console.log('[AppTrigger] App state changed, re-evaluating...');
+        debugLog('[AppTrigger] App state changed, re-evaluating...');
         this.check();
       }
     );
@@ -46,7 +46,7 @@ export class AppTrigger extends BaseTrigger {
     const Shell = imports.gi.Shell;
     const runningApps = this._appSystem.get_running();
 
-    console.log(
+    debugLog(
       `[AppTrigger] Checking running apps against: ${(
         this.config as AppTriggerConfig
       ).appIds.join(', ')}`
@@ -61,14 +61,14 @@ export class AppTrigger extends BaseTrigger {
     });
 
     if (match) {
-      console.log(`[AppTrigger] At least one target app is running`);
+      debugLog(`[AppTrigger] At least one target app is running`);
     } else {
-      console.log(`[AppTrigger] No target apps running`);
+      debugLog(`[AppTrigger] No target apps running`);
     }
 
     // Only emit if state changed or first check
     if (this._lastMatch === null || this._lastMatch !== match) {
-      console.log(`[AppTrigger] State changed: ${this._lastMatch} -> ${match}`);
+      debugLog(`[AppTrigger] State changed: ${this._lastMatch} -> ${match}`);
       this._lastMatch = match;
       this.emit('triggered');
     }

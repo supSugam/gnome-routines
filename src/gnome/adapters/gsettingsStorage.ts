@@ -17,12 +17,10 @@ export class GSettingsStorageAdapter implements StorageAdapter {
 
     async loadRoutines(): Promise<Routine[]> {
         const json = this.settings.get_string('routines');
-        console.log(
-          `[GSettingsStorageAdapter] Raw JSON from settings: ${json}`
-        );
+        debugLog(`[GSettingsStorageAdapter] Raw JSON from settings: ${json}`);
         try {
             const parsed = JSON.parse(json);
-            console.log(
+            debugLog(
               `[GSettingsStorageAdapter] Parsed ${parsed.length} routines`
             );
             return parsed;

@@ -13,7 +13,9 @@ export class RefreshRateAction extends BaseAction {
     }
 
     async execute(): Promise<void> {
-        console.log(`[RefreshRateAction] Executing with rate: ${this.config.rate}`);
+        debugLog(
+          `[RefreshRateAction] Executing with rate: ${this.config.rate}`
+        );
         const currentRate = this.adapter.getRefreshRate();
         this.stateManager.saveState(this.routineId, 'refresh_rate', currentRate);
         this.adapter.setRefreshRate(this.config.rate);

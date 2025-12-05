@@ -1,4 +1,4 @@
-import { Action } from './types.js';
+import { Action, ActionType } from './types.js';
 import { WallpaperAction } from './actions/wallpaper.js';
 import { DndAction } from './actions/dnd.js';
 import { VolumeAction } from './actions/volume.js';
@@ -35,6 +35,7 @@ export class ActionFactory {
     routineId: string
   ): Action | null {
     let action: Action | null = null;
+    debugLog(`[ActionFactory] Creating action type: ${data.type}`);
 
     switch (data.type) {
       case 'wallpaper':
@@ -115,7 +116,7 @@ export class ActionFactory {
       case 'keyboard_brightness':
         action = new KeyboardBrightnessAction(data.id, data.config, adapter);
         break;
-      case 'clipboard':
+      case ActionType.CLEAR_CLIPBOARD:
         action = new ClipboardAction(data.id, data.config, adapter);
         break;
       default:

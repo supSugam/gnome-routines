@@ -30,7 +30,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setDND(enabled: boolean): void {
-    console.log(`[GnomeShellAdapter] Setting DND to: ${enabled}`);
+    debugLog(`[GnomeShellAdapter] Setting DND to: ${enabled}`);
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.notifications',
     });
@@ -45,7 +45,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setBrightness(percentage: number): void {
-    console.log(`[GnomeShellAdapter] Setting brightness to: ${percentage}%`);
+    debugLog(`[GnomeShellAdapter] Setting brightness to: ${percentage}%`);
     try {
       // GNOME uses GSD Power interface via DBus for brightness
       // For simplicity, we'll use the backlight interface if available
@@ -94,7 +94,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   async setVolume(percentage: number): Promise<void> {
-    console.log(`[GnomeShellAdapter] Setting volume to: ${percentage}%`);
+    debugLog(`[GnomeShellAdapter] Setting volume to: ${percentage}%`);
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
@@ -118,7 +118,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           proc.wait_check_async(null, (proc: any, res: any) => {
             try {
               proc.wait_check_finish(res);
-              console.log(`[GnomeShellAdapter] Volume set command executed`);
+              debugLog(`[GnomeShellAdapter] Volume set command executed`);
             } catch (e) {
               console.error(
                 '[GnomeShellAdapter] Failed to set volume (async):',
@@ -209,7 +209,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               if (line.includes('bluez_output')) {
                 const parts = line.split('\t');
                 const sinkName = parts[1];
-                console.log(
+                debugLog(
                   `[GnomeShellAdapter] Found Bluetooth sink: ${sinkName}`
                 );
 
@@ -266,7 +266,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setWallpaper(uri: string): void {
-    console.log(`[GnomeShellAdapter] Setting wallpaper to: ${uri}`);
+    debugLog(`[GnomeShellAdapter] Setting wallpaper to: ${uri}`);
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.background',
     });
@@ -279,12 +279,12 @@ export class GnomeShellAdapter implements SystemAdapter {
       schema_id: 'org.gnome.desktop.background',
     });
     const uri = settings.get_string('picture-uri');
-    console.log(`[GnomeShellAdapter] Current wallpaper: ${uri}`);
+    debugLog(`[GnomeShellAdapter] Current wallpaper: ${uri}`);
     return uri;
   }
 
   setBluetooth(enabled: boolean): Promise<void> {
-    console.log(`[GnomeShellAdapter] Setting Bluetooth to: ${enabled}`);
+    debugLog(`[GnomeShellAdapter] Setting Bluetooth to: ${enabled}`);
     return new Promise((resolve) => {
       try {
         // @ts-ignore
@@ -305,7 +305,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         proc.wait_check_async(null, (proc: any, res: any) => {
           try {
             proc.wait_check_finish(res);
-            console.log(
+            debugLog(
               `[GnomeShellAdapter] Bluetooth ${
                 enabled ? 'enabled' : 'disabled'
               } via bluetoothctl`
@@ -399,7 +399,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setWifi(enabled: boolean): void {
-    console.log(`[GnomeShellAdapter] Setting Wifi to ${enabled}`);
+    debugLog(`[GnomeShellAdapter] Setting Wifi to ${enabled}`);
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
@@ -411,7 +411,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   async connectToWifi(ssid: string): Promise<boolean> {
-    console.log(`[GnomeShellAdapter] Connecting to Wifi ${ssid}`);
+    debugLog(`[GnomeShellAdapter] Connecting to Wifi ${ssid}`);
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
@@ -727,7 +727,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setRefreshRate(rate: number): void {
-    console.log(`[GnomeShellAdapter] Setting refresh rate to ${rate}Hz`);
+    debugLog(`[GnomeShellAdapter] Setting refresh rate to ${rate}Hz`);
     try {
       // @ts-ignore
       const GLib = imports.gi.GLib;
@@ -737,7 +737,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
         const output = new TextDecoder().decode(stdout);
-        console.log(
+        debugLog(
           `[GnomeShellAdapter] xrandr output length: ${output.length}`
         );
 
@@ -749,13 +749,13 @@ export class GnomeShellAdapter implements SystemAdapter {
         for (const line of lines) {
           if (line.includes(' connected')) {
             displayName = line.split(' ')[0];
-            console.log(`[GnomeShellAdapter] Found display: ${displayName}`);
+            debugLog(`[GnomeShellAdapter] Found display: ${displayName}`);
           }
           // Find current resolution from the line with * (current mode)
           if (line.includes('*')) {
             const trimmed = line.trim();
             currentResolution = trimmed.split(' ')[0];
-            console.log(
+            debugLog(
               `[GnomeShellAdapter] Current resolution: ${currentResolution}`
             );
           }
@@ -764,7 +764,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         if (displayName && currentResolution) {
           // Set refresh rate with explicit mode
           const cmd = `xrandr --output ${displayName} --mode ${currentResolution} --rate ${rate}`;
-          console.log(`[GnomeShellAdapter] Executing: ${cmd}`);
+          debugLog(`[GnomeShellAdapter] Executing: ${cmd}`);
           const [res, out, err] = GLib.spawn_command_line_sync(cmd);
           if (!res) {
             console.error(
@@ -773,7 +773,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               }`
             );
           } else {
-            console.log(`[GnomeShellAdapter] xrandr executed successfully.`);
+            debugLog(`[GnomeShellAdapter] xrandr executed successfully.`);
           }
         } else {
           console.warn(
@@ -801,7 +801,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         const match = output.match(/(\d+\.\d+)\*/);
         if (match) {
           const rate = Math.round(parseFloat(match[1]));
-          console.log(`[GnomeShellAdapter] Current refresh rate: ${rate}Hz`);
+          debugLog(`[GnomeShellAdapter] Current refresh rate: ${rate}Hz`);
           return rate;
         }
       }
@@ -839,7 +839,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         }
         const sortedRates = rates.sort((a, b) => b - a);
-        console.log(
+        debugLog(
           `[GnomeShellAdapter] Available refresh rates: ${sortedRates.join(
             ', '
           )}`
@@ -912,7 +912,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const cmd = `import -window root "${filename}"`;
       GLib.spawn_command_line_async(cmd);
 
-      console.log(`[GnomeShellAdapter] Taking screenshot: ${filename}`);
+      debugLog(`[GnomeShellAdapter] Taking screenshot: ${filename}`);
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to take screenshot:', e);
     }
@@ -948,7 +948,7 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
   setKeyboardBrightness(percentage: number): void {
-    console.log(
+    debugLog(
       `[GnomeShellAdapter] Setting keyboard brightness to: ${percentage}%`
     );
     try {
@@ -976,7 +976,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         (connection: any, res: any) => {
           try {
             connection.call_finish(res);
-            console.log(
+            debugLog(
               `[GnomeShellAdapter] Keyboard brightness set to ${value}%`
             );
           } catch (e) {
@@ -1022,7 +1022,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               // Result is a tuple containing a variant: (<50>,)
               const variant = result.get_child_value(0); // The variant inside the tuple
               const value = variant.get_variant().get_int32(); // Unpack variant 'i'
-              console.log(
+              debugLog(
                 `[GnomeShellAdapter] Got keyboard brightness: ${value}%`
               );
               resolve(value);
@@ -1173,7 +1173,7 @@ export class GnomeShellAdapter implements SystemAdapter {
                     const finalName = alias || name || 'Unknown Device';
                     const finalAddress = address || '';
 
-                    console.log(
+                    debugLog(
                       `[GnomeShellAdapter] Found connected device: ${finalName} (${finalAddress})`
                     );
                     devices.push({ name: finalName, address: finalAddress });
@@ -1181,7 +1181,7 @@ export class GnomeShellAdapter implements SystemAdapter {
                 }
               }
 
-              console.log(
+              debugLog(
                 `[GnomeShellAdapter] Total connected devices found: ${devices.length}`
               );
               resolve(devices);
@@ -1227,12 +1227,12 @@ export class GnomeShellAdapter implements SystemAdapter {
           params: any
         ) => {
           const [interfaceName, changedProps] = params.deep_unpack();
-          console.log(`[GnomeShellAdapter] DBus Signal: ${interfaceName}`);
+          debugLog(`[GnomeShellAdapter] DBus Signal: ${interfaceName}`);
           if (
             interfaceName === 'org.bluez.Device1' &&
             changedProps.Connected !== undefined
           ) {
-            console.log(
+            debugLog(
               `[GnomeShellAdapter] Bluetooth device connected state changed: ${changedProps.Connected}`
             );
             callback();
@@ -1544,6 +1544,8 @@ export class GnomeShellAdapter implements SystemAdapter {
     this.setClipboardText('');
   }
 
+  private clipboardTimeoutId: number = 0;
+
   onClipboardChanged(callback: () => void): void {
     // St.Clipboard has no signals. We must poll.
     // @ts-ignore
@@ -1554,65 +1556,76 @@ export class GnomeShellAdapter implements SystemAdapter {
 
     let lastContent: string | null = null;
 
+    // Clear existing timeout if any
+    if (this.clipboardTimeoutId) {
+      GLib.source_remove(this.clipboardTimeoutId);
+      this.clipboardTimeoutId = 0;
+    }
+
     // Initialize lastContent
     clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb: any, text: string) => {
       lastContent = text;
-      console.log(
+      debugLog(
         `[GnomeShellAdapter] Clipboard INIT. Content: "${text}" (Type: ${typeof text})`
       );
 
       // Start polling only after initialization
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-        clipboard.get_text(
-          St.ClipboardType.CLIPBOARD,
-          (cb: any, newText: string) => {
-            // If content hasn't changed, skip
-            if (newText === lastContent) {
-              return;
-            }
+      this.clipboardTimeoutId = GLib.timeout_add(
+        GLib.PRIORITY_DEFAULT,
+        1000,
+        () => {
+          clipboard.get_text(
+            St.ClipboardType.CLIPBOARD,
+            (cb: any, newText: string) => {
+              // If content hasn't changed, skip
+              if (newText === lastContent) {
+                return;
+              }
 
-            // Ignore transitions TO empty/null (happens on wake/unlock)
-            // Only care about transitions TO actual content
-            if (newText === null || newText === undefined || newText === '') {
-              console.log(
-                `[GnomeShellAdapter] Clipboard became empty/null. Ignoring (likely system event).`
-              );
-              // Keep lastContent - don't update it
-              return;
-            }
+              // Ignore transitions TO empty/null (happens on wake/unlock)
+              // Only care about transitions TO actual content
+              if (newText === null || newText === undefined || newText === '') {
+                debugLog(
+                  `[GnomeShellAdapter] Clipboard became empty/null. Ignoring (likely system event).`
+                );
+                // Keep lastContent - don't update it
+                return;
+              }
 
-            // If we get here, clipboard changed to non-empty content
-            // But skip if lastContent was also empty (initial setup)
-            if (
-              lastContent === null ||
-              lastContent === undefined ||
-              lastContent === ''
-            ) {
-              console.log(
-                `[GnomeShellAdapter] Clipboard initial content detected: "${newText}". No trigger.`
+              // If we get here, clipboard changed to non-empty content
+              // But skip if lastContent was also empty (initial setup)
+              if (
+                lastContent === null ||
+                lastContent === undefined ||
+                lastContent === ''
+              ) {
+                debugLog(
+                  `[GnomeShellAdapter] Clipboard initial content detected: "${newText}". No trigger.`
+                );
+                lastContent = newText;
+                return;
+              }
+
+              // Real clipboard change detected!
+              debugLog(
+                `[GnomeShellAdapter] Clipboard CHANGE DETECTED! Old: "${lastContent}" -> New: "${newText}"`
               );
+
               lastContent = newText;
-              return;
+              try {
+                debugLog('[GnomeShellAdapter] Calling clipboard callback...');
+                callback();
+              } catch (e) {
+                console.error(
+                  '[GnomeShellAdapter] Error in clipboard callback:',
+                  e
+                );
+              }
             }
-
-            // Real clipboard change detected!
-            console.log(
-              `[GnomeShellAdapter] Clipboard CHANGE DETECTED! Old: "${lastContent}" -> New: "${newText}"`
-            );
-
-            lastContent = newText;
-            try {
-              callback();
-            } catch (e) {
-              console.error(
-                '[GnomeShellAdapter] Error in clipboard callback:',
-                e
-              );
-            }
-          }
-        );
-        return GLib.SOURCE_CONTINUE;
-      });
+          );
+          return GLib.SOURCE_CONTINUE;
+        }
+      );
     });
   }
 
@@ -1623,6 +1636,13 @@ export class GnomeShellAdapter implements SystemAdapter {
       const appSystem = Shell.AppSystem.get_default();
       appSystem.disconnect(this.appListenerId);
       this.appListenerId = 0;
+    }
+    if (this.clipboardTimeoutId) {
+      // @ts-ignore
+      const GLib = imports.gi.GLib;
+      GLib.source_remove(this.clipboardTimeoutId);
+      this.clipboardTimeoutId = 0;
+      debugLog('[GnomeShellAdapter] Clipboard polling stopped.');
     }
   }
 }
