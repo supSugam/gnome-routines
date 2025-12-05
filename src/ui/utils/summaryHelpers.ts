@@ -8,7 +8,6 @@ import {
   WifiTriggerConfig,
   BluetoothTriggerConfig,
   BatteryTriggerConfig,
-  SystemTriggerConfig,
   OpenAppActionConfig,
   BinaryStateActionConfig,
   ConnectBluetoothActionConfig,
@@ -20,6 +19,12 @@ import {
   ScreenOrientationActionConfig,
   OpenLinkActionConfig,
   NotificationActionConfig,
+  ClipboardActionConfig,
+  ClipboardOperation,
+  ConnectionState,
+  BatteryTriggerMode,
+  LevelComparison,
+  BatteryStatus,
 } from '../../engine/types.js';
 
 export const getTriggerSummary = (trigger: Trigger): string => {
@@ -27,190 +32,221 @@ export const getTriggerSummary = (trigger: Trigger): string => {
     const config = trigger.config as TimeTriggerConfig;
     const days = config.days || [];
     let dayText = '';
-    if (days.length === 7) dayText = 'Everyday';
-    else if (days.length === 0) dayText = 'Never';
+    if (days.length === 7) dayText = 'every day';
+    else if (days.length === 0) dayText = 'never';
     else if (days.length === 5 && !days.includes(0) && !days.includes(6))
-      dayText = 'Weekdays';
+      dayText = 'on weekdays';
     else if (days.length === 2 && days.includes(0) && days.includes(6))
-      dayText = 'Weekends';
+      dayText = 'on weekends';
     else
-      dayText = days
-        .map(
-          (d: number) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]
-        )
-        .join(', ');
+      dayText =
+        'on ' +
+        days
+          .map(
+            (d: number) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]
+          )
+          .join(', ');
 
-    if (config.time) return `At ${config.time}, ${dayText}`;
+    if (config.time) return `At ${config.time} ${dayText}`;
     if (config.startTime)
-      return `From ${config.startTime} to ${config.endTime}, ${dayText}`;
+      return `From ${config.startTime} to ${config.endTime} ${dayText}`;
   }
+
   if (trigger.type === TriggerType.APP) {
     const config = trigger.config as AppTriggerConfig;
     const count = config.appIds ? config.appIds.length : 0;
-    return `App: ${count} selected`;
+    if (count === 0) return 'When an app is opened';
+    if (count === 1) return `When ${config.appIds[0]} is opened`; // Ideally we'd map ID to Name
+    return `When any of ${count} selected apps are opened`;
   }
+
   if (trigger.type === TriggerType.WIFI) {
     const config = trigger.config as WifiTriggerConfig;
     const ssids = config.ssids || [];
+    const state =
+      config.state === ConnectionState.CONNECTED ? 'connected' : 'disconnected';
     if (ssids.length > 0) {
-      return `Wifi: ${config.state} (${ssids.length} networks)`;
+      return `When Wifi is ${state} (${ssids.length} networks)`;
     }
-    return `Wifi: ${config.state}`;
+    return `When Wifi is ${state}`;
   }
+
   if (trigger.type === TriggerType.BLUETOOTH) {
     const config = trigger.config as BluetoothTriggerConfig;
     const devices = config.deviceIds || [];
+    const state =
+      config.state === ConnectionState.CONNECTED ? 'connected' : 'disconnected';
     if (devices.length > 0) {
-      return `Bluetooth: ${config.state} (${devices.length} devices)`;
+      return `When Bluetooth is ${state} (${devices.length} devices)`;
     }
-    return `Bluetooth: ${config.state}`;
-  }
-  if (trigger.type === TriggerType.BATTERY) {
-    const config = trigger.config as BatteryTriggerConfig;
-    if (config.mode === 'status') {
-      return `Battery: ${config.status}`;
-    }
-    return `Battery: ${config.levelType === 'below' ? '<' : '>='} ${
-      config.level
-    }%`;
-  }
-  if (trigger.type === TriggerType.POWER_SAVER || trigger.type === TriggerType.DARK_MODE || trigger.type === TriggerType.AIRPLANE_MODE || trigger.type === TriggerType.HEADPHONES) {
-      // These map to SystemTriggerConfig internally in the old logic, but let's handle them as their own types if needed.
-      // Actually, based on types.ts, SystemTriggerConfig covers these.
-      // But wait, TriggerType enum has specific entries.
-      // The previous logic mapped them. Let's assume they are stored as specific types but might share config structure.
-      // Or they are 'system' type triggers with a subtype?
-      // Looking at types.ts, SystemTriggerConfig has a 'type' field.
-      // But TriggerType enum has POWER_SAVER etc.
-      // This implies the refactor moved away from a generic 'system' trigger to specific ones?
-      // Let's check the old code... it had `if (trigger.type === 'system')`.
-      // But the Enum now has specific types.
-      // If the data migration hasn't happened, we might have issues.
-      // For now, let's assume the trigger.type matches the Enum.
-      
-      // Wait, the old code had:
-      // if (trigger.type === 'system') { ... names[trigger.config.type] ... }
-      // This means the type was 'system' and config had 'type'.
-      // My new Enum has POWER_SAVER etc.
-      // If I change the type to TriggerType.POWER_SAVER, I am assuming the migration happens or I am enforcing it.
-      // The user asked to enforce types.
-      
-      // Let's handle the legacy 'system' type if it exists, or the new specific types.
-      // But TriggerType enum DOES NOT have 'SYSTEM'.
-      // So I should probably handle the specific ones.
-      
-      // However, the `getTriggerSummary` function I am replacing had:
-      // if (trigger.type === 'system') ...
-      
-      // If I am strictly typing, I should probably use the specific types.
-      // But if the data is still 'system', this will break.
-      // The task is "Enforcing Strict Typing", which implies updating the data structure too or handling it.
-      // Let's assume for now we are supporting the new structure where they are separate.
-      
-      // Actually, let's look at `types.ts` again.
-      // export interface SystemTriggerConfig { type: 'power_saver' ... }
-      // But TriggerType has POWER_SAVER.
-      // This is a bit conflicting.
-      // If I use TriggerType.POWER_SAVER, the config should probably just be { state: boolean }.
-      // Let's stick to what the Enum says.
-      
-      const names: Record<string, string> = {
-          [TriggerType.POWER_SAVER]: 'Battery Saver',
-          [TriggerType.DARK_MODE]: 'Dark Mode',
-          [TriggerType.AIRPLANE_MODE]: 'Airplane Mode',
-          [TriggerType.HEADPHONES]: 'Wired Headphones',
-      };
-      
-      if (names[trigger.type]) {
-           // The config for these might be SystemTriggerConfig or just { state: ... }
-           // Let's cast to any for safety or define a shared interface.
-           const config = trigger.config as any; 
-           return `${names[trigger.type]}: ${config.state}`;
-      }
+    return `When Bluetooth is ${state}`;
   }
 
-  return trigger.type;
+  if (trigger.type === TriggerType.BATTERY) {
+    const config = trigger.config as BatteryTriggerConfig;
+    if (config.mode === BatteryTriggerMode.STATUS) {
+      const status = config.status || 'unknown';
+      return `When battery is ${status}`;
+    }
+    const comparison =
+      config.levelType === LevelComparison.BELOW
+        ? 'below'
+        : 'above or equal to';
+    return `When battery is ${comparison} ${config.level}%`;
+  }
+
+  if (trigger.type === TriggerType.POWER_SAVER) {
+    const config = trigger.config as any;
+    return `When Battery Saver is ${formatState(config.state).toLowerCase()}`;
+  }
+
+  if (trigger.type === TriggerType.DARK_MODE) {
+    const config = trigger.config as any;
+    return `When Dark Mode is ${formatState(config.state).toLowerCase()}`;
+  }
+
+  if (trigger.type === TriggerType.AIRPLANE_MODE) {
+    const config = trigger.config as any;
+    return `When Airplane Mode is ${formatState(config.state).toLowerCase()}`;
+  }
+
+  if (trigger.type === TriggerType.HEADPHONES) {
+    const config = trigger.config as any;
+    const state =
+      config.state === true || config.state === 'plugged'
+        ? 'plugged in'
+        : 'unplugged';
+    return `When headphones are ${state}`;
+  }
+
+  if (trigger.type === TriggerType.CLIPBOARD) {
+    return 'When clipboard content changes';
+  }
+
+  return formatType(trigger.type);
 };
 
 export const getActionSummary = (action: Action): string => {
   if (action.type === ActionType.DND) {
-      const config = action.config as BinaryStateActionConfig;
-      return config.enabled === false ? 'Disable Do Not Disturb' : 'Enable Do Not Disturb';
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled === false
+      ? 'Disable Do Not Disturb'
+      : 'Enable Do Not Disturb';
   }
   if (action.type === ActionType.BLUETOOTH) {
-      const config = action.config as BinaryStateActionConfig;
-      return config.enabled === false ? 'Disable Bluetooth' : 'Enable Bluetooth';
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled === false ? 'Disable Bluetooth' : 'Enable Bluetooth';
   }
   if (action.type === ActionType.WIFI) {
-      const config = action.config as BinaryStateActionConfig;
-      return config.enabled === false ? 'Turn Off Wifi' : 'Turn On Wifi';
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled === false ? 'Turn off Wifi' : 'Turn on Wifi';
   }
   if (action.type === ActionType.AIRPLANE_MODE) {
-      const config = action.config as BinaryStateActionConfig;
-      return config.enabled === false ? 'Disable Airplane Mode' : 'Enable Airplane Mode';
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled === false
+      ? 'Disable Airplane Mode'
+      : 'Enable Airplane Mode';
   }
   if (action.type === ActionType.CONNECT_BLUETOOTH) {
-      const config = action.config as ConnectBluetoothActionConfig;
-      return `Connect to ${config.deviceId}`;
+    const config = action.config as ConnectBluetoothActionConfig;
+    return `Connect to Bluetooth device: ${config.deviceId}`;
   }
   if (action.type === ActionType.DISCONNECT_BLUETOOTH) {
-      const config = action.config as ConnectBluetoothActionConfig; // Reusing config type
-      return `Disconnect from ${config.deviceId}`;
+    const config = action.config as ConnectBluetoothActionConfig;
+    return `Disconnect from Bluetooth device: ${config.deviceId}`;
   }
   if (action.type === ActionType.CONNECT_WIFI) {
-      const config = action.config as ConnectWifiActionConfig;
-      return `Connect to ${config.ssid}`;
+    const config = action.config as ConnectWifiActionConfig;
+    return `Connect to Wifi network: ${config.ssid}`;
   }
   if (action.type === ActionType.VOLUME) {
-      const config = action.config as VolumeActionConfig;
-      return `Set Volume to ${config.level}%`;
+    const config = action.config as VolumeActionConfig;
+    return `Set volume to ${config.level}%`;
   }
   if (action.type === ActionType.BRIGHTNESS) {
-      const config = action.config as BrightnessActionConfig;
-      return `Set Brightness to ${config.level}%`;
+    const config = action.config as BrightnessActionConfig;
+    return `Set brightness to ${config.level}%`;
   }
   if (action.type === ActionType.KEYBOARD_BRIGHTNESS) {
-      const config = action.config as BrightnessActionConfig;
-      return `Set Keyboard Brightness to ${config.level}%`;
+    const config = action.config as BrightnessActionConfig;
+    return `Set keyboard brightness to ${config.level}%`;
   }
   if (action.type === ActionType.WALLPAPER) {
-      const config = action.config as WallpaperActionConfig;
-      return `Set Wallpaper: ...${config.uri?.slice(-20)}`;
+    const config = action.config as WallpaperActionConfig;
+    const filename = config.uri ? config.uri.split('/').pop() : 'Unknown';
+    return `Set wallpaper to ${filename}`;
   }
   if (action.type === ActionType.DARK_MODE) {
-      const config = action.config as BinaryStateActionConfig;
-      return `Dark Mode: ${config.enabled ? 'On' : 'Off'}`;
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled ? 'Enable Dark Mode' : 'Disable Dark Mode';
   }
   if (action.type === ActionType.NIGHT_LIGHT) {
-      const config = action.config as BinaryStateActionConfig;
-      return `Night Light: ${config.enabled ? 'On' : 'Off'}`;
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled ? 'Enable Night Light' : 'Disable Night Light';
   }
   if (action.type === ActionType.POWER_SAVER) {
-      const config = action.config as BinaryStateActionConfig;
-      return `Power Saver: ${config.enabled ? 'On' : 'Off'}`;
+    const config = action.config as BinaryStateActionConfig;
+    return config.enabled ? 'Enable Power Saver' : 'Disable Power Saver';
   }
   if (action.type === ActionType.SCREEN_TIMEOUT) {
-      const config = action.config as ScreenTimeoutActionConfig;
-      return `Screen Timeout: ${config.seconds}s`;
+    const config = action.config as ScreenTimeoutActionConfig;
+    return `Set screen timeout to ${config.seconds} seconds`;
   }
   if (action.type === ActionType.SCREEN_ORIENTATION) {
-      const config = action.config as ScreenOrientationActionConfig;
-      return `Orientation: ${config.orientation}`;
+    const config = action.config as ScreenOrientationActionConfig;
+    return `Set screen orientation to ${formatType(config.orientation)}`;
   }
   if (action.type === ActionType.OPEN_LINK) {
-      const config = action.config as OpenLinkActionConfig;
-      return `Open Link: ${config.url}`;
+    const config = action.config as OpenLinkActionConfig;
+    return `Open link: ${config.url}`;
   }
   if (action.type === ActionType.OPEN_APP) {
-      const config = action.config as OpenAppActionConfig;
-      return `Open ${config.appIds?.length || 0} Apps`;
+    const config = action.config as OpenAppActionConfig;
+    const count = config.appIds?.length || 0;
+    return `Open ${count} application${count === 1 ? '' : 's'}`;
   }
-  if (action.type === ActionType.TAKE_SCREENSHOT) return 'Take Screenshot';
+  if (action.type === ActionType.TAKE_SCREENSHOT) return 'Take a screenshot';
   if (action.type === ActionType.NOTIFICATION) {
-      const config = action.config as NotificationActionConfig;
-      return `Notify: ${config.title}`;
+    const config = action.config as NotificationActionConfig;
+    return `Send notification: "${config.title}"`;
   }
-  if (action.type === ActionType.CLEAR_CLIPBOARD) return 'Clear Clipboard';
-  
-  return action.type;
+  if (action.type === ActionType.CLIPBOARD) {
+    const config = action.config as ClipboardActionConfig;
+    const { operation, sanitize } = config;
+    if (operation === ClipboardOperation.CLEAR)
+      return 'Clear clipboard contents';
+    if (operation === ClipboardOperation.REPLACE)
+      return 'Find and replace text in clipboard';
+    if (sanitize) return 'Sanitize links in clipboard';
+    return 'Manage clipboard capabilities';
+  }
+
+  return formatType(action.type);
+};
+
+const formatState = (state: any): string => {
+  if (
+    state === true ||
+    state === 'on' ||
+    state === ConnectionState.CONNECTED ||
+    state === 'plugged'
+  ) {
+    return 'On';
+  }
+  if (
+    state === false ||
+    state === 'off' ||
+    state === ConnectionState.DISCONNECTED ||
+    state === 'unplugged'
+  ) {
+    return 'Off';
+  }
+  return formatType(String(state));
+};
+
+const formatType = (type: string): string => {
+  return type
+    .split(/[-_]/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };

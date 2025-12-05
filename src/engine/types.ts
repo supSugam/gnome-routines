@@ -32,7 +32,7 @@ export enum ActionType {
   CONNECT_BLUETOOTH = 'connect_bluetooth',
   DISCONNECT_BLUETOOTH = 'disconnect_bluetooth',
   TAKE_SCREENSHOT = 'take_screenshot',
-  CLEAR_CLIPBOARD = 'clear_clipboard',
+  CLIPBOARD = 'clipboard',
   OPEN_LINK = 'open_link',
 }
 

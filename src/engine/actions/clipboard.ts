@@ -26,7 +26,7 @@ export class ClipboardAction extends BaseAction {
     },
     adapter: SystemAdapter
   ) {
-    super(id, ActionType.CLEAR_CLIPBOARD, config, adapter);
+    super(id, ActionType.CLIPBOARD, config, adapter);
   }
 
   private compileRules() {

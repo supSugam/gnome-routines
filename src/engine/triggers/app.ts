@@ -1,7 +1,8 @@
+import { TriggerType } from '../types.js';
 import { BaseTrigger } from './base.js';
 
 interface AppTriggerConfig {
-    appIds: string[]; // Changed from appId to appIds
+  appIds: string[]; // Changed from appId to appIds
 }
 
 export class AppTrigger extends BaseTrigger {
@@ -9,7 +10,7 @@ export class AppTrigger extends BaseTrigger {
   private _handlerIds: number[] = [];
 
   constructor(id: string, config: AppTriggerConfig) {
-    super(id, 'app', config);
+    super(id, TriggerType.APP, config);
   }
 
   activate(): void {

@@ -75,7 +75,7 @@ export const UI_STRINGS = {
     screenOrientation: 'Screen Orientation',
     takeScreenshot: 'Take Screenshot',
     notification: 'Send Notification',
-    clearClipboard: 'Clipboard Action', // Renamed from Clear Clipboard
+    clearClipboard: 'Manage Clipboard',
     openLink: 'Open Link',
   },
   clipboard: {

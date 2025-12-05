@@ -14,6 +14,7 @@ import { TriggerEditorFactory } from './components/triggerEditorFactory.js';
 import { ActionEditorFactory } from './components/actionEditorFactory.js';
 import { getTriggerSummary, getActionSummary } from './utils/summaryHelpers.js';
 import { TriggerType, ActionType } from '../engine/types.js';
+import { ACTION_METADATA } from '../engine/actionMetadata.js';
 import { UI_STRINGS } from './utils/constants.js';
 
 export class RoutineEditor {
@@ -387,7 +388,7 @@ export class RoutineEditor {
         },
         { id: ActionType.NOTIFICATION, title: UI_STRINGS.actions.notification },
         {
-          id: ActionType.CLEAR_CLIPBOARD,
+          id: ActionType.CLIPBOARD,
           title: UI_STRINGS.actions.clearClipboard,
         },
         { id: ActionType.OPEN_LINK, title: UI_STRINGS.actions.openLink },
@@ -538,6 +539,10 @@ export class RoutineEditor {
       endRows = [];
 
       this.routine.actions.forEach((action: any) => {
+        // Check if action supports reversion
+        const meta = ACTION_METADATA[action.type as ActionType];
+        if (!meta?.canRevert) return;
+
         const getEndSummary = () => {
           const type = action.onDeactivate?.type || 'revert';
           if (type === 'revert') return UI_STRINGS.editor.end.revert;

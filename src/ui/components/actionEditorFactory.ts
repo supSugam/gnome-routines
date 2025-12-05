@@ -67,7 +67,7 @@ export class ActionEditorFactory {
         return new ScreenshotActionEditor(config, onChange);
       case ActionType.NOTIFICATION:
         return new NotificationActionEditor(config, onChange);
-      case ActionType.CLEAR_CLIPBOARD:
+      case ActionType.CLIPBOARD:
         return new ClipboardActionEditor(config, onChange);
       case ActionType.OPEN_LINK:
         return new OpenLinkActionEditor(config, onChange);

@@ -39,22 +39,42 @@ export class ActionFactory {
 
     switch (data.type) {
       case 'wallpaper':
-        action = new WallpaperAction(data.id, data.config, adapter);
+        action = new WallpaperAction(data.id, data.config, adapter) as unknown as Action;
         break;
       case 'dnd':
-        action = new DndAction(data.id, data.config, adapter);
+        action = new DndAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'wifi':
-        action = new WifiAction(data.id, data.config, adapter);
+        action = new WifiAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'bluetooth':
-        action = new BluetoothAction(data.id, data.config, adapter);
+        action = new BluetoothAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'bluetooth_device':
-        action = new BluetoothDeviceAction(data.id, data.config, adapter);
+        action = new BluetoothDeviceAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'airplane_mode':
-        action = new AirplaneModeAction(data.id, data.config, adapter);
+        action = new AirplaneModeAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'dark_mode':
         action = new DarkModeAction(
@@ -63,7 +83,7 @@ export class ActionFactory {
           adapter,
           stateManager,
           routineId
-        );
+        ) as unknown as Action;
         break;
       case 'night_light':
         action = new NightLightAction(
@@ -72,7 +92,7 @@ export class ActionFactory {
           adapter,
           stateManager,
           routineId
-        );
+        ) as unknown as Action;
         break;
       case 'screen_timeout':
         action = new ScreenTimeoutAction(
@@ -81,10 +101,14 @@ export class ActionFactory {
           adapter,
           stateManager,
           routineId
-        );
+        ) as unknown as Action;
         break;
       case 'screen_orientation':
-        action = new ScreenOrientationAction(data.id, data.config, adapter);
+        action = new ScreenOrientationAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'refresh_rate':
         action = new RefreshRateAction(
@@ -93,31 +117,59 @@ export class ActionFactory {
           adapter,
           stateManager,
           routineId
-        );
+        ) as unknown as Action;
         break;
       case 'power_saver':
-        action = new PowerSaverAction(data.id, data.config, adapter);
+        action = new PowerSaverAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'open_link':
-        action = new OpenLinkAction(data.id, data.config, adapter);
+        action = new OpenLinkAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'screenshot':
-        action = new ScreenshotAction(data.id, data.config, adapter);
+        action = new ScreenshotAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'open_app':
-        action = new OpenAppAction(data.id, data.config, adapter);
+        action = new OpenAppAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'volume':
-        action = new VolumeAction(data.id, data.config, adapter);
+        action = new VolumeAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'brightness':
-        action = new BrightnessAction(data.id, data.config, adapter);
+        action = new BrightnessAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'keyboard_brightness':
-        action = new KeyboardBrightnessAction(data.id, data.config, adapter);
+        action = new KeyboardBrightnessAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
-      case ActionType.CLEAR_CLIPBOARD:
-        action = new ClipboardAction(data.id, data.config, adapter);
+      case ActionType.CLIPBOARD:
+        return new ClipboardAction(data.id, data.config as any, adapter) as unknown as Action;
         break;
       default:
         console.warn(`Unknown action type: ${data.type}`);

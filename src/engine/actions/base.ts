@@ -1,11 +1,11 @@
-import { Action, ActionType } from '../types.js';
+import { Action, ActionType, OnDeactivateConfig } from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 
 export abstract class BaseAction implements Action {
   id: string;
   type: ActionType;
   config: Record<string, any>;
-  onDeactivate?: { type: 'revert' | 'keep' | 'custom'; config?: any };
+  onDeactivate?: OnDeactivateConfig;
   protected adapter: SystemAdapter;
 
   constructor(

@@ -1,53 +1,53 @@
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+import {
+  ActionType,
+  OpenLinkActionConfig,
+  OpenAppActionConfig,
+} from '../types.js';
 
 export class OpenLinkAction extends BaseAction {
-    private adapter: SystemAdapter;
+  constructor(
+    id: string,
+    config: OpenLinkActionConfig,
+    adapter: SystemAdapter
+  ) {
+    super(id, ActionType.OPEN_LINK, config, adapter);
+  }
 
-    constructor(id: string, config: { url: string }, adapter: SystemAdapter) {
-        super(id, 'open_link', config);
-        this.adapter = adapter;
-    }
+  async execute(): Promise<void> {
+    this.adapter.openLink(this.config.url);
+  }
 
-    async execute(): Promise<void> {
-        this.adapter.openLink(this.config.url);
-    }
-
-    async revert(): Promise<void> {
-        // Cannot revert opening a link
-    }
+  async revert(): Promise<void> {
+    // Cannot revert opening a link
+  }
 }
 
 export class ScreenshotAction extends BaseAction {
-    private adapter: SystemAdapter;
+  constructor(id: string, config: {}, adapter: SystemAdapter) {
+    super(id, ActionType.TAKE_SCREENSHOT, config, adapter);
+  }
 
-    constructor(id: string, config: {}, adapter: SystemAdapter) {
-        super(id, 'screenshot', config);
-        this.adapter = adapter;
-    }
+  async execute(): Promise<void> {
+    this.adapter.takeScreenshot();
+  }
 
-    async execute(): Promise<void> {
-        this.adapter.takeScreenshot();
-    }
-
-    async revert(): Promise<void> {
-        // Cannot revert screenshot
-    }
+  async revert(): Promise<void> {
+    // Cannot revert screenshot
+  }
 }
 
 export class OpenAppAction extends BaseAction {
-    private adapter: SystemAdapter;
+  constructor(id: string, config: OpenAppActionConfig, adapter: SystemAdapter) {
+    super(id, ActionType.OPEN_APP, config, adapter);
+  }
 
-    constructor(id: string, config: { appIds: string[] }, adapter: SystemAdapter) {
-        super(id, 'open_app', config);
-        this.adapter = adapter;
-    }
+  async execute(): Promise<void> {
+    this.adapter.openApp(this.config.appIds || []);
+  }
 
-    async execute(): Promise<void> {
-        this.adapter.openApp(this.config.appIds || []);
-    }
-
-    async revert(): Promise<void> {
-        // Could close app, but that's aggressive.
-    }
+  async revert(): Promise<void> {
+    // Could close app, but that's aggressive.
+  }
 }
