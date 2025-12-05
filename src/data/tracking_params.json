@@ -1,5 +1,5 @@
 {
-  "*": [
+  "global": [
     "utm_source",
     "utm_medium",
     "utm_campaign",
@@ -22,36 +22,12 @@
     "_ga",
     "_gl"
   ],
-  "*://*.instagram.com/*": [
-    "igsh"
-  ],
-  "*://*.twitter.com/*": [
-    "twclid",
-    "t"
-  ],
-  "*://*.x.com/*": [
-    "twclid",
-    "t"
-  ],
-  "*://*.tiktok.com/*": [
-    "ttclid"
-  ],
-  "*://*.linkedin.com/*": [
-    "li_fat_id",
-    "trk"
-  ],
-  "*://*.pinterest.com/*": [
-    "epik"
-  ],
-  "*://*.amazon.*/*": [
-    "tag",
-    "ascsubtag"
-  ],
-  "*://*.ebay.*/*": [
-    "mkcid",
-    "mkrid",
-    "crlp",
-    "campid",
-    "customid"
-  ]
+  "instagram.com": ["igsh"],
+  "twitter.com": ["twclid", "t"],
+  "x.com": ["twclid", "t"],
+  "tiktok.com": ["ttclid"],
+  "linkedin.com": ["li_fat_id", "trk"],
+  "pinterest.com": ["epik"],
+  "amazon.": ["tag", "ascsubtag"],
+  "ebay.": ["mkcid", "mkrid", "crlp", "campid", "customid"]
 }
