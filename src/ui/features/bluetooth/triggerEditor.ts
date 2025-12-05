@@ -5,16 +5,30 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
+import {
+  ConnectionState,
+  BluetoothTriggerConfig,
+} from '../../../engine/types.js';
 
 export class BluetoothTriggerEditor extends BaseEditor {
+  private get btConfig(): BluetoothTriggerConfig {
+    return this.config as BluetoothTriggerConfig;
+  }
+
   render(group: any): void {
     const btModel = new Gtk.StringList({
       strings: ['Connected', 'Disconnected', 'Turned On', 'Turned Off'],
     });
-    
-    const selectedIndex = ['connected', 'disconnected', 'enabled', 'disabled'].indexOf(
-      this.config.state || 'connected'
-    );
+
+    const states = [
+      ConnectionState.CONNECTED,
+      ConnectionState.DISCONNECTED,
+      ConnectionState.ENABLED,
+      ConnectionState.DISABLED,
+    ];
+
+    const currentState = this.btConfig.state || ConnectionState.CONNECTED;
+    const selectedIndex = states.indexOf(currentState);
 
     const btRow = new Adw.ComboRow({
       title: 'Trigger when Bluetooth is',
@@ -35,9 +49,8 @@ export class BluetoothTriggerEditor extends BaseEditor {
     btRow.connect('notify::selected', () => {
       const isPowerState = btRow.selected >= 2;
       btDevicesRow.visible = !isPowerState;
-      
-      const states = ['connected', 'disconnected', 'enabled', 'disabled'];
-      this.config.state = states[btRow.selected];
+
+      this.btConfig.state = states[btRow.selected];
       this.onChange();
     });
     btDevicesRow.visible = btRow.selected < 2;
@@ -84,7 +97,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
         check.connect('toggled', () => {
           if (check.active) selectedDevices.add(name);
           else selectedDevices.delete(name);
-          
+
           this.config.deviceIds = Array.from(selectedDevices);
           this.onChange();
         });

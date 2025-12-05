@@ -1,7 +1,7 @@
 // @ts-ignore
 import GLib from 'gi://GLib';
 import { BaseAction } from './base.js';
-import { SanitizationMode, ActionType } from '../types.js';
+import { SanitizationMode, ActionType, ClipboardOperation } from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore
 import trackingParams from '../../data/tracking_params.json' assert { type: 'json' };
@@ -19,7 +19,11 @@ export class ClipboardAction extends BaseAction {
 
   constructor(
     id: string,
-    config: { operation: 'clear' | 'replace'; find?: string; replace?: string },
+    config: {
+      operation: ClipboardOperation;
+      find?: string;
+      replace?: string;
+    },
     adapter: SystemAdapter
   ) {
     super(id, ActionType.CLEAR_CLIPBOARD, config, adapter);
@@ -90,14 +94,17 @@ export class ClipboardAction extends BaseAction {
     debugLog(`[ClipboardAction] Executing operation: ${this.config.operation}`);
 
     // 1. Handle Clear Operation
-    if (this.config.operation === 'clear') {
+    if (this.config.operation === ClipboardOperation.CLEAR) {
       this.adapter.clearClipboard();
       debugLog(`[ClipboardAction] Clipboard cleared.`);
       return;
     }
 
     // 2. Handle Replace & Sanitize
-    if (this.config.operation === 'replace' || this.config.sanitize) {
+    if (
+      this.config.operation === ClipboardOperation.REPLACE ||
+      this.config.sanitize
+    ) {
       const content = await this.adapter.getClipboardContent();
       debugLog(`[ClipboardAction] Current clipboard type: ${content.type}`);
       if (content.type === 'text' && content.content) {
@@ -107,7 +114,7 @@ export class ClipboardAction extends BaseAction {
 
         // A. Apply Replace
         if (
-          this.config.operation === 'replace' &&
+          this.config.operation === ClipboardOperation.REPLACE &&
           this.config.find &&
           this.config.replace !== undefined
         ) {

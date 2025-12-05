@@ -9,6 +9,7 @@ import { UI_STRINGS } from '../../utils/constants.js';
 import {
   ClipboardActionConfig,
   SanitizationMode,
+  ClipboardOperation,
 } from '../../../engine/types.js';
 import debugLog from '../../../utils/log.js';
 
@@ -19,7 +20,7 @@ export class ClipboardActionEditor extends BaseEditor {
     super(config, onValidationChanged);
     this.config = config as ClipboardActionConfig;
     if (!this.config.operation) {
-      this.config.operation = 'clear';
+      this.config.operation = ClipboardOperation.CLEAR;
     }
   }
 
@@ -39,7 +40,11 @@ export class ClipboardActionEditor extends BaseEditor {
     });
 
     // Map index to operation
-    const ops = ['clear', 'replace', 'none'];
+    const ops = [
+      ClipboardOperation.CLEAR,
+      ClipboardOperation.REPLACE,
+      ClipboardOperation.NONE,
+    ];
     opRow.selected = ops.indexOf(this.config.operation);
 
     // Dynamic content group
@@ -47,7 +52,7 @@ export class ClipboardActionEditor extends BaseEditor {
 
     // @ts-ignore
     opRow.connect('notify::selected', () => {
-      this.config.operation = ops[opRow.selected] as any;
+      this.config.operation = ops[opRow.selected] as ClipboardOperation;
       this.renderContent(contentGroup);
       this.validate();
     });
@@ -89,7 +94,7 @@ export class ClipboardActionEditor extends BaseEditor {
     }
     (this as any)._rows = [];
 
-    if (this.config.operation === 'replace') {
+    if (this.config.operation === ClipboardOperation.REPLACE) {
       const findRow = new Adw.EntryRow({
         title: UI_STRINGS.clipboard.find,
         text: this.config.find || '',
@@ -116,7 +121,7 @@ export class ClipboardActionEditor extends BaseEditor {
     }
 
     // Sanitize Section
-    if (this.config.operation !== 'clear') {
+    if (this.config.operation !== ClipboardOperation.CLEAR) {
       const sanitizeGroup = new Adw.PreferencesGroup({
         title: UI_STRINGS.clipboard.sanitize,
       });
@@ -432,7 +437,7 @@ export class ClipboardActionEditor extends BaseEditor {
   }
 
   validate(): boolean | string {
-    if (this.config.operation === 'replace') {
+    if (this.config.operation === ClipboardOperation.REPLACE) {
       if (!this.config.find) return 'Find pattern is required';
     }
     return true;

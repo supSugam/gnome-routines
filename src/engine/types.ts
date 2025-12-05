@@ -38,6 +38,13 @@ export enum ActionType {
 
 // --- Trigger Configs ---
 
+export enum ConnectionState {
+  CONNECTED = 'connected',
+  DISCONNECTED = 'disconnected',
+  ENABLED = 'enabled',
+  DISABLED = 'disabled',
+}
+
 export interface TimeTriggerConfig {
   time?: string;
   startTime?: string;
@@ -50,25 +57,52 @@ export interface AppTriggerConfig {
 }
 
 export interface WifiTriggerConfig {
-  state: 'connected' | 'disconnected';
+  state: ConnectionState;
   ssids?: string[];
 }
 
 export interface BluetoothTriggerConfig {
-  state: 'connected' | 'disconnected';
+  state: ConnectionState;
   deviceIds?: string[];
 }
 
+export enum BatteryTriggerMode {
+  STATUS = 'status',
+  LEVEL = 'level',
+}
+
+export enum BatteryStatus {
+  CHARGING = 'charging',
+  DISCHARGING = 'discharging',
+  FULL = 'full',
+}
+
+export enum LevelComparison {
+  ABOVE = 'above',
+  BELOW = 'below',
+}
+
 export interface BatteryTriggerConfig {
-  mode: 'status' | 'level';
-  status?: 'charging' | 'discharging' | 'full';
+  mode: BatteryTriggerMode;
+  status?: BatteryStatus;
   level?: number;
-  levelType?: 'above' | 'below';
+  levelType?: LevelComparison;
 }
 
 export interface SystemTriggerConfig {
-  type: 'power_saver' | 'dark_mode' | 'airplane_mode' | 'headphones';
-  state: boolean | 'plugged' | 'unplugged';
+  type:
+    | TriggerType.POWER_SAVER
+    | TriggerType.DARK_MODE
+    | TriggerType.AIRPLANE_MODE
+    | TriggerType.HEADPHONES;
+  state:
+    | boolean
+    | 'plugged'
+    | 'unplugged'
+    | 'on'
+    | 'off'
+    | 'connected'
+    | 'disconnected';
 }
 
 export interface ClipboardTriggerConfig {
@@ -124,8 +158,17 @@ export interface ScreenTimeoutActionConfig {
   seconds: number;
 }
 
+export enum ScreenOrientation {
+  PORTRAIT = 'portrait',
+  LANDSCAPE = 'landscape',
+  NORMAL = 'normal',
+  RIGHT = 'right',
+  LEFT = 'left',
+  UPSIDE_DOWN = 'upside-down',
+}
+
 export interface ScreenOrientationActionConfig {
-  orientation: 'portrait' | 'landscape';
+  orientation: ScreenOrientation;
 }
 
 export interface RefreshRateActionConfig {
@@ -150,8 +193,14 @@ export enum SanitizationMode {
   CUSTOM = 'custom',
 }
 
+export enum ClipboardOperation {
+  CLEAR = 'clear',
+  REPLACE = 'replace',
+  NONE = 'none',
+}
+
 export interface ClipboardActionConfig {
-  operation: 'clear' | 'replace' | 'none';
+  operation: ClipboardOperation;
   find?: string;
   replace?: string;
   sanitize?: boolean;
@@ -177,8 +226,14 @@ export type ActionConfig =
   | ClipboardActionConfig
   | Record<string, any>; // Fallback for now
 
+export enum DeactivateStrategy {
+  REVERT = 'revert',
+  KEEP = 'keep',
+  CUSTOM = 'custom',
+}
+
 export interface OnDeactivateConfig {
-  type: 'revert' | 'keep' | 'custom';
+  type: DeactivateStrategy;
   config?: ActionConfig;
 }
 
@@ -191,11 +246,16 @@ export interface Action {
   revert?(): Promise<void> | void;
 }
 
+export enum RoutineMatchType {
+  ANY = 'any',
+  ALL = 'all',
+}
+
 export interface Routine {
   id: string;
   name: string;
   enabled: boolean;
-  matchType: 'any' | 'all';
+  matchType: RoutineMatchType;
   triggers: Trigger[];
   actions: Action[];
   isActive?: boolean;

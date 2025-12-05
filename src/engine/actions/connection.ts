@@ -1,5 +1,6 @@
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+import { ActionType } from '../types.js';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -25,7 +26,7 @@ export class WifiAction extends BaseAction {
     },
     adapter: SystemAdapter
   ) {
-    super(id, 'wifi', config, adapter);
+    super(id, ActionType.WIFI, config, adapter);
   }
 
   async execute(): Promise<void> {
@@ -108,7 +109,7 @@ export class BluetoothAction extends BaseAction {
     },
     adapter: SystemAdapter
   ) {
-    super(id, 'bluetooth', config, adapter);
+    super(id, ActionType.BLUETOOTH, config, adapter);
   }
 
   async execute(): Promise<void> {
@@ -182,7 +183,7 @@ export class BluetoothDeviceAction extends BaseAction {
     config: { deviceId: string; action: 'connect' | 'disconnect' },
     adapter: SystemAdapter
   ) {
-    super(id, 'bluetooth_device', config, adapter);
+    super(id, 'bluetooth_device' as any, config, adapter);
   }
 
   async execute(): Promise<void> {
@@ -208,7 +209,7 @@ export class AirplaneModeAction extends BaseAction {
     config: { enabled: boolean },
     adapter: SystemAdapter
   ) {
-    super(id, 'airplane_mode', config, adapter);
+    super(id, ActionType.AIRPLANE_MODE, config, adapter);
   }
 
   async execute(): Promise<void> {

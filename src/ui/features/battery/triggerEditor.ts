@@ -3,8 +3,18 @@ import Adw from 'gi://Adw';
 // @ts-ignore
 import Gtk from 'gi://Gtk';
 import { BaseEditor } from '../../components/baseEditor.js';
+import {
+  BatteryTriggerConfig,
+  BatteryTriggerMode,
+  BatteryStatus,
+  LevelComparison,
+} from '../../../engine/types.js';
 
 export class BatteryTriggerEditor extends BaseEditor {
+  private get batteryConfig(): BatteryTriggerConfig {
+    return this.config as BatteryTriggerConfig;
+  }
+
   render(group: any): void {
     const battModeModel = new Gtk.StringList({
       strings: ['Charging Status', 'Battery Level'],
@@ -12,7 +22,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     const battModeRow = new Adw.ComboRow({
       title: 'Trigger Type',
       model: battModeModel,
-      selected: this.config.mode === 'level' ? 1 : 0,
+      selected: this.batteryConfig.mode === BatteryTriggerMode.LEVEL ? 1 : 0,
     });
     group.add(battModeRow);
 
@@ -23,7 +33,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     const battStatusRow = new Adw.ComboRow({
       title: 'Status',
       model: battStatusModel,
-      selected: this.config.status === 'discharging' ? 1 : 0,
+      selected: this.batteryConfig.status === BatteryStatus.DISCHARGING ? 1 : 0,
     });
     group.add(battStatusRow);
 
@@ -34,7 +44,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     const battLevelTypeRow = new Adw.ComboRow({
       title: 'Condition',
       model: battLevelTypeModel,
-      selected: this.config.levelType === 'equal_or_above' ? 1 : 0,
+      selected: this.batteryConfig.levelType === LevelComparison.ABOVE ? 1 : 0,
     });
     group.add(battLevelTypeRow);
 
@@ -44,7 +54,7 @@ export class BatteryTriggerEditor extends BaseEditor {
         lower: 5,
         upper: 100,
         step_increment: 5,
-        value: this.config.level || 50,
+        value: this.batteryConfig.level || 50,
       }),
     });
     group.add(battLevelRow);
@@ -56,7 +66,9 @@ export class BatteryTriggerEditor extends BaseEditor {
       battLevelTypeRow.visible = isLevel;
       battLevelRow.visible = isLevel;
 
-      this.config.mode = isLevel ? 'level' : 'status';
+      this.batteryConfig.mode = isLevel
+        ? BatteryTriggerMode.LEVEL
+        : BatteryTriggerMode.STATUS;
       this.onChange();
     };
     // @ts-ignore
@@ -65,19 +77,25 @@ export class BatteryTriggerEditor extends BaseEditor {
 
     // @ts-ignore
     battStatusRow.connect('notify::selected', () => {
-      this.config.status = battStatusRow.selected === 0 ? 'charging' : 'discharging';
+      this.batteryConfig.status =
+        battStatusRow.selected === 0
+          ? BatteryStatus.CHARGING
+          : BatteryStatus.DISCHARGING;
       this.onChange();
     });
 
     // @ts-ignore
     battLevelTypeRow.connect('notify::selected', () => {
-      this.config.levelType = battLevelTypeRow.selected === 0 ? 'below' : 'equal_or_above';
+      this.batteryConfig.levelType =
+        battLevelTypeRow.selected === 0
+          ? LevelComparison.BELOW
+          : LevelComparison.ABOVE;
       this.onChange();
     });
 
     // @ts-ignore
     battLevelRow.connect('notify::value', () => {
-      this.config.level = battLevelRow.get_value();
+      this.batteryConfig.level = battLevelRow.get_value();
       this.onChange();
     });
   }

@@ -5,16 +5,28 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import NM from 'gi://NM';
 import { BaseEditor } from '../../components/baseEditor.js';
+import { ConnectionState, WifiTriggerConfig } from '../../../engine/types.js';
 
 export class WifiTriggerEditor extends BaseEditor {
+  private get wifiConfig(): WifiTriggerConfig {
+    return this.config as WifiTriggerConfig;
+  }
+
   render(group: any): void {
     const wifiModel = new Gtk.StringList({
       strings: ['Connected', 'Disconnected', 'Turned On', 'Turned Off'],
     });
-    
-    const selectedIndex = ['connected', 'disconnected', 'enabled', 'disabled'].indexOf(
-      this.config.state || 'connected'
-    );
+
+    const states = [
+      ConnectionState.CONNECTED,
+      ConnectionState.DISCONNECTED,
+      ConnectionState.ENABLED,
+      ConnectionState.DISABLED,
+    ];
+
+    // Default to connected if undefined
+    const currentState = this.wifiConfig.state || ConnectionState.CONNECTED;
+    const selectedIndex = states.indexOf(currentState);
 
     const wifiRow = new Adw.ComboRow({
       title: 'Trigger when Wifi is',
@@ -36,9 +48,8 @@ export class WifiTriggerEditor extends BaseEditor {
     wifiRow.connect('notify::selected', () => {
       const isPowerState = wifiRow.selected >= 2; // 2=enabled, 3=disabled
       wifiNetworksRow.visible = !isPowerState;
-      
-      const states = ['connected', 'disconnected', 'enabled', 'disabled'];
-      this.config.state = states[wifiRow.selected];
+
+      this.wifiConfig.state = states[wifiRow.selected];
       this.onChange();
     });
     // Initial visibility check
@@ -86,7 +97,7 @@ export class WifiTriggerEditor extends BaseEditor {
         check.connect('toggled', () => {
           if (check.active) selectedNetworks.add(ssid);
           else selectedNetworks.delete(ssid);
-          
+
           this.config.ssids = Array.from(selectedNetworks);
           this.onChange();
         });

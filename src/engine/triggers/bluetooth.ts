@@ -1,5 +1,7 @@
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+import { ConnectionState, TriggerType } from '../types.js';
+import debugLog from '../../utils/log.js';
 
 export class BluetoothTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
@@ -10,12 +12,12 @@ export class BluetoothTrigger extends BaseTrigger {
   constructor(
     id: string,
     config: {
-      state: 'connected' | 'disconnected' | 'enabled' | 'disabled';
+      state: ConnectionState;
       deviceIds?: string[];
     },
     adapter: SystemAdapter
   ) {
-    super(id, 'bluetooth', config);
+    super(id, TriggerType.BLUETOOTH, config);
     this.adapter = adapter;
   }
 
@@ -27,9 +29,14 @@ export class BluetoothTrigger extends BaseTrigger {
     }
 
     // Power state check
-    if (this.config.state === 'enabled' || this.config.state === 'disabled') {
+    if (
+      this.config.state === ConnectionState.ENABLED ||
+      this.config.state === ConnectionState.DISABLED
+    ) {
       const isEnabled = await this.adapter.getBluetoothPowerState();
-      return this.config.state === 'enabled' ? isEnabled : !isEnabled;
+      return this.config.state === ConnectionState.ENABLED
+        ? isEnabled
+        : !isEnabled;
     }
 
     // Connection state check
@@ -43,7 +50,7 @@ export class BluetoothTrigger extends BaseTrigger {
           this.config.deviceIds!.includes(d.address)
       );
 
-      if (this.config.state === 'connected') {
+      if (this.config.state === ConnectionState.CONNECTED) {
         return isMatch;
       } else {
         return !isMatch;
@@ -52,7 +59,7 @@ export class BluetoothTrigger extends BaseTrigger {
 
     // Default behavior (any device)
     const isAnyConnected = connectedDevices.length > 0;
-    if (this.config.state === 'connected') {
+    if (this.config.state === ConnectionState.CONNECTED) {
       return isAnyConnected;
     } else {
       return !isAnyConnected;
@@ -62,7 +69,10 @@ export class BluetoothTrigger extends BaseTrigger {
   activate(): void {
     debugLog(`[BluetoothTrigger] Activating listener for ${this.config.state}`);
 
-    if (this.config.state === 'enabled' || this.config.state === 'disabled') {
+    if (
+      this.config.state === ConnectionState.ENABLED ||
+      this.config.state === ConnectionState.DISABLED
+    ) {
       this.adapter.onBluetoothPowerStateChanged((isEnabled: boolean) => {
         debugLog(`[BluetoothTrigger] Bluetooth power changed to: ${isEnabled}`);
         this._hasWitnessedChange = true;

@@ -1,71 +1,69 @@
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+import { TriggerType, SystemTriggerConfig } from '../types.js';
+import debugLog from '../../utils/log.js';
 
 export class SystemTrigger extends BaseTrigger {
-    private adapter: SystemAdapter;
-    public _isActivated: boolean = false;
+  private adapter: SystemAdapter;
+  public _isActivated: boolean = false;
 
-    constructor(id: string, config: { 
-        type: 'power_saver' | 'dark_mode' | 'airplane_mode' | 'headphones',
-        state: 'on' | 'off' | 'connected' | 'disconnected'
-    }, adapter: SystemAdapter) {
-        super(id, 'system', config);
-        this.adapter = adapter;
+  constructor(id: string, config: SystemTriggerConfig, adapter: SystemAdapter) {
+    super(id, config.type, config);
+    this.adapter = adapter;
+  }
+
+  async check(): Promise<boolean> {
+    let currentState = false;
+
+    switch (this.config.type) {
+      case TriggerType.POWER_SAVER:
+        currentState = this.adapter.getPowerSaverState();
+        break;
+      case TriggerType.DARK_MODE:
+        currentState = this.adapter.getDarkModeState();
+        break;
+      case TriggerType.AIRPLANE_MODE:
+        currentState = this.adapter.getAirplaneModeState();
+        break;
+      case TriggerType.HEADPHONES:
+        currentState = this.adapter.getWiredHeadphonesState();
+        break;
     }
 
-    async check(): Promise<boolean> {
-        let currentState = false;
-        
-        switch (this.config.type) {
-            case 'power_saver':
-                currentState = this.adapter.getPowerSaverState();
-                break;
-            case 'dark_mode':
-                currentState = this.adapter.getDarkModeState();
-                break;
-            case 'airplane_mode':
-                currentState = this.adapter.getAirplaneModeState();
-                break;
-            case 'headphones':
-                currentState = this.adapter.getWiredHeadphonesState();
-                break;
-        }
+    const targetState =
+      this.config.state === 'on' || this.config.state === 'connected';
+    debugLog(
+      `[SystemTrigger] Checking ${this.config.type}. Current: ${currentState}, Target: ${targetState}`
+    );
 
-        const targetState = this.config.state === 'on' || this.config.state === 'connected';
-        debugLog(
-          `[SystemTrigger] Checking ${this.config.type}. Current: ${currentState}, Target: ${targetState}`
-        );
-        
-        return currentState === targetState;
+    return currentState === targetState;
+  }
+
+  activate(): void {
+    if (this._isActivated) return;
+
+    debugLog(`[SystemTrigger] Activating listener for ${this.config.type}`);
+
+    const callback = (state: boolean) => {
+      debugLog(`[SystemTrigger] ${this.config.type} changed to: ${state}`);
+      this.emit('triggered');
+    };
+
+    switch (this.config.type) {
+      case TriggerType.POWER_SAVER:
+        this.adapter.onPowerSaverStateChanged(callback);
+        break;
+      case TriggerType.DARK_MODE:
+        this.adapter.onDarkModeStateChanged(callback);
+        break;
+      case TriggerType.AIRPLANE_MODE:
+        this.adapter.onAirplaneModeStateChanged(callback);
+        break;
+      case TriggerType.HEADPHONES:
+        this.adapter.onWiredHeadphonesStateChanged(callback);
+        break;
     }
 
-    activate(): void {
-        if (this._isActivated) return;
-        
-        debugLog(`[SystemTrigger] Activating listener for ${this.config.type}`);
-        
-        const callback = (state: boolean) => {
-            debugLog(
-              `[SystemTrigger] ${this.config.type} changed to: ${state}`
-            );
-            this.emit('triggered');
-        };
-
-        switch (this.config.type) {
-            case 'power_saver':
-                this.adapter.onPowerSaverStateChanged(callback);
-                break;
-            case 'dark_mode':
-                this.adapter.onDarkModeStateChanged(callback);
-                break;
-            case 'airplane_mode':
-                this.adapter.onAirplaneModeStateChanged(callback);
-                break;
-            case 'headphones':
-                this.adapter.onWiredHeadphonesStateChanged(callback);
-                break;
-        }
-        
-        this._isActivated = true;
-    }
+    this._isActivated = true;
+  }
 }
