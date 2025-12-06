@@ -27,16 +27,12 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
     let currentSearchTerm = '';
     let routines: any[] = [];
 
-    // Header Group ("Routines" title only)
-    const headerGroup = new Adw.PreferencesGroup({ title: 'Routines' });
-    page.add(headerGroup);
-
-    // Header Controls (Search + Add) - Detached Box
+    // Header Controls (Search + Add + Menu) - Detached Box
     const headerBox = new Gtk.Box({
       orientation: Gtk.Orientation.HORIZONTAL,
-      spacing: 12, // Standard spacing
-      margin_bottom: 12, // Space before list
-      margin_start: 12, // Align with group content usually
+      spacing: 12,
+      margin_bottom: 0, // Reduced margin
+      margin_start: 12,
       margin_end: 12,
     });
 
@@ -56,7 +52,7 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
     const addButton = new Gtk.Button({
       label: 'Add Routine',
       valign: Gtk.Align.CENTER,
-      css_classes: ['suggested-action'], // Make it pop a bit as primary action? User said "normal button". "suggested-action" is standard for Add.
+      // css_classes: ['suggested-action'], // User wanted normal button previously
     });
     // @ts-ignore
     addButton.connect('clicked', () => {
@@ -76,31 +72,17 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
     });
     headerBox.append(addButton);
 
-    // Create a group specifically for controls to satisfy AdwPreferencesPage
-    const controlsGroup = new Adw.PreferencesGroup();
-    controlsGroup.add(headerBox);
-    page.add(controlsGroup);
+    // Global Menu Button
+    const globalMenu = new Gio.Menu();
+    globalMenu.append('Import Routines...', 'global.import');
+    globalMenu.append('Export All Routines', 'global.export');
 
-    // List Group (Untitled, detached)
-    let listGroup = new Adw.PreferencesGroup(); // mutable
-    page.add(listGroup);
+    const globalActionGroup = new Gio.SimpleActionGroup();
 
-    // Tools Group
-    const toolsGroup = new Adw.PreferencesGroup({ title: 'Tools' });
-    page.add(toolsGroup);
-
-    // Import Button
-    const importRow = new Adw.ActionRow({
-      title: 'Import Routines',
-      subtitle: 'Import routines from a JSON file',
-    });
-    const importBtn = new Gtk.Button({
-      icon_name: 'document-open-symbolic',
-      valign: Gtk.Align.CENTER,
-    });
-    importBtn.add_css_class('flat');
+    // Import Action
+    const importAction = new Gio.SimpleAction({ name: 'import' });
     // @ts-ignore
-    importBtn.connect('clicked', () => {
+    importAction.connect('activate', () => {
       const picker = new Gtk.FileChooserNative({
         title: 'Import Routines',
         action: Gtk.FileChooserAction.OPEN,
@@ -141,27 +123,35 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
       });
       picker.show();
     });
-    importRow.add_suffix(importBtn);
-    toolsGroup.add(importRow);
+    globalActionGroup.add_action(importAction);
 
-    // Export All Button
-    const exportAllRow = new Adw.ActionRow({
-      title: 'Export All Routines',
-      subtitle: 'Save all routines to a JSON file',
-    });
-    const exportAllBtn = new Gtk.Button({
-      icon_name: 'document-save-symbolic',
-      valign: Gtk.Align.CENTER,
-    });
-    exportAllBtn.add_css_class('flat');
+    // Export Action
+    const exportAllAction = new Gio.SimpleAction({ name: 'export' });
     // @ts-ignore
-    exportAllBtn.connect('clicked', () => {
+    exportAllAction.connect('activate', () => {
       routines = JSON.parse(settings.get_string('routines') || '[]');
       if (routines.length === 0) return;
       exportRoutinesUI(routines, 'routines_export.json');
     });
-    exportAllRow.add_suffix(exportAllBtn);
-    toolsGroup.add(exportAllRow);
+    globalActionGroup.add_action(exportAllAction);
+
+    const globalMenuBtn = new Gtk.MenuButton({
+      icon_name: 'view-more-symbolic',
+      valign: Gtk.Align.CENTER,
+      menu_model: globalMenu,
+    });
+    globalMenuBtn.insert_action_group('global', globalActionGroup);
+    headerBox.append(globalMenuBtn);
+
+    // Create a group specifically for controls to satisfy AdwPreferencesPage
+    // Merged Title "Routines" here to reduce spacing
+    const controlsGroup = new Adw.PreferencesGroup({ title: 'Routines' });
+    controlsGroup.add(headerBox);
+    page.add(controlsGroup);
+
+    // List Group (Untitled, detached)
+    let listGroup = new Adw.PreferencesGroup(); // mutable
+    page.add(listGroup);
 
     // Helper for Export UI
     const exportRoutinesUI = (routinesToExport: any[], filename: string) => {
@@ -219,12 +209,8 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
       // This ensures order: Header -> List -> Tools.
 
       page.remove(listGroup);
-      page.remove(toolsGroup);
 
       const newGroup = new Adw.PreferencesGroup(); // Untitled
-      const newToolsGroup = toolsGroup; // Reuse tools group? widgets might be destroyed if parent removed? No, remove from container just unparents.
-      // But toolsGroup is bound to page.
-      // Let's rely on re-adding safe.
 
       // Re-fetch routines
       const routinesJson = settings.get_string('routines');
@@ -347,7 +333,6 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
       }
 
       page.add(newGroup);
-      page.add(toolsGroup);
 
       // Update reference
       listGroup = newGroup;
