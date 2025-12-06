@@ -2,7 +2,7 @@ import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore
 import GLib from 'gi://GLib';
-import { TriggerType } from '../types.js';
+import { TriggerType, TriggerStrategy } from '../types.js';
 
 export class ClipboardTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
@@ -12,7 +12,7 @@ export class ClipboardTrigger extends BaseTrigger {
     config: { contentType: 'any' | 'text' | 'image' | 'regex'; regex?: string },
     adapter: SystemAdapter
   ) {
-    super(id, TriggerType.CLIPBOARD, config);
+    super(id, TriggerType.CLIPBOARD, config, TriggerStrategy.EVENT_CHANGE);
     this.adapter = adapter;
   }
 

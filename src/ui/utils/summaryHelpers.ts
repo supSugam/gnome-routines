@@ -224,6 +224,49 @@ export const getActionSummary = (action: Action): string => {
   return formatType(action.type);
 };
 
+export const getTriggerTitle = (type: string): string => {
+  const titles: Record<string, string> = {
+    [TriggerType.TIME]: 'Time',
+    [TriggerType.APP]: 'App Opened',
+    [TriggerType.WIFI]: 'Wifi Status',
+    [TriggerType.BLUETOOTH]: 'Bluetooth Status',
+    [TriggerType.BATTERY]: 'Battery Level',
+    [TriggerType.POWER_SAVER]: 'Battery Saver',
+    [TriggerType.DARK_MODE]: 'Dark Mode',
+    [TriggerType.AIRPLANE_MODE]: 'Airplane Mode',
+    [TriggerType.HEADPHONES]: 'Wired Headphones',
+    [TriggerType.CLIPBOARD]: 'Clipboard Change',
+  };
+  return titles[type] || formatType(type);
+};
+
+export const getActionTitle = (type: string): string => {
+  const titles: Record<string, string> = {
+    [ActionType.OPEN_APP]: 'Open App',
+    [ActionType.WIFI]: 'Wifi Control',
+    [ActionType.CONNECT_WIFI]: 'Connect to Wifi',
+    [ActionType.BLUETOOTH]: 'Bluetooth Control',
+    [ActionType.CONNECT_BLUETOOTH]: 'Connect Bluetooth',
+    [ActionType.DISCONNECT_BLUETOOTH]: 'Disconnect Bluetooth',
+    [ActionType.DND]: 'Do Not Disturb',
+    [ActionType.AIRPLANE_MODE]: 'Airplane Mode',
+    [ActionType.VOLUME]: 'Set Volume',
+    [ActionType.BRIGHTNESS]: 'Set Brightness',
+    [ActionType.KEYBOARD_BRIGHTNESS]: 'Set Keyboard Brightness',
+    [ActionType.WALLPAPER]: 'Set Wallpaper',
+    [ActionType.DARK_MODE]: 'Dark Mode',
+    [ActionType.NIGHT_LIGHT]: 'Night Light',
+    [ActionType.POWER_SAVER]: 'Power Saver',
+    [ActionType.SCREEN_TIMEOUT]: 'Screen Timeout',
+    [ActionType.SCREEN_ORIENTATION]: 'Screen Orientation',
+    [ActionType.TAKE_SCREENSHOT]: 'Take Screenshot',
+    [ActionType.NOTIFICATION]: 'Send Notification',
+    [ActionType.CLIPBOARD]: 'Manage Clipboard',
+    [ActionType.OPEN_LINK]: 'Open Link',
+  };
+  return titles[type] || formatType(type);
+};
+
 const formatState = (state: any): string => {
   if (
     state === true ||

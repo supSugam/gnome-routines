@@ -1,11 +1,11 @@
 import { BaseTrigger } from './base.js';
-import { TimeTriggerConfig, TriggerType } from '../types.js';
+import { TimeTriggerConfig, TriggerType, TriggerStrategy } from '../types.js';
 
 export class TimeTrigger extends BaseTrigger {
   private _lastState: boolean = false;
 
   constructor(id: string, config: TimeTriggerConfig) {
-    super(id, TriggerType.TIME, config);
+    super(id, TriggerType.TIME, config, TriggerStrategy.STATE_PERSISTENT);
   }
 
   check(): boolean {

@@ -1,4 +1,4 @@
-import { Trigger, TriggerType } from '../types.js';
+import { Trigger, TriggerType, TriggerStrategy } from '../types.js';
 import { EventEmitter } from '../events.js';
 
 export abstract class BaseTrigger extends EventEmitter implements Trigger {
@@ -6,12 +6,19 @@ export abstract class BaseTrigger extends EventEmitter implements Trigger {
   type: TriggerType;
   config: Record<string, any>;
   isActive: boolean = false;
+  strategy?: TriggerStrategy; // Defined in types
 
-  constructor(id: string, type: TriggerType, config: Record<string, any>) {
+  constructor(
+    id: string,
+    type: TriggerType,
+    config: Record<string, any>,
+    strategy?: TriggerStrategy
+  ) {
     super();
     this.id = id;
     this.type = type;
     this.config = config;
+    this.strategy = strategy;
   }
 
   abstract check(): Promise<boolean> | boolean;

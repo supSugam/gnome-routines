@@ -42,6 +42,19 @@ export const UI_STRINGS = {
       noEditor: 'Error: No editor found',
       invalidConfig: 'Invalid configuration',
     },
+    safety: {
+      title: 'Safety & History',
+      health: 'Health Status',
+      history: 'Execution History',
+      conflicts: 'Conflicts',
+      noHistory: 'No history available',
+      status: {
+        ok: 'Healthy',
+        warning: 'Warning',
+        error: 'Error',
+        unknown: 'Unknown',
+      },
+    },
   },
   triggers: {
     time: 'Time',

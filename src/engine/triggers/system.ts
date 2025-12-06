@@ -1,6 +1,6 @@
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
-import { TriggerType, SystemTriggerConfig } from '../types.js';
+import { TriggerType, SystemTriggerConfig, TriggerStrategy } from '../types.js';
 import debugLog from '../../utils/log.js';
 
 export class SystemTrigger extends BaseTrigger {
@@ -8,7 +8,7 @@ export class SystemTrigger extends BaseTrigger {
   public _isActivated: boolean = false;
 
   constructor(id: string, config: SystemTriggerConfig, adapter: SystemAdapter) {
-    super(id, config.type, config);
+    super(id, config.type, config, TriggerStrategy.STATE_PERSISTENT);
     this.adapter = adapter;
   }
 

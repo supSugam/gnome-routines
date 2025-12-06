@@ -1,6 +1,6 @@
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
-import { ConnectionState, TriggerType } from '../types.js';
+import { ConnectionState, TriggerType, TriggerStrategy } from '../types.js';
 import debugLog from '../../utils/log.js';
 
 export class BluetoothTrigger extends BaseTrigger {
@@ -17,7 +17,7 @@ export class BluetoothTrigger extends BaseTrigger {
     },
     adapter: SystemAdapter
   ) {
-    super(id, TriggerType.BLUETOOTH, config);
+    super(id, TriggerType.BLUETOOTH, config, TriggerStrategy.INITIAL_IGNORE);
     this.adapter = adapter;
   }
 

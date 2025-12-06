@@ -118,11 +118,21 @@ export type TriggerConfig =
   | SystemTriggerConfig
   | ClipboardTriggerConfig;
 
+export enum TriggerStrategy {
+  STATE_PERSISTENT = 'state_persistent', // Run actions on startup if state matches (e.g. Time)
+  EVENT_CHANGE = 'event_change', // Only run on state change, ignore startup (e.g. Clipboard)
+  INITIAL_IGNORE = 'initial_ignore', // Like Event, explicitly ignores first check (e.g. Bluetooth)
+}
+// Note: EVENT_CHANGE and INITIAL_IGNORE are similar.
+// User specific request: "Bluetooth... not trigger if status was already from before".
+// "Time... need to tune in".
+
 export interface Trigger {
   id: string;
   type: TriggerType;
   config: TriggerConfig;
   isActive: boolean;
+  strategy?: TriggerStrategy; // New property
   check(): Promise<boolean> | boolean;
   on(event: 'activate' | 'deactivate', callback: () => void): void;
 }
@@ -266,4 +276,111 @@ export interface RoutineManagerInterface {
   removeRoutine(id: string): void;
   getRoutine(id: string): Routine | undefined;
   evaluate(): void;
+  getRoutineHealth(id: string): RoutineState;
+}
+
+// --- Safety & Health Types ---
+
+export enum ResourceType {
+  WIFI = 'resource_wifi',
+  BLUETOOTH = 'resource_bluetooth',
+  DISPLAY_BRIGHTNESS = 'resource_display_brightness',
+  VOLUME = 'resource_audio_volume',
+  WALLPAPER = 'resource_wallpaper',
+  POWER_SAVER = 'resource_power_saver',
+  DARK_MODE = 'resource_dark_mode',
+  AIRPLANE_MODE = 'resource_airplane_mode',
+  DND = 'resource_dnd',
+  NIGHT_LIGHT = 'resource_night_light',
+  SCREEN_TIMEOUT = 'resource_screen_timeout',
+  SCREEN_ORIENTATION = 'resource_screen_orientation',
+}
+
+export const ACTION_RESOURCE_MAP: Record<ActionType, ResourceType[]> = {
+  [ActionType.WIFI]: [ResourceType.WIFI],
+  [ActionType.CONNECT_WIFI]: [ResourceType.WIFI],
+  [ActionType.BLUETOOTH]: [ResourceType.BLUETOOTH],
+  [ActionType.CONNECT_BLUETOOTH]: [ResourceType.BLUETOOTH],
+  [ActionType.DISCONNECT_BLUETOOTH]: [ResourceType.BLUETOOTH],
+  [ActionType.BRIGHTNESS]: [ResourceType.DISPLAY_BRIGHTNESS],
+  [ActionType.KEYBOARD_BRIGHTNESS]: [ResourceType.DISPLAY_BRIGHTNESS], // Assuming shared? Or separate
+  [ActionType.VOLUME]: [ResourceType.VOLUME],
+  [ActionType.WALLPAPER]: [ResourceType.WALLPAPER],
+  [ActionType.POWER_SAVER]: [ResourceType.POWER_SAVER],
+  [ActionType.DARK_MODE]: [ResourceType.DARK_MODE],
+  [ActionType.AIRPLANE_MODE]: [ResourceType.AIRPLANE_MODE],
+  [ActionType.DND]: [ResourceType.DND],
+  [ActionType.NIGHT_LIGHT]: [ResourceType.NIGHT_LIGHT],
+  [ActionType.SCREEN_TIMEOUT]: [ResourceType.SCREEN_TIMEOUT],
+  [ActionType.SCREEN_ORIENTATION]: [ResourceType.SCREEN_ORIENTATION],
+  // Actions that don't lock resources: Open App, Notification, Screenshot, Clipboard (maybe?)
+  [ActionType.OPEN_APP]: [],
+  [ActionType.NOTIFICATION]: [],
+  [ActionType.TAKE_SCREENSHOT]: [],
+  [ActionType.CLIPBOARD]: [], // Could argue clipboard is a resource, but multiple writes usually unlikely to "conflict" in a damaging way compared to hardware toggles
+  [ActionType.OPEN_LINK]: [],
+  [ActionType.REFRESH_RATE]: [],
+};
+
+// Fix for keyboard brightness if not in enum properly or special handling
+// Actually ActionType has KEYBOARD_BRIGHTNESS
+
+export enum RoutineHealth {
+  OK = 'ok',
+  WARNING = 'warning',
+  ERROR = 'error',
+  UNKNOWN = 'unknown',
+}
+
+export enum ExecutionStatus {
+  SUCCESS = 'success',
+  FAILURE = 'failure',
+  WARNING = 'warning',
+}
+
+export enum ExecutionType {
+  ACTIVATE = 'activate',
+  DEACTIVATE = 'deactivate',
+  CHECK = 'check',
+}
+
+export interface ExecutionLog {
+  timestamp: number;
+  type: ExecutionType;
+  status: ExecutionStatus;
+  message?: string;
+}
+
+export interface RoutineState {
+  health: RoutineHealth;
+  lastRun: number;
+  lastError?: string;
+  runCount: number;
+  failureCount: number;
+  history: ExecutionLog[];
+}
+
+// --- Import/Export Types ---
+
+export interface RoutineExport {
+  version: number;
+  timestamp: number;
+  source: 'gnome-routines';
+  routines: RoutineExportData[];
+}
+
+export interface RoutineExportData {
+  name: string;
+  enabled: boolean;
+  matchType: RoutineMatchType;
+  triggers: {
+    type: TriggerType;
+    config: TriggerConfig;
+    strategy?: TriggerStrategy;
+  }[];
+  actions: {
+    type: ActionType;
+    config: ActionConfig;
+    onDeactivate?: OnDeactivateConfig;
+  }[];
 }

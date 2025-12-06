@@ -54,6 +54,15 @@ export class StateManager {
     }
   }
 
+  setState(routineId: string, setting: string, value: any): void {
+    if (!this.states.has(routineId)) {
+      this.states.set(routineId, new Map());
+    }
+    const routineStates = this.states.get(routineId)!;
+    routineStates.set(setting, value);
+    this.saveStates();
+  }
+
   restoreState(routineId: string, setting: string): any | null {
     const routineStates = this.states.get(routineId);
     if (routineStates) {

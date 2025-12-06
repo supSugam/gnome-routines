@@ -1,4 +1,17 @@
-import { Routine, RoutineManagerInterface, Trigger, Action } from './types.js';
+import {
+  Routine,
+  RoutineManagerInterface,
+  Trigger,
+  Action,
+  RoutineHealth,
+  RoutineState,
+  ExecutionLog,
+  ACTION_RESOURCE_MAP,
+  ResourceType,
+  TriggerStrategy,
+  ExecutionStatus,
+  ExecutionType,
+} from './types.js';
 import { StorageAdapter } from './storage.js';
 import { SystemAdapter } from '../gnome/adapters/adapter.js';
 import { TriggerFactory } from './triggerFactory.js';
@@ -7,6 +20,7 @@ import { StateManager } from './stateManager.js';
 
 export class RoutineManager implements RoutineManagerInterface {
   private routines: Map<string, Routine> = new Map();
+  private routineStates: Map<string, RoutineState> = new Map();
   private storage: StorageAdapter;
   private adapter: SystemAdapter;
   private stateManager: StateManager;
@@ -15,6 +29,48 @@ export class RoutineManager implements RoutineManagerInterface {
     this.storage = storage;
     this.adapter = adapter;
     this.stateManager = new StateManager(settings);
+  }
+
+  getRoutineHealth(id: string): RoutineState {
+    let state = this.routineStates.get(id);
+    if (!state) {
+      state = {
+        health: RoutineHealth.UNKNOWN,
+        lastRun: 0,
+        runCount: 0,
+        failureCount: 0,
+        history: [],
+      };
+      this.routineStates.set(id, state);
+    }
+    return state;
+  }
+
+  private updateHealth(
+    id: string,
+    health: RoutineHealth,
+    log?: Partial<ExecutionLog>
+  ) {
+    const state = this.getRoutineHealth(id);
+    if (health !== RoutineHealth.UNKNOWN) {
+      // Don't downgrade ERROR to WARNING or OK immediately unless specific success logic
+      // Simplification: Set to new health
+      state.health = health;
+    }
+
+    if (log) {
+      state.history.unshift({
+        timestamp: Date.now(),
+        type: log.type || ExecutionType.CHECK,
+        status: log.status || ExecutionStatus.SUCCESS,
+        message: log.message,
+      });
+      // Limit history
+      if (state.history.length > 50) state.history.pop();
+    }
+
+    // Persist to StateManager
+    this.stateManager.setState(id, 'health_status', state);
   }
 
   async load() {
@@ -87,7 +143,7 @@ export class RoutineManager implements RoutineManagerInterface {
       const triggers = rawRoutine.triggers
         .map((t: any) => TriggerFactory.create(t, this.adapter))
         .filter((t: any) => t !== null) as Trigger[];
-      
+
       debugLog(
         `[RoutineManager] Hydrating actions for ${rawRoutine.name}. Raw count: ${rawRoutine.actions?.length}`
       );
@@ -139,6 +195,7 @@ export class RoutineManager implements RoutineManagerInterface {
         this.deactivateRoutine(routine);
       }
       this.routines.delete(id);
+      this.routineStates.delete(id);
       return true;
     }
     return false;
@@ -150,6 +207,7 @@ export class RoutineManager implements RoutineManagerInterface {
 
   private _evaluationCount: number = 0;
   private _lastResetTime: number = Date.now();
+  private _isFirstRun: boolean = true;
 
   async evaluate(): Promise<void> {
     // Safety Circuit Breaker
@@ -188,19 +246,87 @@ export class RoutineManager implements RoutineManagerInterface {
         continue;
       }
 
-      const shouldBeActive = await this.checkTriggers(
+      const activeTriggers = await this.checkTriggers(
         routine.triggers,
         routine.matchType || 'all'
       );
+      const shouldBeActive = activeTriggers.length > 0;
 
       if (shouldBeActive && !routine.isActive) {
+        // STRATEGY CHECK
+        if (this._isFirstRun) {
+          const allIgnorable = activeTriggers.every(
+            (t) =>
+              t.strategy === TriggerStrategy.INITIAL_IGNORE ||
+              t.strategy === TriggerStrategy.EVENT_CHANGE
+          );
+
+          if (allIgnorable) {
+            debugLog(
+              `[RoutineManager] Skipping activation for ${routine.name} on first run (Trigger Strategy).`
+            );
+            routine.isActive = true; // Mark active silently
+            // We should probably save this state change so next run knows it's active
+            this.save();
+            continue;
+          }
+        }
+
+        // CONFLICT CHECK
+        const conflicts = this.checkConflicts(routine);
+        if (conflicts.length > 0) {
+          debugLog(
+            `[RoutineManager] Conflict detected for ${
+              routine.name
+            }: ${conflicts.join(', ')}`
+          );
+          this.updateHealth(routine.id, RoutineHealth.WARNING, {
+            type: ExecutionType.ACTIVATE,
+            status: ExecutionStatus.WARNING, // Use WARNING instead of FAILURE
+            message: `Conflict detected with: ${conflicts.join(', ')}`,
+          });
+          // Proceed anyway
+        }
+
         debugLog(`[RoutineManager] Activating routine ${routine.name}`);
-        this.activateRoutine(routine);
+        this.activateRoutine(routine); // This is async but we don't await in loop in original code
       } else if (!shouldBeActive && routine.isActive) {
         debugLog(`[RoutineManager] Deactivating routine ${routine.name}`);
         this.deactivateRoutine(routine);
       }
     }
+    this._isFirstRun = false;
+  }
+
+  private checkConflicts(candidate: Routine): string[] {
+    const conflicts: Set<string> = new Set();
+    const candidateResources = this.getRoutineResources(candidate);
+
+    for (const active of this.routines.values()) {
+      if (active.id === candidate.id) continue;
+      if (!active.isActive) continue;
+
+      const activeResources = this.getRoutineResources(active);
+      // Check intersection
+      for (const res of candidateResources) {
+        if (activeResources.has(res)) {
+          conflicts.add(active.name);
+          break; // Found one conflict with this routine
+        }
+      }
+    }
+    return Array.from(conflicts);
+  }
+
+  private getRoutineResources(routine: Routine): Set<ResourceType> {
+    const resources = new Set<ResourceType>();
+    for (const action of routine.actions) {
+      const resList = ACTION_RESOURCE_MAP[action.type];
+      if (resList) {
+        resList.forEach((r) => resources.add(r));
+      }
+    }
+    return resources;
   }
 
   private activateTriggers(routine: Routine) {
@@ -274,25 +400,21 @@ export class RoutineManager implements RoutineManagerInterface {
   private async checkTriggers(
     triggers: Trigger[],
     matchType: 'any' | 'all'
-  ): Promise<boolean> {
-    if (triggers.length === 0) return false;
+  ): Promise<Trigger[]> {
+    if (triggers.length === 0) return [];
+
+    const activeTriggers: Trigger[] = [];
+    for (const trigger of triggers) {
+      if (await trigger.check()) {
+        activeTriggers.push(trigger);
+      }
+    }
 
     if (matchType === 'any') {
-      // OR logic: At least one trigger must be true
-      for (const trigger of triggers) {
-        if (await trigger.check()) {
-          return true;
-        }
-      }
-      return false;
+      return activeTriggers.length > 0 ? activeTriggers : [];
     } else {
-      // AND logic: All triggers must be true
-      for (const trigger of triggers) {
-        if (!(await trigger.check())) {
-          return false;
-        }
-      }
-      return true;
+      // ALL
+      return activeTriggers.length === triggers.length ? activeTriggers : [];
     }
   }
 
@@ -300,6 +422,10 @@ export class RoutineManager implements RoutineManagerInterface {
     debugLog(`Activating routine: ${routine.name}`);
     debugLog(`[RoutineManager] Routine has ${routine.actions.length} actions.`);
     routine.isActive = true;
+    const state = this.getRoutineHealth(routine.id);
+    state.lastRun = Date.now();
+    state.runCount++;
+
     for (const action of routine.actions) {
       debugLog(
         `[RoutineManager] Executing action ${action.id} (Type: ${action.type})`
@@ -311,7 +437,21 @@ export class RoutineManager implements RoutineManagerInterface {
           `Failed to execute action ${action.id} in routine ${routine.name}:`,
           e
         );
+        this.updateHealth(routine.id, RoutineHealth.ERROR, {
+          type: ExecutionType.ACTIVATE,
+          status: ExecutionStatus.FAILURE,
+          message: `Action ${action.type} failed: ${String(e)}`,
+        });
+        state.failureCount++;
+        state.lastError = String(e);
       }
+    }
+    // If we didn't crash, update success log if not already error
+    if (state.health !== RoutineHealth.ERROR) {
+      this.updateHealth(routine.id, RoutineHealth.OK, {
+        type: ExecutionType.ACTIVATE,
+        status: ExecutionStatus.SUCCESS,
+      });
     }
   }
 
@@ -371,7 +511,8 @@ export class RoutineManager implements RoutineManagerInterface {
     }
   }
 
-  private save() {
-    this.storage.saveRoutines(Array.from(this.routines.values()));
+  private async save(): Promise<void> {
+    const list = Array.from(this.routines.values());
+    await this.storage.saveRoutines(list);
   }
 }
