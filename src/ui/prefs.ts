@@ -76,8 +76,10 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
     });
     headerBox.append(addButton);
 
-    // Add box to page (AdwPreferencesPage is a GtkBin/Widget container)
-    page.add(headerBox);
+    // Create a group specifically for controls to satisfy AdwPreferencesPage
+    const controlsGroup = new Adw.PreferencesGroup();
+    controlsGroup.add(headerBox);
+    page.add(controlsGroup);
 
     // List Group (Untitled, detached)
     let listGroup = new Adw.PreferencesGroup(); // mutable
