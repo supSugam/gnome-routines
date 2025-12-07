@@ -1,3 +1,4 @@
+import debugLog from '../../utils/log.js';
 import { TriggerType } from '../types.js';
 import { BaseTrigger } from './base.js';
 

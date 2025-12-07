@@ -8,7 +8,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { GSettingsStorageAdapter } from './adapters/gsettingsStorage.js';
 
 import debugLog from '../utils/log.js';
-globalThis.debugLog = debugLog;
+
 
 export default class GnomeRoutinesExt extends Extension {
   private manager: RoutineManager | null = null;

@@ -1,22 +1,23 @@
+import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 
 export class WallpaperAction extends BaseAction {
-    private previousWallpaper: string | null = null;
+  private previousWallpaper: string | null = null;
 
-    constructor(id: string, config: { uri: string }, adapter: SystemAdapter) {
-        super(id, 'wallpaper', config, adapter);
-    }
+  constructor(id: string, config: { uri: string }, adapter: SystemAdapter) {
+    super(id, 'wallpaper', config, adapter);
+  }
 
-    execute(): void {
-        debugLog(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
-        this.previousWallpaper = this.adapter.getWallpaper();
-        this.adapter.setWallpaper(this.config.uri);
-    }
+  execute(): void {
+    debugLog(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
+    this.previousWallpaper = this.adapter.getWallpaper();
+    this.adapter.setWallpaper(this.config.uri);
+  }
 
-    revert(): void {
-        if (this.previousWallpaper) {
-            this.adapter.setWallpaper(this.previousWallpaper);
-        }
+  revert(): void {
+    if (this.previousWallpaper) {
+      this.adapter.setWallpaper(this.previousWallpaper);
     }
+  }
 }

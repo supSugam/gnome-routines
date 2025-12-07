@@ -1,3 +1,4 @@
+import debugLog from '../../utils/log.js';
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore

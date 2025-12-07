@@ -1,3 +1,4 @@
+import debugLog from '../utils/log.js';
 import { Action, ActionType } from './types.js';
 import { WallpaperAction } from './actions/wallpaper.js';
 import { DndAction } from './actions/dnd.js';

@@ -1,3 +1,4 @@
+import debugLog from '../../utils/log.js';
 import { BaseTrigger } from './base.js';
 import { TimeTriggerConfig, TriggerType, TriggerStrategy } from '../types.js';
 

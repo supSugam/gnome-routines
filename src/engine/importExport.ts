@@ -2,7 +2,7 @@ import { Routine, RoutineExport, RoutineExportData } from './types.js';
 import debugLog from '../utils/log.js';
 
 // @ts-ignore
-const GLib = imports.gi.GLib;
+import GLib from 'gi://GLib';
 
 export class ImportExportManager {
   static exportRoutines(routines: Routine[]): string {

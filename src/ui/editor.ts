@@ -1,3 +1,4 @@
+import debugLog from '../utils/log.js';
 // @ts-ignore
 import Adw from 'gi://Adw';
 // @ts-ignore

@@ -1,3 +1,4 @@
+import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 import { ActionType } from '../types.js';

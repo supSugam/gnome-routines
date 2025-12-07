@@ -1,5 +1,5 @@
 // Set to false for production to disable logs
-const DEBUG = true;
+const DEBUG = false;
 
 export default function debugLog(message: string, ...args: any[]) {
   if (!DEBUG) return;

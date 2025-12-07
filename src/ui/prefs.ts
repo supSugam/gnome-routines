@@ -15,7 +15,7 @@ import { ImportExportManager } from '../engine/importExport.js';
 import debugLog from '../utils/log.js';
 
 // @ts-ignore
-globalThis.debugLog = debugLog;
+
 
 export default class GnomeRoutinesPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window: any) {

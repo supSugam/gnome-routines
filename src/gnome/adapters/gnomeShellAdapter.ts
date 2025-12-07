@@ -1,21 +1,22 @@
+import debugLog from '../../utils/log.js';
 import { SystemAdapter } from './adapter.js';
 
 // @ts-ignore
-import Shell from "gi://Shell";
+import Shell from 'gi://Shell';
 // @ts-ignore
-import * as Main from "resource:///org/gnome/shell/ui/main.js";
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 // @ts-ignore
-import * as MessageTray from "resource:///org/gnome/shell/ui/messageTray.js";
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 // @ts-ignore
-import Gio from "gi://Gio";
+import Gio from 'gi://Gio';
 // @ts-ignore
-import GLib from "gi://GLib";
+import GLib from 'gi://GLib';
 // @ts-ignore
-import St from "gi://St";
+import St from 'gi://St';
 // @ts-ignore
-import NM from "gi://NM";
+import NM from 'gi://NM';
 // @ts-ignore
-import UPower from "gi://UPowerGlib";
+import UPower from 'gi://UPowerGlib';
 
 declare const global: any;
 
@@ -244,7 +245,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   setSinkVolume(sinkName: string, percentage: number): void {
     // Legacy support if needed
     try {
-
       const command = `pactl set-sink-volume ${sinkName} ${percentage}%`;
       GLib.spawn_command_line_async(command);
     } catch (e) {
@@ -329,7 +329,6 @@ export class GnomeShellAdapter implements SystemAdapter {
     // We can use bluetoothctl show or DBus
     // Using DBus is faster for state checks
     try {
-
       const proxy = new Gio.DBusProxy({
         g_connection: Gio.DBus.system,
         g_name: 'org.bluez',
@@ -380,7 +379,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   setWifi(enabled: boolean): void {
     debugLog(`[GnomeShellAdapter] Setting Wifi to ${enabled}`);
     try {
-
       const cmd = enabled ? 'nmcli radio wifi on' : 'nmcli radio wifi off';
       GLib.spawn_command_line_async(cmd);
     } catch (e) {
@@ -391,7 +389,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   async connectToWifi(ssid: string): Promise<boolean> {
     debugLog(`[GnomeShellAdapter] Connecting to Wifi ${ssid}`);
     try {
-
       // nmcli device wifi connect <ssid>
       // This is blocking and might take time.
       // We should probably use async spawn but we need result.
@@ -412,7 +409,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   // Network Tracking
   getWifiState(): boolean {
     try {
-
       const client = NM.Client.new(null);
       if (!client) return false;
 
@@ -436,7 +432,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onWifiStateChanged(callback: (isConnected: boolean) => void): void {
     try {
-
       const client = NM.Client.new(null);
       if (client) {
         // Listen for changes in active connections
@@ -455,7 +450,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getCurrentWifiSSID(): string | null {
     try {
-
       const client = NM.Client.new(null);
       if (!client) return null;
 
@@ -480,7 +474,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getSavedWifiNetworks(): string[] {
     try {
-
       const client = NM.Client.new(null);
       if (!client) return [];
 
@@ -579,7 +572,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   disconnectBluetoothDevice(id: string): void {
     try {
-
       let mac = id;
       if (!id.includes(':')) {
         // Same lookup logic as connect
@@ -611,7 +603,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   setAirplaneMode(enabled: boolean): void {
     try {
-
       // rfkill block all / unblock all
       const cmd = enabled ? 'rfkill block all' : 'rfkill unblock all';
       GLib.spawn_command_line_async(cmd);
@@ -621,7 +612,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setDarkMode(enabled: boolean): void {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.interface',
     });
@@ -629,7 +619,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   getDarkMode(): boolean {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.interface',
     });
@@ -637,7 +626,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setNightLight(enabled: boolean): void {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.settings-daemon.plugins.color',
     });
@@ -645,7 +633,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   getNightLight(): boolean {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.settings-daemon.plugins.color',
     });
@@ -653,7 +640,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setScreenTimeout(seconds: number): void {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.session',
     });
@@ -661,7 +647,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   getScreenTimeout(): number {
-
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.session',
     });
@@ -676,7 +661,6 @@ export class GnomeShellAdapter implements SystemAdapter {
     // This is complex and risky.
     // Let's try a simple xrandr fallback for X11, and maybe warn for Wayland.
     try {
-
       const cmd =
         orientation === 'portrait' ? 'xrandr -o left' : 'xrandr -o normal';
       GLib.spawn_command_line_async(cmd);
@@ -688,16 +672,12 @@ export class GnomeShellAdapter implements SystemAdapter {
   setRefreshRate(rate: number): void {
     debugLog(`[GnomeShellAdapter] Setting refresh rate to ${rate}Hz`);
     try {
-
-
       // Use xrandr to set refresh rate
       const [success, stdout] =
         GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
         const output = new TextDecoder().decode(stdout);
-        debugLog(
-          `[GnomeShellAdapter] xrandr output length: ${output.length}`
-        );
+        debugLog(`[GnomeShellAdapter] xrandr output length: ${output.length}`);
 
         // Find connected display and current resolution
         const lines = output.split('\n');
@@ -748,7 +728,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getRefreshRate(): number {
     try {
-
       const [success, stdout] =
         GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
@@ -774,7 +753,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getAvailableRefreshRates(): number[] {
     try {
-
       const [success, stdout] =
         GLib.spawn_command_line_sync('xrandr --current');
       if (success && stdout) {
@@ -814,7 +792,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   setPowerSaver(enabled: boolean): void {
     try {
-
       const cmd = enabled
         ? 'powerprofilesctl set power-saver'
         : 'powerprofilesctl set balanced';
@@ -826,7 +803,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getPowerSaver(): boolean {
     try {
-
       const [success, stdout] = GLib.spawn_command_line_sync(
         'powerprofilesctl get'
       );
@@ -843,7 +819,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   openLink(url: string): void {
     try {
-
       // xdg-open
       GLib.spawn_command_line_async(`xdg-open ${url}`);
     } catch (e) {
@@ -853,8 +828,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   takeScreenshot(): void {
     try {
-
-
       // Ensure Pictures directory exists
       const picturesDir = `${GLib.get_home_dir()}/Pictures`;
       const filename = `${picturesDir}/Screenshot_${new Date().getTime()}.png`;
@@ -872,8 +845,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   openApp(appIds: string[]): void {
     try {
-
-
       appIds.forEach((appId) => {
         // Find the app info
         // appId might be 'firefox' or 'firefox.desktop'
@@ -988,7 +959,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getWifiPowerState(): boolean {
     try {
-
       const client = NM.Client.new(null);
       return client ? client.wireless_enabled : false;
     } catch (e) {
@@ -999,7 +969,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void {
     try {
-
       const client = NM.Client.new(null);
       if (client) {
         client.connect('notify::wireless-enabled', () => {
@@ -1020,7 +989,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void {
     try {
-
       const DBus = Gio.DBus;
 
       // Subscribe to PropertiesChanged on org.bluez
@@ -1139,8 +1107,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onBluetoothDeviceStateChanged(callback: () => void): void {
     try {
-
-
       // Subscribe to PropertiesChanged on org.bluez.Device1
       // When 'Connected' property changes
       Gio.DBus.system.signal_subscribe(
@@ -1183,7 +1149,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getBatteryLevel(): number {
     try {
-
       const client = UPower.Client.new_full(null);
       const device = client.get_display_device();
       return device ? device.percentage : 100;
@@ -1195,7 +1160,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   isCharging(): boolean {
     try {
-
       const client = UPower.Client.new_full(null);
       const device = client.get_display_device();
       // UPower.DeviceState.CHARGING = 1, FULLY_CHARGED = 4
@@ -1210,7 +1174,6 @@ export class GnomeShellAdapter implements SystemAdapter {
     callback: (level: number, isCharging: boolean) => void
   ): void {
     try {
-
       const client = UPower.Client.new_full(null);
       const device = client.get_display_device();
       if (device) {
@@ -1254,7 +1217,6 @@ export class GnomeShellAdapter implements SystemAdapter {
     // For now, let's use a polling interval since powerprofilesctl doesn't emit easy signals without DBus proxy
     // Actually, we can watch the DBus property
     try {
-
       Gio.DBus.system.signal_subscribe(
         'org.freedesktop.UPower.PowerProfiles',
         'org.freedesktop.DBus.Properties',
@@ -1326,7 +1288,6 @@ export class GnomeShellAdapter implements SystemAdapter {
     // We'll use a polling fallback or DBus if possible
     // org.gnome.SettingsDaemon.Rfkill
     try {
-
       Gio.DBus.session.signal_subscribe(
         'org.gnome.SettingsDaemon.Rfkill',
         'org.freedesktop.DBus.Properties',
@@ -1349,7 +1310,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   // Wired Headphones
   getWiredHeadphonesState(): boolean {
     try {
-
       const [success, stdout] =
         GLib.spawn_command_line_sync('pactl list sinks');
       if (success && stdout) {
@@ -1398,7 +1358,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onActiveAppChanged(callback: (appName: string) => void): void {
     try {
-
       const appSystem = Shell.AppSystem.get_default();
 
       // Listen for app state changes - use STARTING (1) to catch apps immediately
@@ -1427,7 +1386,6 @@ export class GnomeShellAdapter implements SystemAdapter {
   }> {
     return new Promise((resolve) => {
       try {
-
         const clipboard = St.Clipboard.get_default();
 
         clipboard.get_text(
@@ -1452,7 +1410,6 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   setClipboardText(text: string): void {
     try {
-
       const clipboard = St.Clipboard.get_default();
       clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
     } catch (e) {
