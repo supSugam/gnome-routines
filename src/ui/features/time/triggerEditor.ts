@@ -62,12 +62,97 @@ export class TimeTriggerEditor extends BaseEditor {
     refreshTimeFields();
 
     // Days Selection
-    const daysGroup = new Adw.PreferencesGroup({ title: 'Repeat' });
-    group.add(daysGroup); // Note: This adds a group inside a group, which might be weird visually. 
-                          // Ideally BaseEditor render should take a page or content area.
-                          // For now, let's assume 'group' is actually the page content or we add rows to it.
-                          // Wait, AdwPreferencesGroup cannot contain another Group.
-                          // We should change render signature to take 'content: Adw.PreferencesPage'.
+    if (!this.config.days) {
+      this.config.days = [0, 1, 2, 3, 4, 5, 6];
+    }
+
+    const repeatRow = new Adw.ActionRow({
+      title: 'Repeat',
+      subtitle: this.getDaysSummary(this.config.days),
+    });
+    group.add(repeatRow);
+
+    const daysBox = new Gtk.Box({
+      orientation: Gtk.Orientation.HORIZONTAL,
+      spacing: 6,
+      valign: Gtk.Align.CENTER,
+    });
+
+    // Select All Button
+    const allBtn = new Gtk.Button({
+      icon_name: 'edit-select-all-symbolic',
+      tooltip_text: 'Toggle All',
+    });
+    allBtn.add_css_class('flat');
+    
+    // @ts-ignore
+    allBtn.connect('clicked', () => {
+      if (this.config.days.length === 7) {
+        this.config.days = [];
+      } else {
+        this.config.days = [0, 1, 2, 3, 4, 5, 6];
+      }
+      updateButtons();
+    });
+    daysBox.append(allBtn);
+
+    const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const toggles: any[] = [];
+
+    dayLabels.forEach((label, index) => {
+      const btn = new Gtk.ToggleButton({
+        label: label,
+        active: this.config.days.includes(index),
+      });
+      btn.add_css_class('circular');
+      
+      // @ts-ignore
+      btn.connect('toggled', () => {
+        if (btn.active) {
+          if (!this.config.days.includes(index)) this.config.days.push(index);
+        } else {
+          this.config.days = this.config.days.filter((d: number) => d !== index);
+        }
+        this.config.days.sort((a: number, b: number) => a - b);
+        
+        repeatRow.subtitle = this.getDaysSummary(this.config.days);
+        this.onChange();
+      });
+      
+      toggles.push(btn);
+      daysBox.append(btn);
+    });
+
+    const updateButtons = () => {
+      toggles.forEach((btn, index) => {
+        btn.active = this.config.days.includes(index);
+      });
+      repeatRow.subtitle = this.getDaysSummary(this.config.days);
+      this.onChange();
+    };
+
+    repeatRow.add_suffix(daysBox);
+  }
+
+  private getDaysSummary(days: number[]): string {
+    if (!days || days.length === 0) return 'Never';
+    if (days.length === 7) return 'Every Day';
+    
+    // Check for Weekdays (Mon-Fri: 1,2,3,4,5)
+    const isWeekdays = days.length === 5 && 
+      !days.includes(0) && !days.includes(6) &&
+      [1,2,3,4,5].every(d => days.includes(d));
+      
+    if (isWeekdays) return 'Weekdays';
+
+    // Check for Weekends (Sun, Sat: 0, 6)
+    const isWeekends = days.length === 2 && 
+      days.includes(0) && days.includes(6);
+      
+    if (isWeekends) return 'Weekends';
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days.map(d => dayNames[d]).join(', ');
   }
 
   // Helper to create 12h picker
