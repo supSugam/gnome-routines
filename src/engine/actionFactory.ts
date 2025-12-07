@@ -39,7 +39,11 @@ export class ActionFactory {
 
     switch (data.type) {
       case 'wallpaper':
-        action = new WallpaperAction(data.id, data.config, adapter) as unknown as Action;
+        action = new WallpaperAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
         break;
       case 'dnd':
         action = new DndAction(
@@ -57,6 +61,14 @@ export class ActionFactory {
         break;
       case 'bluetooth':
         action = new BluetoothAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
+        break;
+      case ActionType.CONNECT_BLUETOOTH:
+      case ActionType.DISCONNECT_BLUETOOTH:
+        action = new BluetoothDeviceAction(
           data.id,
           data.config,
           adapter
@@ -169,7 +181,11 @@ export class ActionFactory {
         ) as unknown as Action;
         break;
       case ActionType.CLIPBOARD:
-        return new ClipboardAction(data.id, data.config as any, adapter) as unknown as Action;
+        return new ClipboardAction(
+          data.id,
+          data.config as any,
+          adapter
+        ) as unknown as Action;
         break;
       default:
         console.warn(`Unknown action type: ${data.type}`);

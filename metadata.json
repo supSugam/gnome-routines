@@ -2,11 +2,8 @@
   "name": "Gnome Routines",
   "description": "Automate your system with triggers and actions, inspired by Samsung Modes and Routines.",
   "uuid": "gnome-routines@supSugam.com",
-  "shell-version": [
-    "46",
-    "47"
-  ],
+  "shell-version": ["46", "47"],
   "url": "https://github.com/supSugam/gnome-routines",
   "settings-schema": "org.gnome.shell.extensions.gnome-routines",
-  "version": 1
+  "version": "1.0.0"
 }

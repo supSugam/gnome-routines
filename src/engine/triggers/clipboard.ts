@@ -58,20 +58,22 @@ export class ClipboardTrigger extends BaseTrigger {
   private async verifyMatch(): Promise<boolean> {
     const content = await this.adapter.getClipboardContent();
 
-    if (this.config.contentType === 'any') {
+    const contentType = this.config.contentType || 'any';
+
+    if (contentType === 'any') {
       return true;
     }
 
-    if (this.config.contentType === 'text') {
+    if (contentType === 'text') {
       return content.type === 'text';
     }
 
-    if (this.config.contentType === 'image') {
+    if (contentType === 'image') {
       return content.type === 'image' || content.type === 'other';
     }
 
     if (
-      this.config.contentType === 'regex' &&
+      contentType === 'regex' &&
       this.config.regex &&
       content.type === 'text' &&
       content.content

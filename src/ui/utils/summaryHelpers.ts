@@ -63,9 +63,13 @@ export const getTriggerSummary = (trigger: Trigger): string => {
   if (trigger.type === TriggerType.WIFI) {
     const config = trigger.config as WifiTriggerConfig;
     const ssids = config.ssids || [];
-    const state =
-      config.state === ConnectionState.CONNECTED ? 'connected' : 'disconnected';
+    let state = 'connected';
+    if (config.state === ConnectionState.DISCONNECTED) state = 'disconnected';
+    else if (config.state === ConnectionState.ENABLED) state = 'turned on';
+    else if (config.state === ConnectionState.DISABLED) state = 'turned off';
+
     if (ssids.length > 0) {
+      if (ssids.length === 1) return `When Wifi is ${state} (${ssids[0]})`;
       return `When Wifi is ${state} (${ssids.length} networks)`;
     }
     return `When Wifi is ${state}`;
@@ -74,8 +78,11 @@ export const getTriggerSummary = (trigger: Trigger): string => {
   if (trigger.type === TriggerType.BLUETOOTH) {
     const config = trigger.config as BluetoothTriggerConfig;
     const devices = config.deviceIds || [];
-    const state =
-      config.state === ConnectionState.CONNECTED ? 'connected' : 'disconnected';
+    let state = 'connected';
+    if (config.state === ConnectionState.DISCONNECTED) state = 'disconnected';
+    else if (config.state === ConnectionState.ENABLED) state = 'turned on';
+    else if (config.state === ConnectionState.DISABLED) state = 'turned off';
+
     if (devices.length > 0) {
       return `When Bluetooth is ${state} (${devices.length} devices)`;
     }

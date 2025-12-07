@@ -13,6 +13,10 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   render(group: any): void {
+    // Initialize defaults if missing
+    if (!this.wifiConfig.state) this.wifiConfig.state = ConnectionState.CONNECTED;
+    if (!this.wifiConfig.ssids) this.wifiConfig.ssids = [];
+
     const wifiModel = new Gtk.StringList({
       strings: ['Connected', 'Disconnected', 'Turned On', 'Turned Off'],
     });
@@ -24,8 +28,8 @@ export class WifiTriggerEditor extends BaseEditor {
       ConnectionState.DISABLED,
     ];
 
-    // Default to connected if undefined
-    const currentState = this.wifiConfig.state || ConnectionState.CONNECTED;
+    // Default to connected if undefined (already handled above, but specific)
+    const currentState = this.wifiConfig.state;
     const selectedIndex = states.indexOf(currentState);
 
     const wifiRow = new Adw.ComboRow({
@@ -38,24 +42,39 @@ export class WifiTriggerEditor extends BaseEditor {
     // Wifi Network Selection
     const wifiNetworksRow = new Adw.ExpanderRow({
       title: 'Specific Networks',
-      subtitle: 'Leave empty for any network',
-      expanded: true,
+      subtitle: this.getNetworksSubtitle(),
+      expanded: this.wifiConfig.ssids.length > 0,
     });
     group.add(wifiNetworksRow);
+
+    const updateVisibilityAndSubtitle = () => {
+      const isPowerState = wifiRow.selected >= 2; // 2=enabled, 3=disabled
+      wifiNetworksRow.visible = !isPowerState;
+      wifiNetworksRow.subtitle = this.getNetworksSubtitle();
+    };
 
     // Hide network selection if checking for power state
     // @ts-ignore
     wifiRow.connect('notify::selected', () => {
-      const isPowerState = wifiRow.selected >= 2; // 2=enabled, 3=disabled
-      wifiNetworksRow.visible = !isPowerState;
-
       this.wifiConfig.state = states[wifiRow.selected];
+      updateVisibilityAndSubtitle();
       this.onChange();
     });
-    // Initial visibility check
-    wifiNetworksRow.visible = wifiRow.selected < 2;
+
+    // Initial sync
+    updateVisibilityAndSubtitle();
 
     this.loadNetworks(wifiNetworksRow);
+  }
+
+  private getNetworksSubtitle(): string {
+      if (!this.config.ssids || this.config.ssids.length === 0) {
+          return 'Leave empty for any network';
+      }
+      if (this.config.ssids.length === 1) {
+          return this.config.ssids[0];
+      }
+      return `${this.config.ssids.length} networks selected`;
   }
 
   private loadNetworks(row: any) {
@@ -79,6 +98,9 @@ export class WifiTriggerEditor extends BaseEditor {
       console.error('Failed to load wifi networks in prefs:', e);
     }
 
+    // Use a copy to avoid mutation reference issues if accidentally passed by ref logic elsewhere
+    // though here we modify config.ssids in place.
+    // Ensure we have set initialized
     const selectedNetworks = new Set<string>(this.config.ssids || []);
 
     if (availableNetworks.length === 0) {
@@ -99,6 +121,7 @@ export class WifiTriggerEditor extends BaseEditor {
           else selectedNetworks.delete(ssid);
 
           this.config.ssids = Array.from(selectedNetworks);
+          row.subtitle = this.getNetworksSubtitle(); // Update subtitle on toggle
           this.onChange();
         });
         netRow.add_suffix(check);
@@ -108,6 +131,9 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   validate(): boolean | string {
+    if (!this.wifiConfig.state) return "Invalid state";
+    // If specific networks are selected but state is just "Enabled" (Turned On), 
+    // we technically ignore them, but it's not "invalid".
     return true;
   }
 }

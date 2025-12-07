@@ -195,6 +195,14 @@ export class BluetoothDeviceAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
+    const isPowered = await this.adapter.getBluetoothPowerState();
+    if (!isPowered) {
+      debugLog(
+        `[BluetoothDeviceAction] Skipping revert for ${this.config.deviceId} because Bluetooth is OFF.`
+      );
+      return;
+    }
+
     if (this.config.action === 'connect') {
       this.adapter.disconnectBluetoothDevice(this.config.deviceId);
     } else {

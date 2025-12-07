@@ -124,18 +124,71 @@ export class RoutineManager implements RoutineManagerInterface {
         debugLog(`[RoutineManager] Routine ${id} added`);
         this.routines.set(id, newRoutine);
       } else {
-        // Modified - Replace
-        // We compare raw JSON to avoid unnecessary deactivation/reactivation
-        // But since we don't have raw of existing easily, we just replace.
-        // To avoid flicker, we could check if enabled/triggers/actions changed.
-        // For now, simple replace.
-        debugLog(`[RoutineManager] Routine ${id} updated`);
+        // Modified - Check if actually changed
+        if (this.areRoutinesEqual(existing, newRoutine)) {
+          debugLog(
+            `[RoutineManager] Routine ${id} configuration unchanged. Keeping active state.`
+          );
+          continue;
+        }
+
+        debugLog(`[RoutineManager] Routine ${id} updated (config changed)`);
         this._removeRoutine(id); // Deactivates if active
         this.routines.set(id, newRoutine);
       }
     }
 
     this.evaluate();
+  }
+
+  private areRoutinesEqual(r1: Routine, r2: Routine): boolean {
+    if (
+      r1.name !== r2.name ||
+      r1.enabled !== r2.enabled ||
+      r1.matchType !== r2.matchType
+    ) {
+      return false;
+    }
+
+    // Compare Triggers
+    if (r1.triggers.length !== r2.triggers.length) return false;
+    for (let i = 0; i < r1.triggers.length; i++) {
+      const t1 = r1.triggers[i];
+      const t2 = r2.triggers[i];
+      if (
+        t1.type !== t2.type ||
+        t1.id !== t2.id ||
+        !this.isConfigEqual(t1.config, t2.config)
+      ) {
+        return false;
+      }
+    }
+
+    // Compare Actions
+    if (r1.actions.length !== r2.actions.length) return false;
+    for (let i = 0; i < r1.actions.length; i++) {
+      const a1 = r1.actions[i];
+      const a2 = r2.actions[i];
+      if (
+        a1.type !== a2.type ||
+        a1.id !== a2.id ||
+        !this.isConfigEqual(a1.config, a2.config) ||
+        !this.isConfigEqual(a1.onDeactivate, a2.onDeactivate)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private isConfigEqual(c1: any, c2: any): boolean {
+    // Simple JSON stringify comparison is usually sufficient for our config objects
+    // as they are generated consistently.
+    // Handle undefined/null explicitly if needed, but stringify handles null. source undefined becomes undefined.
+    if (c1 === undefined && c2 === undefined) return true;
+    if (c1 === undefined || c2 === undefined) return false;
+    return JSON.stringify(c1) === JSON.stringify(c2);
   }
 
   private _hydrate(rawRoutine: any): Routine | null {
@@ -209,7 +262,7 @@ export class RoutineManager implements RoutineManagerInterface {
   private _lastResetTime: number = Date.now();
   private _isFirstRun: boolean = true;
 
-  async evaluate(): Promise<void> {
+  async evaluate(forceActiveTriggers: Trigger[] = []): Promise<void> {
     // Safety Circuit Breaker
     const now = Date.now();
     if (now - this._lastResetTime > 60000) {
@@ -248,7 +301,8 @@ export class RoutineManager implements RoutineManagerInterface {
 
       const activeTriggers = await this.checkTriggers(
         routine.triggers,
-        routine.matchType || 'all'
+        routine.matchType || 'all',
+        forceActiveTriggers
       );
       const shouldBeActive = activeTriggers.length > 0;
 
@@ -347,18 +401,36 @@ export class RoutineManager implements RoutineManagerInterface {
 
         // Listen for changes
         if (trigger.on) {
-          trigger.on('triggered', () => {
+          trigger.on('triggered', async () => {
             debugLog(
               `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}.`
             );
+
+            // Verify if the trigger condition is actually currently valid
+            const isValid = await trigger.check();
+
             if (routine.isActive) {
-              debugLog(
-                `[RoutineManager] Routine is already active. Re-executing actions for event trigger.`
-              );
-              this.activateRoutine(routine);
+              if (isValid) {
+                debugLog(
+                  `[RoutineManager] Routine active & trigger valid. Re-executing actions.`
+                );
+                this.activateRoutine(routine);
+              } else {
+                debugLog(
+                  `[RoutineManager] Routine active but trigger invalid (e.g. disconnected). Evaluating...`
+                );
+                this.evaluate();
+              }
             } else {
-              debugLog(`[RoutineManager] Routine not active. Evaluating...`);
-              this.evaluate();
+              if (isValid) {
+                debugLog(
+                  `[RoutineManager] Routine inactive & trigger valid. Evaluating with forced trigger...`
+                );
+                this.evaluate([trigger]);
+              } else {
+                debugLog(`[RoutineManager] Routine inactive. Evaluating...`);
+                this.evaluate();
+              }
             }
           });
           trigger.on('activate', () => {
@@ -399,12 +471,19 @@ export class RoutineManager implements RoutineManagerInterface {
 
   private async checkTriggers(
     triggers: Trigger[],
-    matchType: 'any' | 'all'
+    matchType: 'any' | 'all',
+    forceActiveTriggers: Trigger[] = []
   ): Promise<Trigger[]> {
     if (triggers.length === 0) return [];
 
     const activeTriggers: Trigger[] = [];
     for (const trigger of triggers) {
+      // If this trigger is in the forced list, treat it as true immediately
+      if (forceActiveTriggers.some((t) => t.id === trigger.id)) {
+        activeTriggers.push(trigger);
+        continue;
+      }
+
       if (await trigger.check()) {
         activeTriggers.push(trigger);
       }

@@ -81,38 +81,29 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 
 ## Gallery & Examples
 
-### 🔋 Battery Saver Focus
-Automatically optimize settings when battery gets low.
+### 🎧 Bluetooth Auto-Connect
+Automatically connect to your headphones when Bluetooth is turned on.
 
-**Trigger**: Battery Level < 20%
-**Actions**:
-- Turn on Power Saver
-- Decrease Brightness to 30%
-- Turn off Bluetooth
+**Trigger**: Bluetooth turned On
+**Action**: Connect to "Galaxy Buds2 Pro"
 
-![Battery Saver Example](docs/images/example_battery.png)
+![Bluetooth Example](docs/images/example_bluetooth.png)
 
-### 🎧 Work Mode
-Get into the zone when you launch your coding editor.
+### 📋 Smart Clipboard
+Remove tracking parameters from URLs automatically when you copy them.
 
-**Trigger**: VS Code is open
-**Actions**:
-- Turn on Do Not Disturb
-- Connect to "Noise Cancelling Headphones"
-- Set Volume to 40%
+**Trigger**: Clipboard Content Changes (Regex Match)
+**Action**: Sanitize URL (Remove `utm_source`, `igsh`, etc.)
 
-![Work Mode Example](docs/images/example_work.png)
+![Clipboard Example](docs/images/example_clipboard.png)
 
-### 🌙 Night Routine
-Protect your eyes and wind down.
+### ⌨️ Late Night Typing
+Turn on keyboard backlight automatically during night hours.
 
-**Trigger**: Time 10:00 PM - 7:00 AM (Every Day)
-**Actions**:
-- Turn on Night Light
-- Turn on Dark Mode
-- Set Volume to 20%
+**Trigger**: Time 8:00 PM - 6:00 AM
+**Action**: Turn On Keyboard Brightness (50%)
 
-![Night Routine Example](docs/images/example_night.png)
+![Keyboard Example](docs/images/example_keyboard.png)
 
 ---
 

@@ -275,7 +275,7 @@ export interface RoutineManagerInterface {
   addRoutine(routine: Routine): void;
   removeRoutine(id: string): void;
   getRoutine(id: string): Routine | undefined;
-  evaluate(): void;
+  evaluate(forceActiveTriggers?: Trigger[]): void;
   getRoutineHealth(id: string): RoutineState;
 }
 
@@ -363,7 +363,7 @@ export interface RoutineState {
 // --- Import/Export Types ---
 
 export interface RoutineExport {
-  version: number;
+  version: string;
   timestamp: number;
   source: 'gnome-routines';
   routines: RoutineExportData[];

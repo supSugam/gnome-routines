@@ -1,4 +1,6 @@
 // @ts-ignore
+import Gio from 'gi://Gio';
+// @ts-ignore
 import Adw from 'gi://Adw';
 // @ts-ignore
 import Gtk from 'gi://Gtk';
@@ -19,43 +21,158 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
   }
 
   private loadDevices(row: any) {
-    let availableDevices: string[] = [];
-    try {
-      const [success, stdout] = GLib.spawn_command_line_sync(
-        '/usr/bin/bluetoothctl devices'
-      );
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        output.split('\n').forEach((line) => {
-          const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-          if (match) {
-            availableDevices.push(match[2]);
+    const loadingRow = new Adw.ActionRow({
+      title: 'Checking Bluetooth status...',
+    });
+    row.add_row(loadingRow);
+
+    const unpack = (val: any) => {
+      if (val instanceof GLib.Variant) return val.deep_unpack();
+      return val;
+    };
+
+    const fetchObjects = (callback: (objects: any) => void) => {
+      Gio.DBus.system.call(
+        'org.bluez',
+        '/',
+        'org.freedesktop.DBus.ObjectManager',
+        'GetManagedObjects',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
+          try {
+            const result = connection.call_finish(res);
+            const [objects] = result.deep_unpack();
+            callback(objects);
+          } catch (e) {
+            console.error('Failed to fetch bluetooth objects:', e);
+            callback({});
           }
-        });
-        availableDevices.sort();
+        }
+      );
+    };
+
+    const togglePower = (on: boolean, callback: () => void) => {
+      let cmd = '';
+      if (on) {
+        // Unblock RFKill first, then power on
+        cmd =
+          '/usr/sbin/rfkill unblock bluetooth && /usr/bin/bluetoothctl power on';
+      } else {
+        cmd = '/usr/bin/bluetoothctl power off';
       }
-    } catch (e) {
-      console.error('Failed to load bluetooth devices:', e);
+
+      try {
+        const [, pid] = GLib.spawn_async(
+          null,
+          ['/bin/sh', '-c', cmd],
+          null,
+          GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+          null
+        );
+
+        // Allow some time for the command to effect change
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+          GLib.spawn_close_pid(pid);
+          callback();
+          return GLib.SOURCE_REMOVE;
+        });
+      } catch (e) {
+        console.error(`Failed to toggle bluetooth ${on ? 'on' : 'off'}:`, e);
+        callback();
+      }
+    };
+
+    fetchObjects((objects) => {
+      let adapterPath = null;
+      let isPowered = false;
+
+      for (const path in objects) {
+        if ('org.bluez.Adapter1' in objects[path]) {
+          adapterPath = path;
+          const props = objects[path]['org.bluez.Adapter1'];
+          if (props['Powered']) {
+            isPowered = unpack(props['Powered']);
+          }
+          break;
+        }
+      }
+
+      // Fallback or not, we rely on isPowered check first.
+      // If undefined/false, we try to toggle.
+
+      if (isPowered) {
+        row.remove(loadingRow);
+        this.renderDeviceList(row, objects, isPowered);
+      } else {
+        loadingRow.title = 'Turning on Bluetooth to fetch known devices...';
+        togglePower(true, () => {
+          // Wait for discovery to be useful (2.5s)
+          GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2500, () => {
+            fetchObjects((newObjects) => {
+              togglePower(false, () => {
+                row.remove(loadingRow);
+                this.renderDeviceList(row, newObjects, true);
+              });
+            });
+            return GLib.SOURCE_REMOVE;
+          });
+        });
+      }
+    });
+  }
+
+  private renderDeviceList(row: any, objects: any, isPowered: boolean) {
+    const devices: { alias: string; address: string }[] = [];
+
+    const unpack = (val: any) => {
+      if (val instanceof GLib.Variant) return val.deep_unpack();
+      return val;
+    };
+
+    for (const objectPath in objects) {
+      const interfaces = objects[objectPath];
+      if ('org.bluez.Device1' in interfaces) {
+        const props = interfaces['org.bluez.Device1'];
+        const paired = props['Paired'] ? unpack(props['Paired']) : false;
+        const trusted = props['Trusted'] ? unpack(props['Trusted']) : false;
+
+        if (paired || trusted) {
+          const name = props['Name'] ? unpack(props['Name']) : null;
+          const alias = props['Alias'] ? unpack(props['Alias']) : null;
+          const address = props['Address'] ? unpack(props['Address']) : null;
+          const display = alias || name || address || 'Unknown Device';
+          devices.push({ alias: display, address: address });
+        }
+      }
     }
 
-    if (availableDevices.length === 0) {
-      const noDevRow = new Adw.ActionRow({
-        title: 'No known devices found',
-      });
+    devices.sort((a, b) => a.alias.localeCompare(b.alias));
+
+    if (devices.length === 0) {
+      const title = isPowered
+        ? 'No known devices found'
+        : 'No known devices found. Auto-toggle failed.';
+      const noDevRow = new Adw.ActionRow({ title });
       row.add_row(noDevRow);
     } else {
-      availableDevices.forEach((name) => {
-        const devRow = new Adw.ActionRow({ title: name });
+      devices.forEach((dev) => {
+        const devRow = new Adw.ActionRow({
+          title: `${dev.alias} (${dev.address})`,
+        });
         const check = new Gtk.CheckButton({
-          active: this.config.deviceId === name,
+          active: this.config.deviceId === dev.address,
           valign: Gtk.Align.CENTER,
         });
         // @ts-ignore
         check.connect('toggled', () => {
           if (check.active) {
-            this.config.deviceId = name;
+            this.config.deviceId = dev.address;
             this.config.action = 'disconnect';
-            row.subtitle = name;
+            row.subtitle = dev.alias;
             this.onChange();
           }
         });
