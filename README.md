@@ -1,6 +1,18 @@
 # GNOME Routines
 
-Automate your GNOME desktop based on triggers and actions.
+Automate your GNOME desktop with powerful triggers and actions, inspired by Samsung Modes and Routines.
+
+![GNOME Routines Banner](docs/images/banner.png)
+
+## Table of Contents
+- [Installation](#installation)
+- [Features](#features)
+  - [Triggers](#triggers)
+  - [Actions](#actions)
+- [Gallery & Examples](#gallery--examples)
+- [Tutorial: Creating Your First Routine](#tutorial-creating-your-first-routine)
+- [Development](#development)
+- [License](#license)
 
 ---
 
@@ -26,150 +38,123 @@ gnome-extensions enable gnome-routines@supSugam.com
 
 ---
 
-## Triggers
+## Features
 
-### Time
-- Specific time (e.g., 9:00 AM)
-- Time period (e.g., 9 AM - 5 PM)
-- Day selection (weekdays, weekends, specific days)
-- Everyday toggle
+GNOME Routines allows you to create automation rules using a simple **If -> Then** logic.
 
-### App
-- Trigger when specific apps are running
-- Multi-app selection with search
+### Triggers
+*Events that start a routine:*
 
-### WiFi
-- Connected to network
-- Disconnected from network
-- WiFi on/off
-- SSID selection
+- **Time**: Specific time, time range, or days of the week.
+- **App Opened**: When one or more specific applications are running.
+- **Network**:
+  - **WiFi**: Connect/Disconnect from any or specific network.
+  - **Bluetooth**: Device connected/disconnected.
+- **Power**:
+  - **Battery Level**: Below/Above a percentage.
+  - **Charging Status**: Charging or Discharging.
+  - **Power Saver**: When system power saver turns on/off.
+- **System**:
+  - **Airplane Mode**: On/Off.
+  - **Dark Mode**: On/Off.
+  - **Headphones**: Wired headphones plugged in/out.
+- **Clipboard**: When clipboard content changes (supports regex matching).
 
-### Bluetooth
-- Device connected/disconnected
-- Bluetooth on/off
-- Device selection
+### Actions
+*What happens when a routine runs:*
 
-### Battery
-- Battery level (percentage)
-- Charging status (charging/not charging)
-
-### System
-- Power Saver mode on/off
-- Dark Mode on/off
-- Airplane Mode on/off
-- Wired headphones connected/disconnected
-
----
-
-## Actions
-
-### Connections
-- **WiFi**: On/Off, Auto-connect to specific SSID (with retry timeout/interval)
-- **Bluetooth**: On/Off, Auto-connect to specific Device (with retry timeout/interval)
-- **Airplane Mode**: On/Off
-
-### Display
-- **Dark Mode**: On/Off
-- **Night Light**: On/Off
-- **Screen Timeout**: Set delay in seconds
-- **Screen Orientation**: Portrait/Landscape
-- **Refresh Rate**: Set specific refresh rate (Hz)
-
-### Sounds
-- **Volume**: Set level (0-100%)
-- **Brightness**: Set level (0-100%)
-
-### Power
-- **Power Saver**: On/Off
-
-### System
-- **Do Not Disturb**: On/Off
-- **Wallpaper**: Set from file path or URI
-
-### Functions
-- **Open Link**: Open URL in default browser
-- **Take Screenshot**: Capture screen
-- **Open Apps**: Launch multiple applications
+- **Connectivity**:
+  - Toggle **WiFi** / **Bluetooth** / **Airplane Mode**.
+  - **Connect/Disconnect** specific WiFi networks or Bluetooth devices.
+- **Display**:
+  - Toggle **Dark Mode** / **Night Light**.
+  - Set **Brightness**, **Screen Timeout**, **Screen Orientation**, **Refresh Rate**.
+  - Change **Wallpaper**.
+- **Audio**: Set **Volume** level.
+- **Productivity**:
+  - Toggle **Do Not Disturb**.
+  - **Open Apps** or **Web Links**.
+  - **Take Screenshot**.
+  - **Manage Clipboard** (Clear or Sanitize URLs).
 
 ---
 
-## Examples
+## Gallery & Examples
 
-### Work Hours
-```
-IF: Time is 9 AM - 5 PM on weekdays
-THEN: 
-  - Enable Do Not Disturb
-  - Set volume to 50%
-  - Enable Dark Mode
-```
+### 🔋 Battery Saver Focus
+Automatically optimize settings when battery gets low.
 
-### Night Mode
-```
-IF: Time is after 8 PM
-THEN:
-  - Enable Night Light
-  - Enable Dark Mode
-  - Set screen timeout to 5 minutes
-  - Set refresh rate to 60Hz
-```
+**Trigger**: Battery Level < 20%
+**Actions**:
+- Turn on Power Saver
+- Decrease Brightness to 30%
+- Turn off Bluetooth
 
-### Focus Mode
-```
-IF: VS Code OR Terminal is running
-THEN:
-  - Enable Do Not Disturb
-  - Disable Bluetooth
-  - Connect to "Work WiFi" (Try for 30s)
-```
+![Battery Saver Example](docs/images/example_battery.png)
 
-### Gaming
-```
-IF: Steam is running
-THEN:
-  - Disable Night Light
-  - Set volume to 80%
-  - Disable screen timeout
-  - Set refresh rate to 144Hz
-```
+### 🎧 Work Mode
+Get into the zone when you launch your coding editor.
 
-### Home WiFi
-```
-IF: Connected to "Home WiFi"
-THEN:
-  - Connect to Bluetooth speaker
-  - Set wallpaper to ~/Pictures/home.jpg
-```
+**Trigger**: VS Code is open
+**Actions**:
+- Turn on Do Not Disturb
+- Connect to "Noise Cancelling Headphones"
+- Set Volume to 40%
+
+![Work Mode Example](docs/images/example_work.png)
+
+### 🌙 Night Routine
+Protect your eyes and wind down.
+
+**Trigger**: Time 10:00 PM - 7:00 AM (Every Day)
+**Actions**:
+- Turn on Night Light
+- Turn on Dark Mode
+- Set Volume to 20%
+
+![Night Routine Example](docs/images/example_night.png)
 
 ---
 
-## Usage
+## Tutorial: Creating Your First Routine
 
-1. Open GNOME Extensions → GNOME Routines settings
-2. Click "Add Routine"
-3. Add triggers (IF conditions)
-4. Add actions (THEN behaviors)
-5. Save
+Let's create a simple routine to **Turn on Night Light when Dark Mode is enabled**.
 
-**Key Features:**
-- **Logic**: Routines activate when ALL triggers match (AND logic).
-- **Reactivity**: Changes take effect immediately without restarting.
-- **State Persistence**: When a routine ends, actions revert to their previous state (e.g., Wi-Fi reconnects to the previous network, Bluetooth state restores).
+1. **Open Settings**: Go to GNOME Extensions app and open settings for "GNOME Routines".
+2. **Add New**: Click the **"Add Routine"** button.
+3. **Name It**: Enter "Dark Mode Sync" as the routine name.
+4. **Add Trigger**:
+   - Click **"Add what will trigger this routine"**.
+   - Select **"Dark Mode"**.
+   - Set State to **"On"** and click "Add".
+5. **Add Action**:
+   - Click **"Add what this routine will do"**.
+   - Select **"Night Light"**.
+   - Set State to **"On"** and click "Add".
+6. **Save**: Click the **"Save"** button at the top right.
+
+That's it! Toggle Dark Mode from your Quick Settings panel, and watch Night Light turn on automatically.
 
 ---
 
 ## Development
 
+Prerequisites: `node`, `npm`, `gnome-shell` development headers.
+
 ```bash
-npm run reinstall    # Build, package, and install extension (requires shell restart)
-npm run build        # Build only
-npm run watch        # Watch mode
+# Install dependencies
+npm install
+
+# Build the extension
+npm run build
+
+# Build and watch for changes
+npm run watch
+
+# Package for distribution (creates zip in dist/)
+npm run package
 ```
 
-### Architecture
-- **Engine**: Platform-agnostic TypeScript core
-- **Adapters**: GNOME Shell integration
-- **UI**: LibAdwaita preferences
+## License
 
-
-Inspired by Samsung Modes and Routines
+Distributed under the [GPL-3.0 License](LICENSE).

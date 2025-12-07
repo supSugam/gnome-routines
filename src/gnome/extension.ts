@@ -2,7 +2,6 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import { RoutineManager } from '../engine/manager.js';
 import { GnomeShellAdapter } from './adapters/gnomeShellAdapter.js';
 
-import GnomeRoutinesIndicator from '../ui/panelMenu.js';
 // @ts-ignore
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -14,7 +13,6 @@ globalThis.debugLog = debugLog;
 export default class GnomeRoutinesExt extends Extension {
   private manager: RoutineManager | null = null;
   private adapter: GnomeShellAdapter | null = null;
-  private indicator: any = null;
   private settingsChangedId: number | null = null;
 
   enable() {
@@ -34,10 +32,6 @@ export default class GnomeRoutinesExt extends Extension {
         this.manager.reload();
       }
     });
-
-    // Add panel menu
-    this.indicator = new GnomeRoutinesIndicator();
-    Main.panel.addToStatusArea('gnome-routines', this.indicator);
   }
 
   disable() {
@@ -50,10 +44,6 @@ export default class GnomeRoutinesExt extends Extension {
       this.settingsChangedId = null;
     }
 
-    if (this.indicator) {
-      this.indicator.destroy();
-      this.indicator = null;
-    }
     if (this.adapter) {
       this.adapter.destroy();
       this.adapter = null;
