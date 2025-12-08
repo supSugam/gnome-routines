@@ -1,5 +1,12 @@
 # GNOME Routines
 
+![GPLv3](https://img.shields.io/badge/License-GPLv3-yellow.svg)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=flat&logo=linux&logoColor=black)
+![GNOME](https://img.shields.io/badge/GNOME-4A90D9?style=flat&logo=gnome&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![D-Bus](https://img.shields.io/badge/D--Bus-000000?style=flat&logo=dbus&logoColor=white)
+[![Download from GNOME Extensions](https://img.shields.io/badge/Download%20from-GNOME%20Extensions-blue)](https://extensions.gnome.org/extension/8238/gnome-routines/)
+
 Automate your GNOME desktop with powerful triggers and actions. Create routines to automatically change settings, launch apps, run commands and more based on the conditions you define (if/then).
 
 ![GNOME Routines Banner](docs/images/banner.png)

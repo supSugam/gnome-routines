@@ -1,6 +1,6 @@
 # Contributing to GNOME Routines
 
-First off, thanks for taking the time to contribute! 🎉
+First off, thanks for taking the time to contribute!
 
 The following is a set of guidelines for contributing to GNOME Routines. These are mostly guidelines, not rules. Use your best judgment, and feel free to propose changes to this document in a pull request.
 
@@ -12,22 +12,19 @@ This project and everyone participating in it is governed by the [Code of Conduc
 
 ### Reporting Bugs
 
-This section guides you through submitting a bug report. Following these guidelines helps maintainers and the community understand your report, reproduce the behavior, and find related reports.
+Found a bug? We'd love to hear about it!
 
-- **Use a clear and descriptive title** for the issue to identify the problem.
-- **Describe the steps to reproduce the problem** in as much detail as possible.
-- **Describe the behavior you observed after following the steps** and point out what exactly is the problem with that behavior.
-- **Explain which behavior you expected to see instead and why.**
-- **Include screenshots** if the problem is related to the UI.
-- **include logs** from `journalctl -f -o cat /usr/bin/gnome-shell` if relevant.
+- **Title**: Clearly state the problem.
+- **Description**: Tell us what happened and how we can see it too.
+- **Screenshots**: extremely helpful if something looks wrong.
+- **Logs (Optional)**: If you know how to get logs, they are great. If not, don't worry!
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion, including completely new features and minor improvements to existing functionality.
+Have an idea?
 
-- **Use a clear and descriptive title** for the issue to identify the suggestion.
-- **Provide a step-by-step description of the suggested enhancement** in as much detail as possible.
-- **Explain why this enhancement would be useful** to most GNOME Routines users.
+- **Title**: What is your idea?
+- **Description**: Explain what you want to see and why it would be useful.
 
 ### Pull Requests
 

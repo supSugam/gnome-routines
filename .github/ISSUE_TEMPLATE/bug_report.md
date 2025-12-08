@@ -7,29 +7,30 @@ assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**What happened?**
+Please describe what happened and what went wrong.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '...'
-3. Scroll down to '...'
-4. See error
+**Steps to reproduce**
+How can we see this bug ourselves?
+1. 
+2. 
+3. 
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**What did you expect to happen?**
+Description of what you thought would happen.
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+If you have screenshots, please add them here.
 
-**Logs**
-Please include relevant logs from `journalctl -f -o cat /usr/bin/gnome-shell | grep gnome-routines`.
+**System Information**
+ - OS (e.g. Fedora, Ubuntu): 
+ - GNOME Version (if known): 
+ - Extension Version: 
 
-**Desktop (please complete the following information):**
- - OS: [e.g. Fedora 40]
- - GNOME Version: [e.g. 46]
- - Extension Version [e.g. 1.0.0]
+**Logs (Optional)**
+If you are comfortable using the terminal, run this command and paste the output corresponding to the error:
+`journalctl -f -o cat /usr/bin/gnome-shell | grep gnome-routines`
+If not, it's okay to leave this blank!
 
-**Additional context**
-Add any other context about the problem here.
+**Anything else?**
+Any other details that might help us.
