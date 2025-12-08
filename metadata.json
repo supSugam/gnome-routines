@@ -1,6 +1,6 @@
 {
   "name": "Gnome Routines",
-  "description": "Automate your system with triggers and actions, inspired by Samsung Modes and Routines.",
+  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more.",
   "uuid": "gnome-routines@supSugam.com",
   "shell-version": ["46", "47"],
   "url": "https://github.com/supSugam/gnome-routines",

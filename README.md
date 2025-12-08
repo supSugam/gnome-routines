@@ -1,6 +1,6 @@
 # GNOME Routines
 
-Automate your GNOME desktop with powerful triggers and actions, inspired by Samsung Modes and Routines.
+Automate your GNOME desktop with powerful triggers and actions. Create routines to automatically change settings, launch apps, run commands and more based on the conditions you define (if/then).
 
 ![GNOME Routines Banner](docs/images/banner.png)
 
@@ -12,6 +12,7 @@ Automate your GNOME desktop with powerful triggers and actions, inspired by Sams
 - [Gallery & Examples](#gallery--examples)
 - [Tutorial: Creating Your First Routine](#tutorial-creating-your-first-routine)
 - [Development](#development)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -145,6 +146,16 @@ npm run watch
 # Package for distribution (creates zip in dist/)
 npm run package
 ```
+
+## Inspiration
+
+- [Samsung's Modes and Routines](https://www.samsung.com/us/support/answer/ANS10002538/)
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to submit pull requests, report issues, and suggest improvements.
+
+This project uses the [Contributor Covenant](CODE_OF_CONDUCT.md) to ensure a welcoming community.
 
 ## License
 

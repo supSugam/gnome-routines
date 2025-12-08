@@ -1,7 +1,7 @@
 {
   "name": "gnome-routines",
   "version": "1.0.0",
-  "description": "A GNOME extension to replicate Samsung Modes and Routines",
+  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more.",
   "scripts": {
     "build": "node scripts/build.js && npm run package",
     "watch": "node scripts/build.js --watch",
