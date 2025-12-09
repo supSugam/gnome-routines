@@ -818,28 +818,32 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   openLink(url: string): void {
+    debugLog(`[GnomeShellAdapter] Opening link: ${url}`);
     try {
-      // xdg-open
-      GLib.spawn_command_line_async(`xdg-open ${url}`);
+      Gio.AppInfo.launch_default_for_uri(url, null);
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to open link:', e);
     }
   }
 
   takeScreenshot(): void {
+    debugLog('[GnomeShellAdapter] Taking screenshot');
     try {
-      // Ensure Pictures directory exists
-      const picturesDir = `${GLib.get_home_dir()}/Pictures`;
-      const filename = `${picturesDir}/Screenshot_${new Date().getTime()}.png`;
-
-      // Use ImageMagick's import command (simple and reliable)
-      // -window root captures the entire screen
-      const cmd = `import -window root "${filename}"`;
-      GLib.spawn_command_line_async(cmd);
-
-      debugLog(`[GnomeShellAdapter] Taking screenshot: ${filename}`);
+      GLib.spawn_command_line_async('gnome-screenshot');
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to take screenshot:', e);
+    }
+  }
+
+  executeCommand(command: string): void {
+    debugLog(`[GnomeShellAdapter] Executing command: ${command}`);
+    try {
+      GLib.spawn_command_line_async(command);
+    } catch (e) {
+      console.error(
+        `[GnomeShellAdapter] Failed to execute command '${command}':`,
+        e
+      );
     }
   }
 

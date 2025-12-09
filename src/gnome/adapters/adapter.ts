@@ -90,6 +90,7 @@ export interface SystemAdapter {
   // New Actions - Functions
   openLink(url: string): void;
   takeScreenshot(): void;
+  executeCommand(command: string): void;
   openApp(appIds: string[]): void;
   // New Actions - Keyboard
   setKeyboardBrightness(percentage: number): void;

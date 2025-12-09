@@ -6,8 +6,7 @@ import debugLog from '../../utils/log.js';
 export class BluetoothTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
-  private _timeoutId: number = 0;
-  private _hasWitnessedChange: boolean = false;
+  private _lastMatchState: boolean | null = null;
 
   constructor(
     id: string,
@@ -22,86 +21,114 @@ export class BluetoothTrigger extends BaseTrigger {
   }
 
   async check(): Promise<boolean> {
-    // If we haven't witnessed a change event yet, ignore the state
-    // This prevents triggering on restart/unlock if state is already met
-    if (!this._hasWitnessedChange) {
-      return false;
-    }
+    return this._evaluateCondition();
+  }
 
-    // Power state check
-    if (
-      this.config.state === ConnectionState.ENABLED ||
-      this.config.state === ConnectionState.DISABLED
-    ) {
-      const isEnabled = await this.adapter.getBluetoothPowerState();
-      return this.config.state === ConnectionState.ENABLED
-        ? isEnabled
-        : !isEnabled;
-    }
-
-    // Connection state check
-    const connectedDevices = await this.adapter.getConnectedBluetoothDevices();
-
-    // If specific devices are configured
-    if (this.config.deviceIds && this.config.deviceIds.length > 0) {
-      const isMatch = connectedDevices.some(
-        (d) =>
-          this.config.deviceIds!.includes(d.name) ||
-          this.config.deviceIds!.includes(d.address)
-      );
-
-      if (this.config.state === ConnectionState.CONNECTED) {
-        return isMatch;
-      } else {
-        return !isMatch;
+  private async _evaluateCondition(): Promise<boolean> {
+    try {
+      // Power state check
+      if (
+        this.config.state === ConnectionState.ENABLED ||
+        this.config.state === ConnectionState.DISABLED
+      ) {
+        const isEnabled = await this.adapter.getBluetoothPowerState();
+        return this.config.state === ConnectionState.ENABLED
+          ? isEnabled
+          : !isEnabled;
       }
-    }
 
-    // Default behavior (any device)
-    const isAnyConnected = connectedDevices.length > 0;
-    if (this.config.state === ConnectionState.CONNECTED) {
-      return isAnyConnected;
-    } else {
-      return !isAnyConnected;
+      // Connection state check
+      const connectedDevices =
+        await this.adapter.getConnectedBluetoothDevices();
+
+      // If specific devices are configured
+      if (this.config.deviceIds && this.config.deviceIds.length > 0) {
+        const isMatch = connectedDevices.some(
+          (d) =>
+            this.config.deviceIds!.includes(d.name) ||
+            this.config.deviceIds!.includes(d.address)
+        );
+
+        if (this.config.state === ConnectionState.CONNECTED) {
+          return isMatch;
+        } else {
+          return !isMatch;
+        }
+      }
+
+      // Default behavior (any device)
+      const isAnyConnected = connectedDevices.length > 0;
+      if (this.config.state === ConnectionState.CONNECTED) {
+        return isAnyConnected;
+      } else {
+        return !isAnyConnected;
+      }
+    } catch (e) {
+      debugLog(`[BluetoothTrigger] Error checking condition: ${e}`);
+      return false;
     }
   }
 
   activate(): void {
     debugLog(`[BluetoothTrigger] Activating listener for ${this.config.state}`);
+    this._isActivated = true;
+
+    // Initialize state asynchronously - this establishes the baseline
+    // so we don't trigger on pre-existing state
+    this._evaluateCondition().then((initialState) => {
+      if (this._lastMatchState === null) {
+        debugLog(
+          `[BluetoothTrigger] Setting initial state to: ${initialState}`
+        );
+        this._lastMatchState = initialState;
+      }
+    });
 
     if (
       this.config.state === ConnectionState.ENABLED ||
       this.config.state === ConnectionState.DISABLED
     ) {
-      this.adapter.onBluetoothPowerStateChanged((isEnabled: boolean) => {
-        debugLog(`[BluetoothTrigger] Bluetooth power changed to: ${isEnabled}`);
-        this._hasWitnessedChange = true;
-        this.emit('triggered');
+      this.adapter.onBluetoothPowerStateChanged(() => {
+        this._handleStateChange();
       });
     } else {
       this.adapter.onBluetoothDeviceStateChanged(() => {
-        debugLog(
-          `[BluetoothTrigger] Bluetooth device state changed event received`
-        );
-        this._hasWitnessedChange = true;
-        this.emit('triggered');
+        this._handleStateChange();
       });
+    }
+  }
 
-      // Removed initial check block to prevent triggering on load
+  private async _handleStateChange() {
+    if (!this._isActivated) return;
+
+    const currentMatch = await this._evaluateCondition();
+
+    // If this is the first time we see state (and init hasn't finished),
+    // set it as baseline and don't trigger.
+    if (this._lastMatchState === null) {
+      debugLog(
+        `[BluetoothTrigger] Initializing state from event: ${currentMatch}`
+      );
+      this._lastMatchState = currentMatch;
+      return;
     }
 
-    this._isActivated = true;
+    if (currentMatch !== this._lastMatchState) {
+      debugLog(
+        `[BluetoothTrigger] State transition: ${this._lastMatchState} -> ${currentMatch}`
+      );
+      this._lastMatchState = currentMatch;
+
+      // Only trigger if the condition effectively became true
+      if (currentMatch) {
+        this.emit('triggered');
+      }
+    }
   }
 
   deactivate(): void {
-    if (this._timeoutId > 0) {
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
-      GLib.source_remove(this._timeoutId);
-      this._timeoutId = 0;
-      debugLog(`[BluetoothTrigger] Polling timer removed`);
-    }
     this._isActivated = false;
-    this._hasWitnessedChange = false; // Reset on deactivate
+    this._lastMatchState = null; // Reset state on deactivate
+    debugLog(`[BluetoothTrigger] Deactivated`);
   }
 }

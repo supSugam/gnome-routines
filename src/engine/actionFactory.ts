@@ -24,7 +24,9 @@ import {
   OpenLinkAction,
   ScreenshotAction,
   OpenAppAction,
+  ExecuteCommandAction as ExecCmdAction,
 } from './actions/function.js';
+import { ExecuteCommandAction } from './actions/command.js';
 import { SystemAdapter } from '../gnome/adapters/adapter.js';
 import { StateManager } from './stateManager.js';
 

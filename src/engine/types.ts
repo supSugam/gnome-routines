@@ -9,6 +9,7 @@ export enum TriggerType {
   AIRPLANE_MODE = 'airplane_mode',
   HEADPHONES = 'headphones',
   CLIPBOARD = 'clipboard',
+  STARTUP = 'startup',
 }
 
 export enum ActionType {
@@ -34,6 +35,7 @@ export enum ActionType {
   TAKE_SCREENSHOT = 'take_screenshot',
   CLIPBOARD = 'clipboard',
   OPEN_LINK = 'open_link',
+  EXECUTE_COMMAND = 'execute_command',
 }
 
 // --- Trigger Configs ---
@@ -109,6 +111,10 @@ export interface ClipboardTriggerConfig {
   // No config needed for now, just detects change
 }
 
+export interface StartupTriggerConfig {
+  // No specific config needed, just existence matches
+}
+
 export type TriggerConfig =
   | TimeTriggerConfig
   | AppTriggerConfig
@@ -116,7 +122,8 @@ export type TriggerConfig =
   | BluetoothTriggerConfig
   | BatteryTriggerConfig
   | SystemTriggerConfig
-  | ClipboardTriggerConfig;
+  | ClipboardTriggerConfig
+  | StartupTriggerConfig;
 
 export enum TriggerStrategy {
   STATE_PERSISTENT = 'state_persistent', // Run actions on startup if state matches (e.g. Time)
@@ -220,6 +227,10 @@ export interface ClipboardActionConfig {
   };
 }
 
+export interface ExecuteCommandActionConfig {
+  command: string;
+}
+
 export type ActionConfig =
   | OpenAppActionConfig
   | NotificationActionConfig
@@ -234,6 +245,7 @@ export type ActionConfig =
   | ConnectBluetoothActionConfig
   | OpenLinkActionConfig
   | ClipboardActionConfig
+  | ExecuteCommandActionConfig
   | Record<string, any>; // Fallback for now
 
 export enum DeactivateStrategy {
@@ -320,6 +332,7 @@ export const ACTION_RESOURCE_MAP: Record<ActionType, ResourceType[]> = {
   [ActionType.CLIPBOARD]: [], // Could argue clipboard is a resource, but multiple writes usually unlikely to "conflict" in a damaging way compared to hardware toggles
   [ActionType.OPEN_LINK]: [],
   [ActionType.REFRESH_RATE]: [],
+  [ActionType.EXECUTE_COMMAND]: [],
 };
 
 // Fix for keyboard brightness if not in enum properly or special handling
