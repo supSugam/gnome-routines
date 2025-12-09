@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.0.0] - 2024-12-07
+## [V1] - 2024-12-07
 
 ### Added
 - Initial release of Gnome Routines.

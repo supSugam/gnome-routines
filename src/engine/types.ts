@@ -376,7 +376,7 @@ export interface RoutineState {
 // --- Import/Export Types ---
 
 export interface RoutineExport {
-  version: string;
+  version: number;
   timestamp: number;
   source: 'gnome-routines';
   routines: RoutineExportData[];

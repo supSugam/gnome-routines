@@ -16,7 +16,7 @@ export default class GnomeRoutinesExt extends Extension {
   private settingsChangedId: number | null = null;
 
   enable() {
-    debugLog('[GnomeRoutines] Enabling extension version 1.0.0');
+    debugLog('[GnomeRoutines] Enabling extension version 1.');
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);

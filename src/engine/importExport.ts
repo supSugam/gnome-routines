@@ -8,7 +8,7 @@ export class ImportExportManager {
   static exportRoutines(routines: Routine[]): string {
     try {
       const exportData: RoutineExport = {
-        version: '1.0.0',
+        version: 1,
         timestamp: Date.now(),
         source: 'gnome-routines',
         routines: routines.map((r) => {
@@ -62,7 +62,7 @@ export class ImportExportManager {
       }
 
       // Version check (future proofing)
-      if (data.version !== '1.0.0') {
+      if (data.version !== 1) {
         console.warn(
           '[ImportExport] content version is different than supported'
         );
