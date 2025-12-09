@@ -21,6 +21,7 @@ import { ScreenshotActionEditor } from '../features/system/screenshotActionEdito
 import { NotificationActionEditor } from '../features/system/notificationActionEditor.js';
 import { ClipboardActionEditor } from '../features/clipboard/clipboardActionEditor.js';
 import { OpenLinkActionEditor } from '../features/system/openLinkActionEditor.js';
+import { ExecuteCommandEditor } from '../features/function/commandEditor.js';
 
 export class ActionEditorFactory {
   static create(
@@ -71,6 +72,8 @@ export class ActionEditorFactory {
         return new ClipboardActionEditor(config, onChange);
       case ActionType.OPEN_LINK:
         return new OpenLinkActionEditor(config, onChange);
+      case ActionType.EXECUTE_COMMAND:
+        return new ExecuteCommandEditor(config, onChange);
       default:
         console.warn(`No editor found for action type: ${type}`);
         return null;

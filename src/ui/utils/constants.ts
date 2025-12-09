@@ -67,6 +67,7 @@ export const UI_STRINGS = {
     airplaneMode: 'Airplane Mode',
     headphones: 'Wired Headphones',
     clipboard: 'Clipboard Change',
+    startup: 'Startup / Login',
   },
   actions: {
     openApp: 'Open App',
@@ -90,6 +91,7 @@ export const UI_STRINGS = {
     notification: 'Send Notification',
     clearClipboard: 'Manage Clipboard',
     openLink: 'Open Link',
+    executeCommand: 'Execute Command',
   },
   clipboard: {
     operation: 'Operation',

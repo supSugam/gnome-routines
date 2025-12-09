@@ -25,6 +25,7 @@ import {
   BatteryTriggerMode,
   LevelComparison,
   BatteryStatus,
+  ExecuteCommandActionConfig,
 } from '../../engine/types.js';
 
 export const getTriggerSummary = (trigger: Trigger): string => {
@@ -130,6 +131,10 @@ export const getTriggerSummary = (trigger: Trigger): string => {
     return 'When clipboard content changes';
   }
 
+  if (trigger.type === TriggerType.STARTUP) {
+    return 'At system startup';
+  }
+
   return formatType(trigger.type);
 };
 
@@ -207,6 +212,10 @@ export const getActionSummary = (action: Action): string => {
     const config = action.config as OpenLinkActionConfig;
     return `Open link: ${config.url}`;
   }
+  if (action.type === ActionType.EXECUTE_COMMAND) {
+    const config = action.config as ExecuteCommandActionConfig;
+    return `Run command: ${config.command}`;
+  }
   if (action.type === ActionType.OPEN_APP) {
     const config = action.config as OpenAppActionConfig;
     const count = config.appIds?.length || 0;
@@ -243,6 +252,7 @@ export const getTriggerTitle = (type: string): string => {
     [TriggerType.AIRPLANE_MODE]: 'Airplane Mode',
     [TriggerType.HEADPHONES]: 'Wired Headphones',
     [TriggerType.CLIPBOARD]: 'Clipboard Change',
+    [TriggerType.STARTUP]: 'Startup / Login',
   };
   return titles[type] || formatType(type);
 };
@@ -270,6 +280,7 @@ export const getActionTitle = (type: string): string => {
     [ActionType.NOTIFICATION]: 'Send Notification',
     [ActionType.CLIPBOARD]: 'Manage Clipboard',
     [ActionType.OPEN_LINK]: 'Open Link',
+    [ActionType.EXECUTE_COMMAND]: 'Execute Command',
   };
   return titles[type] || formatType(type);
 };

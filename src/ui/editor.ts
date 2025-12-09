@@ -161,7 +161,7 @@ export class RoutineEditor {
 
       const cancelBtn = new Gtk.Button({ label: UI_STRINGS.editor.cancel });
       // @ts-ignore
-      cancelBtn.connect('clicked', () => navView.pop());
+      cancelBtn.connect('clicked', () => navView.pop_to_tag('main'));
       headerBar.pack_start(cancelBtn);
 
       const addBtn = new Gtk.Button({
@@ -181,6 +181,7 @@ export class RoutineEditor {
 
       // Use Enums for types
       const triggerTypes = [
+        { id: TriggerType.STARTUP, title: UI_STRINGS.triggers.startup },
         { id: TriggerType.TIME, title: UI_STRINGS.triggers.time },
         { id: TriggerType.APP, title: UI_STRINGS.triggers.app },
         { id: TriggerType.WIFI, title: UI_STRINGS.triggers.wifi },
@@ -263,7 +264,7 @@ export class RoutineEditor {
 
         if (isNew) this.routine.triggers.push(trigger);
         refreshTriggers();
-        navView.pop();
+        navView.pop_to_tag('main');
       });
 
       navView.push(page);
@@ -351,7 +352,7 @@ export class RoutineEditor {
 
       const cancelBtn = new Gtk.Button({ label: UI_STRINGS.editor.cancel });
       // @ts-ignore
-      cancelBtn.connect('clicked', () => navView.pop());
+      cancelBtn.connect('clicked', () => navView.pop_to_tag('main'));
       headerBar.pack_start(cancelBtn);
 
       const addBtn = new Gtk.Button({
@@ -415,6 +416,10 @@ export class RoutineEditor {
           title: UI_STRINGS.actions.clearClipboard,
         },
         { id: ActionType.OPEN_LINK, title: UI_STRINGS.actions.openLink },
+        {
+          id: ActionType.EXECUTE_COMMAND,
+          title: UI_STRINGS.actions.executeCommand,
+        },
       ];
 
       const typeModel = new Gtk.StringList({
@@ -485,7 +490,7 @@ export class RoutineEditor {
           if (isNew) this.routine.actions.push(action);
           refreshActions();
         }
-        navView.pop();
+        navView.pop_to_tag('main');
       });
 
       navView.push(page);

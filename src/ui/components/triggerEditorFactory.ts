@@ -10,9 +10,14 @@ import { AirplaneModeTriggerEditor } from '../features/connectivity/airplaneMode
 import { DarkModeTriggerEditor } from '../features/display/darkModeTriggerEditor.js';
 import { PowerSaverTriggerEditor } from '../features/power/powerSaverTriggerEditor.js';
 import { HeadphonesTriggerEditor } from '../features/audio/headphonesTriggerEditor.js';
+import { StartupTriggerEditor } from '../features/system/startupTriggerEditor.js';
 
 export class TriggerEditorFactory {
-  static create(type: string, config: any, onChange: () => void): BaseEditor | null {
+  static create(
+    type: string,
+    config: any,
+    onChange: () => void
+  ): BaseEditor | null {
     switch (type) {
       case TriggerType.TIME:
         return new TimeTriggerEditor(config, onChange);
@@ -34,6 +39,8 @@ export class TriggerEditorFactory {
         return new PowerSaverTriggerEditor(config, onChange);
       case TriggerType.HEADPHONES:
         return new HeadphonesTriggerEditor(config, onChange);
+      case TriggerType.STARTUP:
+        return new StartupTriggerEditor(config, onChange);
       default:
         console.warn(`No editor found for trigger type: ${type}`);
         return null;
