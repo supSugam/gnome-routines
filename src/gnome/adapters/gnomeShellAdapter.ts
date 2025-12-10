@@ -23,9 +23,160 @@ declare const global: any;
 export class GnomeShellAdapter implements SystemAdapter {
   private appSystem: any;
   private appListenerId: number = 0;
+  private initTimestamp: number;
+  private isStartupSession: boolean = false;
 
   constructor() {
     this.appSystem = Shell.AppSystem.get_default();
+    this.initTimestamp = Date.now();
+    this.checkStartupState();
+  }
+
+  private checkStartupState() {
+    try {
+      const runtimeDir = GLib.get_user_runtime_dir();
+      debugLog(
+        `[GnomeRoutines-DEBUG] Checking startup state in: ${runtimeDir}`
+      );
+      const lockFilePath = GLib.build_filenamev([
+        runtimeDir,
+        'gnome-routines-startup.lock',
+      ]);
+      const file = Gio.File.new_for_path(lockFilePath);
+
+      const sessionId = GLib.getenv('XDG_SESSION_ID') || 'unknown';
+      debugLog(`[GnomeRoutines-DEBUG] Current XDG_SESSION_ID: ${sessionId}`);
+
+      if (file.query_exists(null)) {
+        debugLog(
+          '[GnomeRoutines-DEBUG] Startup lock file exists. Checking validity...'
+        );
+
+        let isFresh = false;
+        try {
+          const [success, contents] = file.load_contents(null);
+          if (success) {
+            const decoder = new TextDecoder();
+            const contentStr = decoder.decode(contents).trim();
+            debugLog(`[GnomeRoutines-DEBUG] Lock file content: ${contentStr}`);
+
+            let storedSessionId = '';
+            let fileTime = NaN;
+
+            // Try to parse as JSON first
+            try {
+              const json = JSON.parse(contentStr);
+              if (json.sessionId) storedSessionId = json.sessionId;
+              if (json.timestamp) fileTime = Date.parse(json.timestamp);
+            } catch (jsonErr) {
+              // Fallback to legacy date string
+              fileTime = Date.parse(contentStr);
+            }
+
+            if (storedSessionId && storedSessionId === sessionId) {
+              debugLog(
+                '[GnomeRoutines-DEBUG] Session ID MATCHES. This is the same session re-initializing (e.g. shell restart).'
+              );
+              // Same session. Logic:
+              // If it's a shell restart, we generally DON'T want to fire triggers again (to avoid duplicates).
+              // BUT, if the restart happened very quickly after login (e.g. < 60s), maybe the first run didn't finish?
+              // Let's stick to strict "Run Once Per Session ID".
+              // So if IDs match, we do NOT run.
+              isFresh = false;
+            } else {
+              if (sessionId !== 'unknown') {
+                debugLog(
+                  `[GnomeRoutines-DEBUG] Session ID MISMATCH (${storedSessionId} vs ${sessionId}). Treating as NEW session (Stale lock file).`
+                );
+                isFresh = true;
+              } else {
+                // Fallback if no session ID available (rare)
+                // Check timestamp age
+                const now = Date.now();
+                if (!isNaN(fileTime)) {
+                  const diff = now - fileTime;
+                  debugLog(
+                    `[GnomeRoutines-DEBUG] Time since lock creation: ${diff}ms (No Session ID available)`
+                  );
+                  // If > 5 minutes, assume stale
+                  if (diff > 300000) {
+                    isFresh = true;
+                    debugLog(
+                      '[GnomeRoutines-DEBUG] Stale lock file (>5m). Treating as fresh.'
+                    );
+                  }
+                } else {
+                  // Corrupt content? Overwrite.
+                  isFresh = true;
+                }
+              }
+            }
+          }
+        } catch (readError) {
+          debugLog(
+            `[GnomeRoutines-DEBUG] Could not read lock file content: ${readError}`
+          );
+          // If we can't read it, assume it's broken and we should take over?
+          // Or failsafe off? Let's take over.
+          isFresh = true;
+        }
+
+        if (isFresh) {
+          debugLog(
+            '[GnomeRoutines-DEBUG] Taking ownership of lock file for new session.'
+          );
+          this.writeLockFile(file, sessionId);
+          this.isStartupSession = true;
+        } else {
+          this.isStartupSession = false;
+        }
+      } else {
+        debugLog(
+          '[GnomeRoutines-DEBUG] No startup lock file found. Creating one. This IS a fresh login session.'
+        );
+        this.writeLockFile(file, sessionId);
+        this.isStartupSession = true;
+      }
+    } catch (e) {
+      console.error(
+        '[GnomeRoutines-DEBUG] Failed to check/create startup lock file:',
+        e
+      );
+      // Fallback: If we can't write, assume we can't track sessions correctly.
+      // But maybe safer to assume FALSE to avoid spamming if file system is readonly?
+      // Or TRUE if we want to ensure it runs at least once?
+      // Defaulting to false to be safe against loops.
+      this.isStartupSession = false;
+    }
+  }
+
+  private writeLockFile(file: any, sessionId: string) {
+    try {
+      // Overwrite
+      const outputStream = file.replace(
+        null,
+        false,
+        Gio.FileCreateFlags.NONE,
+        null
+      );
+      const encoder = new TextEncoder();
+      const data = JSON.stringify({
+        timestamp: new Date().toISOString(),
+        sessionId: sessionId,
+      });
+      const content = encoder.encode(data);
+      outputStream.write_all(content, null);
+      outputStream.close(null);
+    } catch (e) {
+      debugLog(`[GnomeRoutines-DEBUG] Failed to write lock file: ${e}`);
+    }
+  }
+
+  getStartupState(): { isStartup: boolean; timeSinceInit: number } {
+    return {
+      isStartup: this.isStartupSession,
+      timeSinceInit: Date.now() - this.initTimestamp,
+    };
   }
 
   showNotification(title: string, body: string): void {

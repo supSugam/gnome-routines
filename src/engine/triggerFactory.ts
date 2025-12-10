@@ -1,4 +1,4 @@
-import { Trigger } from './types.js';
+import { Trigger, TriggerType } from './types.js';
 import { AppTrigger } from './triggers/app.js';
 import { TimeTrigger } from './triggers/time.js';
 import { WifiTrigger } from './triggers/wifi.js';
@@ -11,22 +11,26 @@ import { StartupTrigger } from './triggers/startup.js';
 export class TriggerFactory {
   static create(data: any, adapter: any): Trigger | null {
     switch (data.type) {
-      case 'app':
+      case TriggerType.APP:
         return new AppTrigger(data.id, data.config);
-      case 'time':
+      case TriggerType.TIME:
         return new TimeTrigger(data.id, data.config);
-      case 'wifi':
+      case TriggerType.WIFI:
         return new WifiTrigger(data.id, data.config, adapter);
-      case 'bluetooth':
+      case TriggerType.BLUETOOTH:
         return new BluetoothTrigger(data.id, data.config, adapter);
-      case 'battery':
+      case TriggerType.BATTERY:
         return new BatteryTrigger(data.id, data.config, adapter);
-      case 'system':
+      case TriggerType.POWER_SAVER: // Assuming system trigger handles this via SystemTrigger
+      case TriggerType.DARK_MODE:
+      case TriggerType.AIRPLANE_MODE:
+      case TriggerType.HEADPHONES:
+      case 'system': // Backward compatibility
         return new SystemTrigger(data.id, data.config, adapter);
-      case 'clipboard':
+      case TriggerType.CLIPBOARD:
         return new ClipboardTrigger(data.id, data.config, adapter);
-      case 'startup':
-        return new StartupTrigger(data.id, data.config);
+      case TriggerType.STARTUP:
+        return new StartupTrigger(data.id, data.config, adapter);
       default:
         console.warn(`Unknown trigger type: ${data.type}`);
         return null;

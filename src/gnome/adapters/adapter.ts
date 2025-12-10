@@ -30,6 +30,9 @@ export interface SystemAdapter {
   getActiveApp(): string | null;
   onActiveAppChanged(callback: (appName: string) => void): void;
 
+  // Startup State
+  getStartupState(): { isStartup: boolean; timeSinceInit: number };
+
   // Network Tracking
   onWifiStateChanged(callback: (isConnected: boolean) => void): void;
   getCurrentWifiSSID(): string | null;

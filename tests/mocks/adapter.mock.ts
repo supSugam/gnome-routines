@@ -124,6 +124,11 @@ export class MockSystemAdapter implements SystemAdapter {
   }
   onActiveAppChanged(callback: (appName: string) => void): void {}
 
+  // Startup State
+  getStartupState(): { isStartup: boolean; timeSinceInit: number } {
+    return { isStartup: false, timeSinceInit: 100000 };
+  }
+
   // Network Tracking
   onWifiStateChanged(callback: (isConnected: boolean) => void): void {
     this.wifiStateCallback = callback;

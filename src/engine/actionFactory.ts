@@ -24,7 +24,6 @@ import {
   OpenLinkAction,
   ScreenshotAction,
   OpenAppAction,
-  ExecuteCommandAction as ExecCmdAction,
 } from './actions/function.js';
 import { ExecuteCommandAction } from './actions/command.js';
 import { SystemAdapter } from '../gnome/adapters/adapter.js';
@@ -41,28 +40,28 @@ export class ActionFactory {
     debugLog(`[ActionFactory] Creating action type: ${data.type}`);
 
     switch (data.type) {
-      case 'wallpaper':
+      case ActionType.WALLPAPER:
         action = new WallpaperAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'dnd':
+      case ActionType.DND:
         action = new DndAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'wifi':
+      case ActionType.WIFI:
         action = new WifiAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'bluetooth':
+      case ActionType.BLUETOOTH:
         action = new BluetoothAction(
           data.id,
           data.config,
@@ -77,21 +76,21 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
-      case 'bluetooth_device':
+      case 'bluetooth_device': // kept for backward compatibility if needed, but should be deprecated
         action = new BluetoothDeviceAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'airplane_mode':
+      case ActionType.AIRPLANE_MODE:
         action = new AirplaneModeAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'dark_mode':
+      case ActionType.DARK_MODE:
         action = new DarkModeAction(
           data.id,
           data.config,
@@ -100,7 +99,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
-      case 'night_light':
+      case ActionType.NIGHT_LIGHT:
         action = new NightLightAction(
           data.id,
           data.config,
@@ -109,7 +108,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
-      case 'screen_timeout':
+      case ActionType.SCREEN_TIMEOUT:
         action = new ScreenTimeoutAction(
           data.id,
           data.config,
@@ -118,14 +117,14 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
-      case 'screen_orientation':
+      case ActionType.SCREEN_ORIENTATION:
         action = new ScreenOrientationAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'refresh_rate':
+      case ActionType.REFRESH_RATE:
         action = new RefreshRateAction(
           data.id,
           data.config,
@@ -134,20 +133,21 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
-      case 'power_saver':
+      case ActionType.POWER_SAVER:
         action = new PowerSaverAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'open_link':
+      case ActionType.OPEN_LINK:
         action = new OpenLinkAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
+      case ActionType.TAKE_SCREENSHOT: // screenshot is mapped to TAKE_SCREENSHOT ("take_screenshot") in types but might be "screenshot" in legacy
       case 'screenshot':
         action = new ScreenshotAction(
           data.id,
@@ -155,28 +155,28 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
-      case 'open_app':
+      case ActionType.OPEN_APP:
         action = new OpenAppAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'volume':
+      case ActionType.VOLUME:
         action = new VolumeAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'brightness':
+      case ActionType.BRIGHTNESS:
         action = new BrightnessAction(
           data.id,
           data.config,
           adapter
         ) as unknown as Action;
         break;
-      case 'keyboard_brightness':
+      case ActionType.KEYBOARD_BRIGHTNESS:
         action = new KeyboardBrightnessAction(
           data.id,
           data.config,
@@ -185,6 +185,13 @@ export class ActionFactory {
         break;
       case ActionType.CLIPBOARD:
         return new ClipboardAction(
+          data.id,
+          data.config as any,
+          adapter
+        ) as unknown as Action;
+        break;
+      case ActionType.EXECUTE_COMMAND:
+        action = new ExecuteCommandAction(
           data.id,
           data.config as any,
           adapter

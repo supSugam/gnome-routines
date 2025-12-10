@@ -8,32 +8,59 @@ import { BaseTrigger } from './base.js';
 import { TriggerType, StartupTriggerConfig, TriggerStrategy } from '../types.js';
 import debugLog from '../../utils/log.js';
 
+import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+
 export class StartupTrigger extends BaseTrigger {
-  constructor(id: string, config: StartupTriggerConfig) {
+  private adapter: SystemAdapter;
+  private hasFired: boolean = false;
+
+  constructor(
+    id: string,
+    config: StartupTriggerConfig,
+    adapter: SystemAdapter
+  ) {
     super(id, TriggerType.STARTUP, config, TriggerStrategy.STATE_PERSISTENT);
+    this.adapter = adapter;
   }
 
   async check(): Promise<boolean> {
-    const runtimeDir = GLib.get_user_runtime_dir();
-    const lockFilePath = GLib.build_filenamev([runtimeDir, 'gnome-routines-startup.lock']);
-    const file = Gio.File.new_for_path(lockFilePath);
-
-    if (file.query_exists(null)) {
-        debugLog('[StartupTrigger] Lock file exists, skipping startup trigger');
-        return false;
+    if (!this.adapter) {
+      debugLog('[StartupTrigger] No adapter available');
+      return false;
     }
 
-    try {
-        const outputStream = file.create(Gio.FileCreateFlags.NONE, null);
-        const encoder = new TextEncoder();
-        const content = encoder.encode(new Date().toISOString());
-        outputStream.write_all(content, null);
-        outputStream.close(null);
-        debugLog('[StartupTrigger] Created lock file, activating startup trigger');
-        return true;
-    } catch (e) {
-        console.error('[StartupTrigger] Failed to create lock file:', e);
-        return false;
+    if (this.hasFired) {
+      // Don't spam debug log here as it will be called frequently by manager
+      return false;
     }
+
+    const { isStartup, timeSinceInit } = this.adapter.getStartupState();
+
+    debugLog(
+      `[GnomeRoutines-DEBUG] StartupTrigger Check - isStartup: ${isStartup}, timeSinceInit: ${timeSinceInit}ms`
+    );
+
+    // We only trigger if it is indeed a startup session AND we are checking
+    // reasonably close to initialization.
+    // Increased grace period to 120s to allow for slow logins or delayed routine checks.
+    const GRACE_PERIOD_MS = 120000;
+
+    if (isStartup && timeSinceInit < GRACE_PERIOD_MS) {
+      debugLog(`[GnomeRoutines-DEBUG] Startup condition MET. Firing trigger.`);
+      this.hasFired = true;
+      return true;
+    } else {
+      if (!isStartup) {
+        debugLog(
+          `[GnomeRoutines-DEBUG] Startup condition NOT met: Not a startup session (Lock file existed).`
+        );
+      } else {
+        debugLog(
+          `[GnomeRoutines-DEBUG] Startup condition NOT met: Grace period expired (${timeSinceInit}ms > ${GRACE_PERIOD_MS}ms).`
+        );
+      }
+    }
+
+    return false;
   }
 }
