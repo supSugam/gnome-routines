@@ -45,7 +45,8 @@ export class GnomeShellAdapter implements SystemAdapter {
       const file = Gio.File.new_for_path(lockFilePath);
 
       const sessionId = GLib.getenv('XDG_SESSION_ID') || 'unknown';
-      debugLog(`[GnomeRoutines-DEBUG] Current XDG_SESSION_ID: ${sessionId}`);
+      const sessionType = GLib.getenv('XDG_SESSION_TYPE') || 'unknown';
+      debugLog(`[GnomeRoutines-DEBUG] Current XDG_SESSION_ID: ${sessionId}, TYPE: ${sessionType}`);
 
       if (file.query_exists(null)) {
         debugLog(
@@ -61,28 +62,69 @@ export class GnomeShellAdapter implements SystemAdapter {
             debugLog(`[GnomeRoutines-DEBUG] Lock file content: ${contentStr}`);
 
             let storedSessionId = '';
+            let storedSessionType = '';
             let fileTime = NaN;
 
             // Try to parse as JSON first
             try {
               const json = JSON.parse(contentStr);
               if (json.sessionId) storedSessionId = json.sessionId;
+              if (json.sessionType) storedSessionType = json.sessionType;
               if (json.timestamp) fileTime = Date.parse(json.timestamp);
             } catch (jsonErr) {
               // Fallback to legacy date string
               fileTime = Date.parse(contentStr);
             }
 
-            if (storedSessionId && storedSessionId === sessionId) {
+            const bothUnknown =
+              storedSessionId === 'unknown' && sessionId === 'unknown';
+
+            // Check if Session Type Changed (e.g. Wayland -> X11)
+            // If type changed, it MUST be a new session.
+            const typeChanged =
+              storedSessionType &&
+              sessionType &&
+              storedSessionType !== sessionType;
+
+            if (typeChanged) {
+              debugLog(
+                `[GnomeRoutines-DEBUG] Session Type MISMATCH (${storedSessionType} vs ${sessionType}). Treating as NEW session.`
+              );
+              isFresh = true;
+            } else if (
+              storedSessionId &&
+              storedSessionId === sessionId &&
+              !bothUnknown
+            ) {
+              // ... existing ID match logic ...
               debugLog(
                 '[GnomeRoutines-DEBUG] Session ID MATCHES. This is the same session re-initializing (e.g. shell restart).'
               );
-              // Same session. Logic:
-              // If it's a shell restart, we generally DON'T want to fire triggers again (to avoid duplicates).
-              // BUT, if the restart happened very quickly after login (e.g. < 60s), maybe the first run didn't finish?
-              // Let's stick to strict "Run Once Per Session ID".
-              // So if IDs match, we do NOT run.
               isFresh = false;
+            } else if (bothUnknown) {
+              // Both are unknown. We can't rely on Session ID.
+              // Fallback to timestamp logic.
+              const now = Date.now();
+              let diff = 0;
+              if (!isNaN(fileTime)) {
+                diff = now - fileTime;
+              }
+              debugLog(
+                `[GnomeRoutines-DEBUG] Both Session IDs are unknown. Checking timestamp diff: ${diff}ms`
+              );
+
+              // If less than 60s, assume restart. If > 60s (or invalid), assume new session.
+              if (!isNaN(fileTime) && diff < 60000) {
+                debugLog(
+                  '[GnomeRoutines-DEBUG] Unknown Session ID but recent lock file. Treating as restart.'
+                );
+                isFresh = false;
+              } else {
+                debugLog(
+                  '[GnomeRoutines-DEBUG] Unknown Session ID and stale/invalid lock file. Treating as NEW session.'
+                );
+                isFresh = true;
+              }
             } else {
               if (sessionId !== 'unknown') {
                 debugLog(
@@ -90,25 +132,8 @@ export class GnomeShellAdapter implements SystemAdapter {
                 );
                 isFresh = true;
               } else {
-                // Fallback if no session ID available (rare)
-                // Check timestamp age
-                const now = Date.now();
-                if (!isNaN(fileTime)) {
-                  const diff = now - fileTime;
-                  debugLog(
-                    `[GnomeRoutines-DEBUG] Time since lock creation: ${diff}ms (No Session ID available)`
-                  );
-                  // If > 5 minutes, assume stale
-                  if (diff > 300000) {
-                    isFresh = true;
-                    debugLog(
-                      '[GnomeRoutines-DEBUG] Stale lock file (>5m). Treating as fresh.'
-                    );
-                  }
-                } else {
-                  // Corrupt content? Overwrite.
-                  isFresh = true;
-                }
+                // Fallback
+                isFresh = true;
               }
             }
           }
@@ -116,8 +141,6 @@ export class GnomeShellAdapter implements SystemAdapter {
           debugLog(
             `[GnomeRoutines-DEBUG] Could not read lock file content: ${readError}`
           );
-          // If we can't read it, assume it's broken and we should take over?
-          // Or failsafe off? Let's take over.
           isFresh = true;
         }
 
@@ -125,7 +148,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           debugLog(
             '[GnomeRoutines-DEBUG] Taking ownership of lock file for new session.'
           );
-          this.writeLockFile(file, sessionId);
+          this.writeLockFile(file, sessionId, sessionType);
           this.isStartupSession = true;
         } else {
           this.isStartupSession = false;
@@ -134,7 +157,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         debugLog(
           '[GnomeRoutines-DEBUG] No startup lock file found. Creating one. This IS a fresh login session.'
         );
-        this.writeLockFile(file, sessionId);
+        this.writeLockFile(file, sessionId, sessionType);
         this.isStartupSession = true;
       }
     } catch (e) {
@@ -142,15 +165,11 @@ export class GnomeShellAdapter implements SystemAdapter {
         '[GnomeRoutines-DEBUG] Failed to check/create startup lock file:',
         e
       );
-      // Fallback: If we can't write, assume we can't track sessions correctly.
-      // But maybe safer to assume FALSE to avoid spamming if file system is readonly?
-      // Or TRUE if we want to ensure it runs at least once?
-      // Defaulting to false to be safe against loops.
       this.isStartupSession = false;
     }
   }
 
-  private writeLockFile(file: any, sessionId: string) {
+  private writeLockFile(file: any, sessionId: string, sessionType: string) {
     try {
       // Overwrite
       const outputStream = file.replace(
@@ -163,6 +182,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const data = JSON.stringify({
         timestamp: new Date().toISOString(),
         sessionId: sessionId,
+        sessionType: sessionType,
       });
       const content = encoder.encode(data);
       outputStream.write_all(content, null);
@@ -987,9 +1007,23 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   executeCommand(command: string): void {
-    debugLog(`[GnomeShellAdapter] Executing command: ${command}`);
+    debugLog(`[GnomeShellAdapter] Executing command (with env): ${command}`);
     try {
-      GLib.spawn_command_line_async(command);
+      const [success, argv] = GLib.shell_parse_argv(
+        `/bin/bash -c "${command}"`
+      );
+      if (!success || !argv) {
+        console.error('[GnomeShellAdapter] Failed to parse command arguments');
+        return;
+      }
+
+      GLib.spawn_async(
+        null, // Working directory (null = inherit)
+        argv,
+        null, // Environment (null = inherit from parent, which is gnome-shell)
+        GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
+        null // Child setup function
+      );
     } catch (e) {
       console.error(
         `[GnomeShellAdapter] Failed to execute command '${command}':`,

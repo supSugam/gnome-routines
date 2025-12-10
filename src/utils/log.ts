@@ -4,8 +4,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 // Set to true for production debugging if needed, or control via setting
-const DEBUG = false;
-const LOG_TO_FILE = false;
+const DEBUG = true;
+const LOG_TO_FILE = true;
 
 let logStream: any = null;
 
@@ -19,7 +19,8 @@ function getLogStream() {
       // Ignore error if exists
     }
 
-    const sessionId = GLib.getenv('XDG_SESSION_ID') || 'unknown';
+    const sessionId =
+      GLib.getenv('XDG_SESSION_ID') || `${new Date().getTime()}`;
     const fileName = `debug-session-${sessionId}.log`;
     const logFile = GLib.build_filenamev([logDir, fileName]);
     const file = Gio.File.new_for_path(logFile);

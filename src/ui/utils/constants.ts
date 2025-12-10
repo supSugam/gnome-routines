@@ -1,6 +1,7 @@
 export const UI_STRINGS = {
   editor: {
     title: 'Edit Routine',
+    titleNew: 'Add Routine',
     save: 'Save',
     cancel: 'Cancel',
     add: 'Add',

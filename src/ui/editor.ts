@@ -29,6 +29,7 @@ export class RoutineEditor {
   private onSave: (routine: any) => void;
   private window: any;
   private settings: any;
+  private isNew: boolean;
 
   constructor(
     settings: any,
@@ -36,6 +37,7 @@ export class RoutineEditor {
     onSave: (routine: any) => void
   ) {
     this.settings = settings;
+    this.isNew = !routine;
     this.routine = routine || {
       id: GLib.uuid_string_random(),
       name: 'New Routine',
@@ -65,7 +67,7 @@ export class RoutineEditor {
 
     // Main Page (Routine List)
     const mainPage = new Adw.NavigationPage({
-      title: UI_STRINGS.editor.title,
+      title: this.isNew ? UI_STRINGS.editor.titleNew : UI_STRINGS.editor.title,
       tag: 'main',
     });
     navView.add(mainPage);
@@ -109,7 +111,7 @@ export class RoutineEditor {
     });
     safetyBtn.add_css_class('flat');
     // @ts-ignore
-    safetyBtn.connect('clicked', () => this.showSafetyPage(navView));
+    safetyBtn.connect('clicked', () => this.showSafetyPage());
     headerBar.pack_end(safetyBtn);
 
     const content = new Adw.PreferencesPage();
@@ -148,21 +150,19 @@ export class RoutineEditor {
     triggerGroup.add(matchTypeRow);
 
     const editTrigger = (trigger: any, isNew: boolean = false) => {
-      const page = new Adw.NavigationPage({
+      const triggerWindow = new Adw.Window({
         title: isNew ? 'Add Condition' : 'Edit Condition',
-        tag: 'edit-trigger',
+        transient_for: this.window,
+        modal: true,
+        default_width: 500,
+        default_height: 500,
       });
 
       const toolbarView = new Adw.ToolbarView();
-      page.child = toolbarView;
+      triggerWindow.content = toolbarView;
 
       const headerBar = new Adw.HeaderBar();
       toolbarView.add_top_bar(headerBar);
-
-      const cancelBtn = new Gtk.Button({ label: UI_STRINGS.editor.cancel });
-      // @ts-ignore
-      cancelBtn.connect('clicked', () => navView.pop_to_tag('main'));
-      headerBar.pack_start(cancelBtn);
 
       const addBtn = new Gtk.Button({
         label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
@@ -264,10 +264,10 @@ export class RoutineEditor {
 
         if (isNew) this.routine.triggers.push(trigger);
         refreshTriggers();
-        navView.pop_to_tag('main');
+        triggerWindow.close();
       });
 
-      navView.push(page);
+      triggerWindow.present();
     };
 
     // Track added rows to remove them cleanly
@@ -339,21 +339,19 @@ export class RoutineEditor {
       isNew: boolean = false,
       customOnSave: ((config: any) => void) | null = null
     ) => {
-      const page = new Adw.NavigationPage({
+      const actionWindow = new Adw.Window({
         title: isNew ? 'Add Action' : 'Edit Action',
-        tag: 'edit-action',
+        transient_for: this.window,
+        modal: true,
+        default_width: 500,
+        default_height: 500,
       });
 
       const toolbarView = new Adw.ToolbarView();
-      page.child = toolbarView;
+      actionWindow.content = toolbarView;
 
       const headerBar = new Adw.HeaderBar();
       toolbarView.add_top_bar(headerBar);
-
-      const cancelBtn = new Gtk.Button({ label: UI_STRINGS.editor.cancel });
-      // @ts-ignore
-      cancelBtn.connect('clicked', () => navView.pop_to_tag('main'));
-      headerBar.pack_start(cancelBtn);
 
       const addBtn = new Gtk.Button({
         label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
@@ -373,7 +371,10 @@ export class RoutineEditor {
       const actionTypes = [
         { id: ActionType.OPEN_APP, title: UI_STRINGS.actions.openApp },
         { id: ActionType.WIFI, title: UI_STRINGS.actions.wifi },
-        { id: ActionType.CONNECT_WIFI, title: UI_STRINGS.actions.connectWifi },
+        {
+          id: ActionType.CONNECT_WIFI,
+          title: UI_STRINGS.actions.connectWifi,
+        },
         { id: ActionType.BLUETOOTH, title: UI_STRINGS.actions.bluetooth },
         {
           id: ActionType.CONNECT_BLUETOOTH,
@@ -410,7 +411,10 @@ export class RoutineEditor {
           id: ActionType.TAKE_SCREENSHOT,
           title: UI_STRINGS.actions.takeScreenshot,
         },
-        { id: ActionType.NOTIFICATION, title: UI_STRINGS.actions.notification },
+        {
+          id: ActionType.NOTIFICATION,
+          title: UI_STRINGS.actions.notification,
+        },
         {
           id: ActionType.CLIPBOARD,
           title: UI_STRINGS.actions.clearClipboard,
@@ -490,10 +494,10 @@ export class RoutineEditor {
           if (isNew) this.routine.actions.push(action);
           refreshActions();
         }
-        navView.pop_to_tag('main');
+        actionWindow.close();
       });
 
-      navView.push(page);
+      actionWindow.present();
     };
 
     // Track added action rows
@@ -676,23 +680,22 @@ export class RoutineEditor {
     this.window.present();
   }
 
-  private showSafetyPage(navView: any) {
-    const page = new Adw.NavigationPage({
+  private showSafetyPage() {
+    const safetyWindow = new Adw.Window({
       title: UI_STRINGS.editor.safety.title,
-      tag: 'safety',
+      transient_for: this.window,
+      modal: true,
+      default_width: 500,
+      default_height: 500,
     });
 
     const toolbarView = new Adw.ToolbarView();
-    page.child = toolbarView;
+    safetyWindow.content = toolbarView;
 
     const headerBar = new Adw.HeaderBar();
     toolbarView.add_top_bar(headerBar);
 
-    // Back Button
-    const backBtn = new Gtk.Button({ label: UI_STRINGS.editor.done }); // Or just standard back button?
-    // Adw.NavigationView handles back button automatically if we push page?
-    // Yes, but let's add a explicit close/back if needed or let system handle it.
-    // NavigationPage should show back button automatically.
+    // No back button needed for Modal Window
 
     const content = new Adw.PreferencesPage();
     toolbarView.content = content;
@@ -806,6 +809,6 @@ export class RoutineEditor {
       });
     }
 
-    navView.push(page);
+    safetyWindow.present();
   }
 }
