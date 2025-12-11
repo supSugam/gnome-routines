@@ -9,7 +9,12 @@
 
 Automate your GNOME desktop with powerful triggers and actions. Create routines to automatically change settings, launch apps, run commands and more based on the conditions you define (if/then).
 
-![GNOME Routines Banner](docs/images/gnome-routines#main-banner.png)
+![GNOME Routines Banner](docs/images/gnome-routines_main-banner.png)
+
+> [!IMPORTANT]
+> **GNOME Routines** is a recently released extension. Please expect some bugs or unexpected behavior.
+>
+> If you encounter issues, I strongly suggest you **disable the extension** and [report the bug here](https://github.com/supSugam/gnome-routines/issues). Contributions and fixes are welcome!
 
 ## Table of Contents
 - [Installation](#installation)
@@ -54,7 +59,7 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 ### Triggers
 *Events that start a routine:*
 
-![Triggers Selection](docs/images/gnome-routines#triggers.png)
+![Triggers Selection](docs/images/gnome-routines_triggers.png)
 
 - **Time**: Specific time, time range, or days of the week.
 - **App Opened**: When one or more specific applications are running.
@@ -94,7 +99,7 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 - View a detailed specific history of routine executions.
 - Identify failures or conflicts with health status indicators.
 
-![Routine History](docs/images/gnome-routines#routine-history.png)
+![Routine History](docs/images/gnome-routines_routine-history.png)
 
 ---
 
@@ -106,7 +111,7 @@ Automatically connect to your headphones when Bluetooth is turned on.
 **Trigger**: Bluetooth turned On
 **Action**: Connect to "Galaxy Buds2 Pro"
 
-![Bluetooth Example](docs/images/gnome-routines#bt-autoconnect.png)
+![Bluetooth Example](docs/images/gnome-routines_bt-autoconnect.png)
 
 ### Sanitize URLs
 Remove tracking parameters from URLs automatically when you copy them.
@@ -114,7 +119,7 @@ Remove tracking parameters from URLs automatically when you copy them.
 **Trigger**: Clipboard Content Changes (Regex Match)
 **Action**: Sanitize URL (Remove `utm_source`, `igsh`, etc.)
 
-![Clipboard Example](docs/images/gnome-routines#sanitize-urls.png)
+![Clipboard Example](docs/images/gnome-routines_sanitize-urls.png)
 
 ### Keyboard Backlit
 Turn on keyboard backlight automatically during night hours.
@@ -122,7 +127,7 @@ Turn on keyboard backlight automatically during night hours.
 **Trigger**: Time 8:00 PM - 6:00 AM
 **Action**: Turn On Keyboard Brightness (50%)
 
-![Keyboard Example](docs/images/gnome-routines#keyboard-backlit.png)
+![Keyboard Example](docs/images/gnome-routines_keyboard-backlit.png)
 
 ---
 
