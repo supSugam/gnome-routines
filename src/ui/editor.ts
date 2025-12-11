@@ -52,8 +52,9 @@ export class RoutineEditor {
     const winConfig: any = {
       title: this.routine.name,
       modal: true,
-      default_width: 600,
-      default_height: 500,
+      width_request: 600,
+      height_request: 540,
+      destroy_with_parent: true,
     };
     if (parentWindow) {
       winConfig.transient_for = parentWindow;
@@ -154,8 +155,9 @@ export class RoutineEditor {
         title: isNew ? 'Add Condition' : 'Edit Condition',
         transient_for: this.window,
         modal: true,
-        default_width: 500,
-        default_height: 500,
+        width_request: 540,
+        height_request: 480,
+        destroy_with_parent: true,
       });
 
       const toolbarView = new Adw.ToolbarView();
@@ -343,8 +345,9 @@ export class RoutineEditor {
         title: isNew ? 'Add Action' : 'Edit Action',
         transient_for: this.window,
         modal: true,
-        default_width: 500,
-        default_height: 500,
+        width_request: 540,
+        height_request: 480,
+        destroy_with_parent: true,
       });
 
       const toolbarView = new Adw.ToolbarView();
@@ -685,8 +688,9 @@ export class RoutineEditor {
       title: UI_STRINGS.editor.safety.title,
       transient_for: this.window,
       modal: true,
-      default_width: 500,
-      default_height: 500,
+      width_request: 540,
+      height_request: 480,
+      destroy_with_parent: true,
     });
 
     const toolbarView = new Adw.ToolbarView();

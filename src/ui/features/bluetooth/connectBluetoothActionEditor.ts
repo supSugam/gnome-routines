@@ -134,6 +134,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
 
   private renderDeviceList(row: any, objects: any, isPowered: boolean) {
     const devices: { alias: string; address: string }[] = [];
+    const checkboxes: Map<string, any> = new Map();
 
     const unpack = (val: any) => {
       if (val instanceof GLib.Variant) return val.deep_unpack();
@@ -174,14 +175,31 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
           active: this.config.deviceId === dev.address,
           valign: Gtk.Align.CENTER,
         });
+
+        checkboxes.set(dev.address, check);
+
         // @ts-ignore
         check.connect('toggled', () => {
           if (check.active) {
+            // Uncheck others
+            for (const [addr, btn] of checkboxes.entries()) {
+              if (addr !== dev.address) {
+                btn.active = false;
+              }
+            }
+
             this.config.deviceId = dev.address;
             this.config.action = 'connect';
             row.subtitle = dev.alias;
-            this.onChange();
+          } else {
+            // If we are unchecking the CURRENTLY selected device, clear it
+            if (this.config.deviceId === dev.address) {
+              this.config.deviceId = null;
+              this.config.action = null;
+              row.subtitle = 'No device selected';
+            }
           }
+          this.onChange();
         });
         devRow.add_suffix(check);
         row.add_row(devRow);

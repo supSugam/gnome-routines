@@ -4,8 +4,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
 // Set to true for production debugging if needed, or control via setting
-const DEBUG = true;
-const LOG_TO_FILE = true;
+const DEBUG = false;
+const LOG_TO_FILE = false;
 
 let logStream: any = null;
 
