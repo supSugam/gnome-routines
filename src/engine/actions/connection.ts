@@ -191,7 +191,9 @@ export class BluetoothDeviceAction extends BaseAction {
     if (this.config.action === 'connect') {
       this.adapter.connectBluetoothDevice(this.config.deviceId);
     } else {
-      this.adapter.disconnectBluetoothDevice(this.config.deviceId);
+      this.adapter
+        .disconnectBluetoothDevice(this.config.deviceId)
+        .catch((e) => console.error(e));
     }
   }
 
@@ -205,9 +207,13 @@ export class BluetoothDeviceAction extends BaseAction {
     }
 
     if (this.config.action === 'connect') {
-      this.adapter.disconnectBluetoothDevice(this.config.deviceId);
+      this.adapter
+        .disconnectBluetoothDevice(this.config.deviceId)
+        .catch((e) => console.error(e));
     } else {
-      this.adapter.connectBluetoothDevice(this.config.deviceId);
+      this.adapter
+        .connectBluetoothDevice(this.config.deviceId)
+        .catch((e) => console.error(e));
     }
   }
 }

@@ -55,23 +55,23 @@ export interface SystemAdapter {
     callback: (level: number, isCharging: boolean) => void
   ): void;
 
-  getPowerSaverState(): boolean;
+  getPowerSaverState(): Promise<boolean>;
   onPowerSaverStateChanged(callback: (isActive: boolean) => void): void;
 
   // System Settings
   getDarkModeState(): boolean;
   onDarkModeStateChanged(callback: (isDark: boolean) => void): void;
 
-  getAirplaneModeState(): boolean;
+  getAirplaneModeState(): Promise<boolean>;
   onAirplaneModeStateChanged(callback: (isEnabled: boolean) => void): void;
 
   // Audio
-  getWiredHeadphonesState(): boolean;
+  getWiredHeadphonesState(): Promise<boolean>;
   onWiredHeadphonesStateChanged(callback: (isConnected: boolean) => void): void;
 
   // New Actions - Connections
   connectBluetoothDevice(id: string): Promise<void>;
-  disconnectBluetoothDevice(id: string): void;
+  disconnectBluetoothDevice(id: string): Promise<void>;
   setAirplaneMode(enabled: boolean): void;
 
   // New Actions - Display
@@ -82,13 +82,13 @@ export interface SystemAdapter {
   setScreenTimeout(seconds: number): void;
   getScreenTimeout(): number;
   setScreenOrientation(orientation: 'portrait' | 'landscape'): void;
-  setRefreshRate(rate: number): void;
-  getRefreshRate(): number;
-  getAvailableRefreshRates(): number[];
+  setRefreshRate(rate: number): Promise<void>;
+  getRefreshRate(): Promise<number>;
+  getAvailableRefreshRates(): Promise<number[]>;
 
   // New Actions - Power
   setPowerSaver(enabled: boolean): void;
-  getPowerSaver(): boolean;
+  getPowerSaver(): Promise<boolean>;
 
   // New Actions - Functions
   openLink(url: string): void;

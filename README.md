@@ -9,7 +9,7 @@
 
 Automate your GNOME desktop with powerful triggers and actions. Create routines to automatically change settings, launch apps, run commands and more based on the conditions you define (if/then).
 
-![GNOME Routines Banner](docs/images/gnome-routines_main-banner.png)
+![GNOME Routines Banner](docs/images/small/gnome-routines_main-banner.png)
 
 > [!IMPORTANT]
 > **GNOME Routines** is a recently released extension. Please expect some bugs or unexpected behavior.
@@ -59,7 +59,7 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 ### Triggers
 *Events that start a routine:*
 
-![Triggers Selection](docs/images/gnome-routines_triggers.png)
+![Triggers Selection](docs/images/small/gnome-routines_triggers.png)
 
 - **Time**: Specific time, time range, or days of the week.
 - **App Opened**: When one or more specific applications are running.

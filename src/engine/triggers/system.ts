@@ -17,16 +17,16 @@ export class SystemTrigger extends BaseTrigger {
 
     switch (this.config.type) {
       case TriggerType.POWER_SAVER:
-        currentState = this.adapter.getPowerSaverState();
+        currentState = await this.adapter.getPowerSaverState();
         break;
       case TriggerType.DARK_MODE:
         currentState = this.adapter.getDarkModeState();
         break;
       case TriggerType.AIRPLANE_MODE:
-        currentState = this.adapter.getAirplaneModeState();
+        currentState = await this.adapter.getAirplaneModeState();
         break;
       case TriggerType.HEADPHONES:
-        currentState = this.adapter.getWiredHeadphonesState();
+        currentState = await this.adapter.getWiredHeadphonesState();
         break;
     }
 

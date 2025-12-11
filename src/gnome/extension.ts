@@ -9,11 +9,13 @@ import { GSettingsStorageAdapter } from './adapters/gsettingsStorage.js';
 
 import debugLog from '../utils/log.js';
 
+import RoutineQuickSettingsItem from './ui/quickSettings.js';
 
 export default class GnomeRoutinesExt extends Extension {
   private manager: RoutineManager | null = null;
   private adapter: GnomeShellAdapter | null = null;
   private settingsChangedId: number | null = null;
+  private quickSettingsItem: any = null;
 
   enable() {
     debugLog('[GnomeRoutines] Enabling extension version 1.');
@@ -32,10 +34,22 @@ export default class GnomeRoutinesExt extends Extension {
         this.manager.reload();
       }
     });
+
+    // Add Quick Settings Item
+    this.quickSettingsItem = new RoutineQuickSettingsItem(this);
+    Main.panel.statusArea.quickSettings.addExternalIndicator(
+      this.quickSettingsItem
+    );
   }
 
   disable() {
     debugLog('Disabling Gnome Routines');
+
+    // Remove Quick Settings Item
+    if (this.quickSettingsItem) {
+      this.quickSettingsItem.destroy();
+      this.quickSettingsItem = null;
+    }
 
     // Disconnect settings watcher
     if (this.settingsChangedId !== null) {
@@ -44,10 +58,14 @@ export default class GnomeRoutinesExt extends Extension {
       this.settingsChangedId = null;
     }
 
+    if (this.manager) {
+      this.manager.destroy();
+      this.manager = null;
+    }
+
     if (this.adapter) {
       this.adapter.destroy();
       this.adapter = null;
     }
-    this.manager = null;
   }
 }

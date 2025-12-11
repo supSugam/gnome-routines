@@ -591,6 +591,26 @@ export class RoutineManager implements RoutineManagerInterface {
     }
   }
 
+  destroy(): void {
+    debugLog('[RoutineManager] Destroying manager...');
+    this.routines.forEach((routine) => {
+      try {
+        this.deactivateTriggers(routine);
+        if (routine.isActive) {
+          // We should probably NOT execute revert actions on disable,
+          // as that might be unexpected when just turning off the extension.
+          // We just stop tracking.
+          routine.isActive = false;
+        }
+      } catch (e) {
+        console.error('Error destroying routine', e);
+      }
+    });
+    this.routines.clear();
+    this.routineStates.clear();
+    debugLog('[RoutineManager] Manager destroyed.');
+  }
+
   private async save(): Promise<void> {
     const list = Array.from(this.routines.values());
     await this.storage.saveRoutines(list);
