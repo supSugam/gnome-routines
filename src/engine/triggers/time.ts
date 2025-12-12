@@ -22,7 +22,7 @@ export class TimeTrigger extends BaseTrigger {
       // GLib (1-7, Mon-Sun) -> JS (0-6, Sun-Sat)
       const jsDay = currentDay === 7 ? 0 : currentDay;
       if (!this.config.days.includes(jsDay)) {
-        this._lastState = false;
+        // this._lastState = false; // Removed side effect, handled in loop
         return false;
       }
     }
@@ -74,8 +74,18 @@ export class TimeTrigger extends BaseTrigger {
     this.intervalId = GLib.timeout_add_seconds(
       GLib.PRIORITY_DEFAULT,
       60,
-      () => {
-        this.emit('triggered');
+      async () => {
+        const isActive = await this.check();
+
+        // Only emit if state changed
+        if (isActive !== this._lastState) {
+          debugLog(
+            `[TimeTrigger] State changed for ${this.id}: ${this._lastState} -> ${isActive}`
+          );
+          this._lastState = isActive;
+          this.emit('triggered');
+        }
+
         return true; // Continue
       }
     );

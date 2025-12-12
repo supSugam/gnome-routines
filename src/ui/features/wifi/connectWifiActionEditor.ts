@@ -44,35 +44,45 @@ export class ConnectWifiActionEditor extends BaseEditor {
         title: 'No saved networks found',
       });
       row.add_row(noNetRow);
-    } else {
-      availableNetworks.forEach((ssid) => {
-        const netRow = new Adw.ActionRow({ title: ssid });
-        const check = new Gtk.CheckButton({
-          active: this.config.ssid === ssid,
-          valign: Gtk.Align.CENTER,
-          group: null // Radio behavior manually managed or use group?
-        });
-        // For radio behavior with CheckButtons in Gtk4, we usually use a group.
-        // But here we are iterating.
-        // Let's just handle it manually for simplicity or use a proper group if possible.
-        // Actually, Gtk.CheckButton.new_with_label is deprecated? No.
-        // To make them radio, we need to pass the group of the first one.
-        
-        // @ts-ignore
-        check.connect('toggled', () => {
-          if (check.active) {
-            this.config.ssid = ssid;
-            row.subtitle = ssid;
-            this.onChange();
-            // We need to uncheck others? 
-            // If we don't use a group, we have to do it manually.
-            // But let's assume the user picks one.
-          }
-        });
-        netRow.add_suffix(check);
-        row.add_row(netRow);
-      });
+      return;
     }
+
+    const checkboxes: Map<string, any> = new Map();
+
+    availableNetworks.forEach((ssid) => {
+      const netRow = new Adw.ActionRow({ title: ssid });
+      const check = new Gtk.CheckButton({
+        active: this.config.ssid === ssid,
+        valign: Gtk.Align.CENTER,
+      });
+
+      checkboxes.set(ssid, check);
+
+      // @ts-ignore
+      check.connect('toggled', () => {
+        if (check.active) {
+          // Uncheck others
+          for (const [s, btn] of checkboxes.entries()) {
+            if (s !== ssid) {
+              btn.active = false;
+            }
+          }
+
+          this.config.ssid = ssid;
+          row.subtitle = ssid;
+        } else {
+          // If unchecking current, clear it
+          if (this.config.ssid === ssid) {
+            this.config.ssid = null;
+            row.subtitle = 'No network selected';
+          }
+        }
+        this.onChange();
+      });
+
+      netRow.add_suffix(check);
+      row.add_row(netRow);
+    });
   }
 
   validate(): boolean | string {
