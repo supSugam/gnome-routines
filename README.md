@@ -99,7 +99,7 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 - View a detailed specific history of routine executions.
 - Identify failures or conflicts with health status indicators.
 
-![Routine History](docs/images/gnome-routines_routine-history.png)
+![Routine History](docs/images/small/gnome-routines_routine-history.png)
 
 ---
 
@@ -111,7 +111,7 @@ Automatically connect to your headphones when Bluetooth is turned on.
 **Trigger**: Bluetooth turned On
 **Action**: Connect to "Galaxy Buds2 Pro"
 
-![Bluetooth Example](docs/images/gnome-routines_bt-autoconnect.png)
+![Bluetooth Example](docs/images/small/gnome-routines_bt-autoconnect.png)
 
 ### Sanitize URLs
 Remove tracking parameters from URLs automatically when you copy them.
@@ -119,7 +119,7 @@ Remove tracking parameters from URLs automatically when you copy them.
 **Trigger**: Clipboard Content Changes (Regex Match)
 **Action**: Sanitize URL (Remove `utm_source`, `igsh`, etc.)
 
-![Clipboard Example](docs/images/gnome-routines_sanitize-urls.png)
+![Clipboard Example](docs/images/small/gnome-routines_sanitize-urls.png)
 
 ### Keyboard Backlit
 Turn on keyboard backlight automatically during night hours.
@@ -127,7 +127,7 @@ Turn on keyboard backlight automatically during night hours.
 **Trigger**: Time 8:00 PM - 6:00 AM
 **Action**: Turn On Keyboard Brightness (50%)
 
-![Keyboard Example](docs/images/gnome-routines_keyboard-backlit.png)
+![Keyboard Example](docs/images/small/gnome-routines_keyboard-backlit.png)
 
 ---
 

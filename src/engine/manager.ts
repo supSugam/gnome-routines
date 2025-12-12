@@ -615,4 +615,14 @@ export class RoutineManager implements RoutineManagerInterface {
     const list = Array.from(this.routines.values());
     await this.storage.saveRoutines(list);
   }
+
+  getEnabledRoutineCount(): number {
+    let count = 0;
+    for (const routine of this.routines.values()) {
+      if (routine.enabled) {
+        count++;
+      }
+    }
+    return count;
+  }
 }

@@ -19,6 +19,8 @@ import debugLog from '../utils/log.js';
 
 export default class GnomeRoutinesPreferences extends ExtensionPreferences {
   fillPreferencesWindow(window: any) {
+    window.set_default_size(800, 600);
+    window.set_size_request(600, 500); // Enforce minimum size to prevent layout glitches
     const settings = this.getSettings();
 
     const page = new Adw.PreferencesPage();

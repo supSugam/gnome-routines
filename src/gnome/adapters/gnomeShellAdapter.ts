@@ -204,7 +204,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   showNotification(title: string, body: string): void {
     this.notificationSource = new MessageTray.Source(
       'Gnome Routines',
-      'system-run-symbolic'
+      'view-list-bullet-symbolic'
     );
     Main.messageTray.add(this.notificationSource);
     const notification = new MessageTray.Notification(

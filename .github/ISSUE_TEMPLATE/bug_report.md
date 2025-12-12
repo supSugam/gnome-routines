@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us fix the issue you're experiencing
 title: ''
 labels: bug
 assignees: ''
@@ -23,7 +23,7 @@ Description of what you thought would happen.
 If you have screenshots, please add them here.
 
 **System Information**
- - OS (e.g. Fedora, Ubuntu): 
+ - Distribution (e.g. Fedora, Ubuntu): 
  - GNOME Version (if known): 
  - Extension Version: 
 

@@ -28,19 +28,22 @@ async function build() {
     console.log('Build complete.');
 
     // Fix export for GJS
-    const extensionJsPath = path.join('dist', 'extension.js');
-    let content = fs.readFileSync(extensionJsPath, 'utf8');
+    ['extension.js', 'prefs.js'].forEach((file) => {
+      const filePath = path.join('dist', file);
+      if (!fs.existsSync(filePath)) return;
 
-    // Replace "export { GnomeRoutinesExt as default };" or similar with "export default GnomeRoutinesExt;"
-    // We use a broader regex to catch var declarations if esbuild separates them
-    if (content.includes('export {') && content.includes('as default')) {
-      content = content.replace(
-        /export\s*{\s*([A-Za-z0-9_]+)\s+as\s+default\s*};?/g,
-        'export default $1;'
-      );
-    }
+      let content = fs.readFileSync(filePath, 'utf8');
 
-    fs.writeFileSync(extensionJsPath, content);
+      // Replace "export { GnomeRoutinesExt as default };" or similar with "export default GnomeRoutinesExt;"
+      // We use a broader regex to catch var declarations if esbuild separates them
+      if (content.includes('export {') && content.includes('as default')) {
+        content = content.replace(
+          /export\s*{\s*([A-Za-z0-9_]+)\s+as\s+default\s*};?/g,
+          'export default $1;'
+        );
+        fs.writeFileSync(filePath, content);
+      }
+    });
 
     // Copy metadata.json to dist
     fs.copyFileSync('metadata.json', 'dist/metadata.json');
