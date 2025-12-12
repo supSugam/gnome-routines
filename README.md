@@ -21,9 +21,9 @@ Automate your GNOME desktop with powerful triggers and actions. Create routines 
 - [Features](#features)
   - [Triggers](#triggers)
   - [Actions](#actions)
-  - [Safety & History](#safety--history)
 - [Gallery & Examples](#gallery--examples)
 - [Tutorial: Creating Your First Routine](#tutorial-creating-your-first-routine)
+- [Safety & History](#safety--history)
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
@@ -93,19 +93,19 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
   - **Take Screenshot**.
   - **Manage Clipboard** (Clear or Sanitize URLs).
 
-### Safety & History
-*Keep track of your automations:*
-
-- View a detailed specific history of routine executions.
-- Identify failures or conflicts with health status indicators.
-
-![Routine History](docs/images/small/gnome-routines_routine-history.png)
-
 ---
 
 ## Gallery & Examples
 
-### Bluetooth Auto-Connect
+### Routine#1: Keyboard Backlit
+Turn on keyboard backlight automatically during night hours.
+
+**Trigger**: Time 8:00 PM - 6:00 AM
+**Action**: Turn On Keyboard Brightness (50%)
+
+![Keyboard Example](docs/images/small/gnome-routines_keyboard-backlit.png)
+
+### Routine#2: Bluetooth Auto-Connect
 Automatically connect to your headphones when Bluetooth is turned on.
 
 **Trigger**: Bluetooth turned On
@@ -113,21 +113,13 @@ Automatically connect to your headphones when Bluetooth is turned on.
 
 ![Bluetooth Example](docs/images/small/gnome-routines_bt-autoconnect.png)
 
-### Sanitize URLs
+### Routine#3: Sanitize URLs
 Remove tracking parameters from URLs automatically when you copy them.
 
 **Trigger**: Clipboard Content Changes (Regex Match)
 **Action**: Sanitize URL (Remove `utm_source`, `igsh`, etc.)
 
 ![Clipboard Example](docs/images/small/gnome-routines_sanitize-urls.png)
-
-### Keyboard Backlit
-Turn on keyboard backlight automatically during night hours.
-
-**Trigger**: Time 8:00 PM - 6:00 AM
-**Action**: Turn On Keyboard Brightness (50%)
-
-![Keyboard Example](docs/images/small/gnome-routines_keyboard-backlit.png)
 
 ---
 
@@ -149,6 +141,14 @@ Let's create a simple routine to **Turn on Night Light when Dark Mode is enabled
 6. **Save**: Click the **"Save"** button at the top right.
 
 That's it! Toggle Dark Mode from your Quick Settings panel, and watch Night Light turn on automatically.
+
+### Safety & History
+*Keep track of your automations:*
+
+- View a detailed specific history of routine executions.
+- Identify failures or conflicts with health status indicators.
+
+![Routine History](docs/images/small/gnome-routines_routine-history.png)
 
 ---
 
