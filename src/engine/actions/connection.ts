@@ -1,3 +1,5 @@
+// @ts-ignore
+import GLib from 'gi://GLib';
 import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
@@ -5,8 +7,6 @@ import { ActionType } from '../types.js';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
-    // @ts-ignore
-    const GLib = imports.gi.GLib;
     GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
       resolve(null);
       return GLib.SOURCE_REMOVE;

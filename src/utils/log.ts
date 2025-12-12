@@ -37,7 +37,7 @@ function getLogStream() {
 export default function debugLog(message: string, ...args: any[]) {
   // Always log ERRORs or critical info marked with [GnomeRoutines-DEBUG] regardless of DEBUG flag?
   // For now stick to DEBUG constant.
-  if (!DEBUG && !message.includes('[GnomeRoutines-DEBUG]')) return;
+  if (!DEBUG) return;
 
   const d = new Date();
   const timestamp = d.toISOString();

@@ -1,3 +1,5 @@
+// @ts-ignore
+import GLib from 'gi://GLib';
 import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
@@ -16,9 +18,6 @@ export class VolumeAction extends BaseAction {
     try {
       this.previousVolume = await this.adapter.getVolume();
       debugLog(`[VolumeAction] Initial volume: ${this.previousVolume}%`);
-
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
 
       let attempts = 0;
       let stableCount = 0;

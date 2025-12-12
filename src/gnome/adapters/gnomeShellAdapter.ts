@@ -25,150 +25,19 @@ export class GnomeShellAdapter implements SystemAdapter {
   private appListenerId: number = 0;
   private initTimestamp: number;
   private isStartupSession: boolean = false;
+  private _cachedStartupState: {
+    isStartup: boolean;
+    timeSinceInit: number;
+    timestamp: number;
+    sessionId: string;
+    sessionType: string;
+  } | null = null;
+  private _startupStateChecked: boolean = false;
 
   constructor() {
     this.appSystem = Shell.AppSystem.get_default();
     this.initTimestamp = Date.now();
-    this.checkStartupState();
-  }
-
-  private checkStartupState() {
-    try {
-      const runtimeDir = GLib.get_user_runtime_dir();
-      debugLog(
-        `[GnomeRoutines-DEBUG] Checking startup state in: ${runtimeDir}`
-      );
-      const lockFilePath = GLib.build_filenamev([
-        runtimeDir,
-        'gnome-routines-startup.lock',
-      ]);
-      const file = Gio.File.new_for_path(lockFilePath);
-
-      const sessionId = GLib.getenv('XDG_SESSION_ID') || 'unknown';
-      const sessionType = GLib.getenv('XDG_SESSION_TYPE') || 'unknown';
-      debugLog(
-        `[GnomeRoutines-DEBUG] Current XDG_SESSION_ID: ${sessionId}, TYPE: ${sessionType}`
-      );
-
-      if (file.query_exists(null)) {
-        debugLog(
-          '[GnomeRoutines-DEBUG] Startup lock file exists. Checking validity...'
-        );
-
-        let isFresh = false;
-        try {
-          const [success, contents] = file.load_contents(null);
-          if (success) {
-            const decoder = new TextDecoder();
-            const contentStr = decoder.decode(contents).trim();
-            debugLog(`[GnomeRoutines-DEBUG] Lock file content: ${contentStr}`);
-
-            let storedSessionId = '';
-            let storedSessionType = '';
-            let fileTime = NaN;
-
-            // Try to parse as JSON first
-            try {
-              const json = JSON.parse(contentStr);
-              if (json.sessionId) storedSessionId = json.sessionId;
-              if (json.sessionType) storedSessionType = json.sessionType;
-              if (json.timestamp) fileTime = Date.parse(json.timestamp);
-            } catch (jsonErr) {
-              // Fallback to legacy date string
-              fileTime = Date.parse(contentStr);
-            }
-
-            const bothUnknown =
-              storedSessionId === 'unknown' && sessionId === 'unknown';
-
-            // Check if Session Type Changed (e.g. Wayland -> X11)
-            // If type changed, it MUST be a new session.
-            const typeChanged =
-              storedSessionType &&
-              sessionType &&
-              storedSessionType !== sessionType;
-
-            if (typeChanged) {
-              debugLog(
-                `[GnomeRoutines-DEBUG] Session Type MISMATCH (${storedSessionType} vs ${sessionType}). Treating as NEW session.`
-              );
-              isFresh = true;
-            } else if (
-              storedSessionId &&
-              storedSessionId === sessionId &&
-              !bothUnknown
-            ) {
-              // ... existing ID match logic ...
-              debugLog(
-                '[GnomeRoutines-DEBUG] Session ID MATCHES. This is the same session re-initializing (e.g. shell restart).'
-              );
-              isFresh = false;
-            } else if (bothUnknown) {
-              // Both are unknown. We can't rely on Session ID.
-              // Fallback to timestamp logic.
-              const now = Date.now();
-              let diff = 0;
-              if (!isNaN(fileTime)) {
-                diff = now - fileTime;
-              }
-              debugLog(
-                `[GnomeRoutines-DEBUG] Both Session IDs are unknown. Checking timestamp diff: ${diff}ms`
-              );
-
-              // If less than 60s, assume restart. If > 60s (or invalid), assume new session.
-              if (!isNaN(fileTime) && diff < 60000) {
-                debugLog(
-                  '[GnomeRoutines-DEBUG] Unknown Session ID but recent lock file. Treating as restart.'
-                );
-                isFresh = false;
-              } else {
-                debugLog(
-                  '[GnomeRoutines-DEBUG] Unknown Session ID and stale/invalid lock file. Treating as NEW session.'
-                );
-                isFresh = true;
-              }
-            } else {
-              if (sessionId !== 'unknown') {
-                debugLog(
-                  `[GnomeRoutines-DEBUG] Session ID MISMATCH (${storedSessionId} vs ${sessionId}). Treating as NEW session (Stale lock file).`
-                );
-                isFresh = true;
-              } else {
-                // Fallback
-                isFresh = true;
-              }
-            }
-          }
-        } catch (readError) {
-          debugLog(
-            `[GnomeRoutines-DEBUG] Could not read lock file content: ${readError}`
-          );
-          isFresh = true;
-        }
-
-        if (isFresh) {
-          debugLog(
-            '[GnomeRoutines-DEBUG] Taking ownership of lock file for new session.'
-          );
-          this.writeLockFile(file, sessionId, sessionType);
-          this.isStartupSession = true;
-        } else {
-          this.isStartupSession = false;
-        }
-      } else {
-        debugLog(
-          '[GnomeRoutines-DEBUG] No startup lock file found. Creating one. This IS a fresh login session.'
-        );
-        this.writeLockFile(file, sessionId, sessionType);
-        this.isStartupSession = true;
-      }
-    } catch (e) {
-      console.error(
-        '[GnomeRoutines-DEBUG] Failed to check/create startup lock file:',
-        e
-      );
-      this.isStartupSession = false;
-    }
+    // The startup state check is now lazy-loaded via getStartupState()
   }
 
   private writeLockFile(file: any, sessionId: string, sessionType: string) {
@@ -195,10 +64,179 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   getStartupState(): { isStartup: boolean; timeSinceInit: number } {
-    return {
-      isStartup: this.isStartupSession,
-      timeSinceInit: Date.now() - this.initTimestamp,
-    };
+    if (this._startupStateChecked && this._cachedStartupState) {
+      // Recalculate timeSinceInit dynamic part
+      return {
+        isStartup: this._cachedStartupState.isStartup,
+        timeSinceInit: Date.now() - this._cachedStartupState.timestamp,
+      };
+    }
+
+    // If we've checked before and found no valid lock file, it's a startup.
+    // This handles cases where the lock file might be unreadable or invalid.
+    if (this._startupStateChecked && !this._cachedStartupState) {
+      return {
+        isStartup: true,
+        timeSinceInit: Date.now() - this.initTimestamp,
+      };
+    }
+
+    // Default assumption
+    let isFresh = true;
+    let fileTimestamp = this.initTimestamp; // Used if we need to fake it
+
+    try {
+      const runtimeDir = GLib.get_user_runtime_dir();
+      debugLog(
+        `[GnomeRoutines-DEBUG] Checking startup state in: ${runtimeDir}`
+      );
+      const lockFilePath = GLib.build_filenamev([
+        runtimeDir,
+        'gnome-routines-startup.lock',
+      ]);
+      const file = Gio.File.new_for_path(lockFilePath);
+
+      const sessionId = GLib.getenv('XDG_SESSION_ID') || 'unknown';
+      const sessionType = GLib.getenv('XDG_SESSION_TYPE') || 'unknown';
+      debugLog(
+        `[GnomeRoutines-DEBUG] Current XDG_SESSION_ID: ${sessionId}, TYPE: ${sessionType}`
+      );
+
+      this._startupStateChecked = true;
+
+      if (file.query_exists(null)) {
+        debugLog(
+          '[GnomeRoutines-DEBUG] Startup lock file exists. Checking validity...'
+        );
+
+        try {
+          const [success, contents] = file.load_contents(null);
+          if (success) {
+            const decoder = new TextDecoder();
+            const contentStr = decoder.decode(contents).trim();
+            debugLog(`[GnomeRoutines-DEBUG] Lock file content: ${contentStr}`);
+
+            let storedSessionId = '';
+            let storedSessionType = '';
+            let storedFileTime = NaN;
+
+            // Try to parse as JSON first
+            try {
+              const json = JSON.parse(contentStr);
+              if (json.sessionId) storedSessionId = json.sessionId;
+              if (json.sessionType) storedSessionType = json.sessionType;
+              if (json.timestamp) storedFileTime = Date.parse(json.timestamp);
+            } catch (jsonErr) {
+              // Fallback to legacy date string
+              storedFileTime = Date.parse(contentStr);
+            }
+
+            const bothUnknown =
+              storedSessionId === 'unknown' && sessionId === 'unknown';
+
+            // Check if Session Type Changed (e.g. Wayland -> X11)
+            const typeChanged =
+              storedSessionType &&
+              sessionType &&
+              storedSessionType !== sessionType;
+
+            if (typeChanged) {
+              debugLog(
+                `[GnomeRoutines-DEBUG] Session Type MISMATCH (${storedSessionType} vs ${sessionType}). Treating as NEW session.`
+              );
+              isFresh = true;
+            } else if (
+              storedSessionId &&
+              storedSessionId === sessionId &&
+              !bothUnknown
+            ) {
+              debugLog(
+                '[GnomeRoutines-DEBUG] Session ID MATCHES. This is the same session re-initializing (e.g. shell restart).'
+              );
+              isFresh = false;
+            } else if (bothUnknown) {
+              // Check timestamp diff
+              const now = Date.now();
+              let diff = 0;
+              if (!isNaN(storedFileTime)) {
+                diff = now - storedFileTime;
+              }
+              debugLog(
+                `[GnomeRoutines-DEBUG] Both Session IDs are unknown. Checking timestamp diff: ${diff}ms`
+              );
+
+              if (!isNaN(storedFileTime) && diff < 60000) {
+                isFresh = false;
+              } else {
+                isFresh = true;
+              }
+            } else {
+              isFresh = true;
+            }
+
+            // If NOT fresh (restart), we need strict start time
+            // Use stored time
+            if (!isFresh && !isNaN(storedFileTime)) {
+              fileTimestamp = storedFileTime;
+            }
+          }
+        } catch (readError) {
+          debugLog(
+            `[GnomeRoutines-DEBUG] Could not read lock file content: ${readError}`
+          );
+          isFresh = true;
+        }
+      } else {
+        isFresh = true;
+      }
+
+      // Update state
+      if (isFresh) {
+        // New Session -> Write new lock file
+        this.writeLockFile(file, sessionId, sessionType);
+        // And cached state is basically "Startup Just Happened"
+        // We can't really cache "true" forever, because 5 mins later it shouldn't be true?
+        // Wait, getStartupState returns isStartup=true ONCE?
+        // No, isStartup means "Was this extension load triggered by a fresh session start?"
+        // Yes. It remains true for the extension lifecycle if it was a fresh start.
+        // BUT RoutineManager needs "timeSinceInit".
+        // If isFresh, timeSinceInit should be small.
+        // If we cache "timestamp = Now", then timeSinceInit grows.
+        this._cachedStartupState = {
+          isStartup: true,
+          timeSinceInit: 0,
+          timestamp: Date.now(), // Baseline
+          sessionId: sessionId,
+          sessionType: sessionType,
+        };
+      } else {
+        // Restart -> Preserve old timestamp
+        this._cachedStartupState = {
+          isStartup: false,
+          timeSinceInit: Date.now() - fileTimestamp, // Diff
+          timestamp: fileTimestamp,
+          sessionId: sessionId,
+          sessionType: sessionType,
+        };
+      }
+    } catch (e) {
+      console.error(
+        '[GnomeRoutines-DEBUG] Failed to check/create startup lock file:',
+        e
+      );
+      // Fallback
+      isFresh = true;
+    }
+
+    // Return from cache (populated above)
+    if (this._cachedStartupState) {
+      return {
+        isStartup: this._cachedStartupState.isStartup,
+        timeSinceInit: Date.now() - this._cachedStartupState.timestamp,
+      };
+    }
+
+    return { isStartup: true, timeSinceInit: 0 };
   }
 
   showNotification(title: string, body: string): void {

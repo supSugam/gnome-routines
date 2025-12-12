@@ -1,3 +1,5 @@
+// @ts-ignore
+import Shell from 'gi://Shell';
 import debugLog from '../../utils/log.js';
 import { TriggerType } from '../types.js';
 import { BaseTrigger } from './base.js';
@@ -15,8 +17,6 @@ export class AppTrigger extends BaseTrigger {
   }
 
   activate(): void {
-    // @ts-ignore
-    const Shell = imports.gi.Shell;
     this._appSystem = Shell.AppSystem.get_default();
 
     // Listen for app state changes (started/stopped)
@@ -44,8 +44,6 @@ export class AppTrigger extends BaseTrigger {
   private _lastMatch: boolean | null = null;
 
   check(): boolean {
-    // @ts-ignore
-    const Shell = imports.gi.Shell;
     const runningApps = this._appSystem.get_running();
 
     debugLog(

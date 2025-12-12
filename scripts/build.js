@@ -24,6 +24,11 @@ async function build() {
     await ctx.watch();
     console.log('Watching for changes...');
   } else {
+    // Clean dist directory
+    if (fs.existsSync('dist')) {
+      fs.rmSync('dist', { recursive: true, force: true });
+    }
+
     await esbuild.build(buildOptions);
     console.log('Build complete.');
 

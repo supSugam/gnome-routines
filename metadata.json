@@ -2,7 +2,7 @@
   "name": "Gnome Routines",
   "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more.",
   "uuid": "gnome-routines@supSugam.com",
-  "shell-version": ["46", "47", "48", "49"],
+  "shell-version": ["46", "47"],
   "url": "https://github.com/supSugam/gnome-routines",
   "settings-schema": "org.gnome.shell.extensions.gnome-routines",
   "version": 1,

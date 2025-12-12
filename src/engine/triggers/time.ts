@@ -1,4 +1,6 @@
 import debugLog from '../../utils/log.js';
+// @ts-ignore
+import GLib from 'gi://GLib';
 import { BaseTrigger } from './base.js';
 import { TimeTriggerConfig, TriggerType, TriggerStrategy } from '../types.js';
 
@@ -9,21 +11,23 @@ export class TimeTrigger extends BaseTrigger {
     super(id, TriggerType.TIME, config, TriggerStrategy.STATE_PERSISTENT);
   }
 
-  check(): boolean {
-    const now = new Date();
+  async check(): Promise<boolean> {
+    const now = GLib.DateTime.new_now_local();
+    const currentHour = now.get_hour(); // 0-23
+    const currentMinute = now.get_minute(); // 0-59
+    const currentDay = now.get_day_of_week(); // 1 = Mon, 7 = Sun
 
     // Day check
     if (this.config.days && this.config.days.length > 0) {
-      // GNOME/JS Date.getDay() returns 0 for Sunday.
-      // Our UI likely maps Mon=0...Sun=6 or similar.
-      // Let's assume standard JS 0=Sun, 1=Mon...
-      if (!this.config.days.includes(now.getDay())) {
+      // GLib (1-7, Mon-Sun) -> JS (0-6, Sun-Sat)
+      const jsDay = currentDay === 7 ? 0 : currentDay;
+      if (!this.config.days.includes(jsDay)) {
         this._lastState = false;
         return false;
       }
     }
 
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = currentHour * 60 + currentMinute;
 
     // Specific Time (Event-like, but treated as 1-minute state)
     if (this.config.time) {
@@ -33,8 +37,6 @@ export class TimeTrigger extends BaseTrigger {
       const targetMinutes = targetHour * 60 + targetMinute;
       const isTime = currentMinutes === targetMinutes;
 
-      // For specific time, we just return true when it matches.
-      // It's naturally transient (1 minute window).
       return isTime;
     }
 
@@ -68,9 +70,6 @@ export class TimeTrigger extends BaseTrigger {
 
     debugLog(`[TimeTrigger] Activating polling for ${this.id}`);
 
-    // @ts-ignore
-    const GLib = imports.gi.GLib;
-
     // Check every minute (60 seconds)
     this.intervalId = GLib.timeout_add_seconds(
       GLib.PRIORITY_DEFAULT,
@@ -85,8 +84,6 @@ export class TimeTrigger extends BaseTrigger {
   deactivate(): void {
     if (this.intervalId) {
       debugLog(`[TimeTrigger] Deactivating polling for ${this.id}`);
-      // @ts-ignore
-      const GLib = imports.gi.GLib;
       GLib.source_remove(this.intervalId);
       this.intervalId = null;
     }
