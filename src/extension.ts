@@ -1,15 +1,15 @@
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
-import { RoutineManager } from '../engine/manager.js';
-import { GnomeShellAdapter } from './adapters/gnomeShellAdapter.js';
+import { RoutineManager } from './engine/manager.js';
+import { GnomeShellAdapter } from './gnome/adapters/gnomeShellAdapter.js';
 
 // @ts-ignore
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-import { GSettingsStorageAdapter } from './adapters/gsettingsStorage.js';
+import { GSettingsStorageAdapter } from './gnome/adapters/gsettingsStorage.js';
 
-import debugLog from '../utils/log.js';
+import debugLog from './utils/log.js';
 
-import { createQuickSettingsToggle } from './ui/quickSettings.js';
+import { createQuickSettingsToggle } from './gnome/ui/quickSettings.js';
 
 export default class GnomeRoutinesExt extends Extension {
   private manager: RoutineManager | null = null;

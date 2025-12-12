@@ -1,83 +1,62 @@
-const esbuild = require('esbuild');
+const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const isWatch = process.argv.includes('--watch');
 
-const buildOptions = {
-  entryPoints: ['src/gnome/extension.ts', 'src/ui/prefs.ts'],
-  bundle: true,
-  outdir: 'dist',
-  entryNames: '[name]', // Output directly to dist/extension.js and dist/prefs.js
-  format: 'esm',
-  target: 'esnext', // GJS supports modern JS
-  platform: 'neutral', // GJS is not Node.js
-  external: ['gi://*', 'resource://*', 'gettext', 'system', 'cairo'], // GNOME imports
-  loader: { '.ts': 'ts' },
-  keepNames: true, // Preserve class names for GObject/GJS
-  plugins: [],
-};
-
 async function build() {
-  if (isWatch) {
-    const ctx = await esbuild.context(buildOptions);
-    await ctx.watch();
-    console.log('Watching for changes...');
-  } else {
-    // Clean dist directory
-    if (fs.existsSync('dist')) {
-      fs.rmSync('dist', { recursive: true, force: true });
+  console.log('Cleaning dist...');
+  if (fs.existsSync('dist')) {
+    fs.rmSync('dist', { recursive: true, force: true });
+  }
+
+  console.log('Compiling with tsc...');
+  try {
+    execSync('npx tsc -p tsconfig.build.json' + (isWatch ? ' --watch' : ''), {
+      stdio: 'inherit',
+    });
+  } catch (e) {
+    if (!isWatch) {
+      console.error('TypeScript compilation failed.');
+      process.exit(1);
+    }
+  }
+
+  if (!isWatch) {
+    postBuild();
+  }
+}
+
+function postBuild() {
+  console.log('Copying assets...');
+
+  // Copy metadata.json
+  if (fs.existsSync('metadata.json')) {
+    fs.copyFileSync('metadata.json', 'dist/metadata.json');
+  }
+
+  // Copy documentation and license
+  ['LICENSE', 'CHANGELOG.md', 'README.md'].forEach((file) => {
+    if (fs.existsSync(file)) {
+      fs.copyFileSync(file, path.join('dist', file));
+    }
+  });
+
+  // Copy schemas
+  if (fs.existsSync('schemas')) {
+    const schemasDir = path.join('dist', 'schemas');
+    if (!fs.existsSync(schemasDir)) {
+      fs.mkdirSync(schemasDir, { recursive: true });
     }
 
-    await esbuild.build(buildOptions);
-    console.log('Build complete.');
-
-    // Fix export for GJS
-    ['extension.js', 'prefs.js'].forEach((file) => {
-      const filePath = path.join('dist', file);
-      if (!fs.existsSync(filePath)) return;
-
-      let content = fs.readFileSync(filePath, 'utf8');
-
-      // Replace "export { GnomeRoutinesExt as default };" or similar with "export default GnomeRoutinesExt;"
-      // We use a broader regex to catch var declarations if esbuild separates them
-      if (content.includes('export {') && content.includes('as default')) {
-        content = content.replace(
-          /export\s*{\s*([A-Za-z0-9_]+)\s+as\s+default\s*};?/g,
-          'export default $1;'
-        );
-        fs.writeFileSync(filePath, content);
-      }
-    });
-
-    // Copy metadata.json to dist
-    fs.copyFileSync('metadata.json', 'dist/metadata.json');
-
-    // Copy documentation and license
-    ['LICENSE', 'CHANGELOG.md', 'README.md'].forEach((file) => {
-      if (fs.existsSync(file)) {
-        fs.copyFileSync(file, path.join('dist', file));
-      }
-    });
-
-    // Copy schemas if they exist
-    if (fs.existsSync('schemas')) {
-      const schemasDir = path.join('dist', 'schemas');
-      if (!fs.existsSync(schemasDir)) {
-        fs.mkdirSync(schemasDir, { recursive: true });
-      }
-
-      // Copy schema file
-      const schemaFile =
-        'org.gnome.shell.extensions.gnome-routines.gschema.xml';
+    const schemaFile = 'org.gnome.shell.extensions.gnome-routines.gschema.xml';
+    if (fs.existsSync(path.join('schemas', schemaFile))) {
       fs.copyFileSync(
         path.join('schemas', schemaFile),
         path.join(schemasDir, schemaFile)
       );
 
-      // Compile schemas
       try {
-        const { execSync } = require('child_process');
         execSync(`glib-compile-schemas ${schemasDir}`);
         console.log('Schemas compiled.');
       } catch (e) {
@@ -88,6 +67,11 @@ async function build() {
       }
     }
   }
+
+  console.log('Build complete.');
 }
 
-build().catch(() => process.exit(1));
+build().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

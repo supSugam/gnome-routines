@@ -1,0 +1,33 @@
+export const trackingParams = {
+  "global": [
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "utm_id",
+    "utm_name",
+    "utm_term",
+    "fbclid",
+    "gclid",
+    "gclsrc",
+    "dclid",
+    "wbraid",
+    "gbraid",
+    "msclkid",
+    "zanpid",
+    "mc_eid",
+    "mc_cid",
+    "yclid",
+    "_ga",
+    "_gl"
+  ],
+  "instagram.com": ["igsh"],
+  "twitter.com": ["twclid", "t"],
+  "x.com": ["twclid", "t"],
+  "tiktok.com": ["ttclid"],
+  "linkedin.com": ["li_fat_id", "trk"],
+  "pinterest.com": ["epik"],
+  "amazon.": ["tag", "ascsubtag"],
+  "ebay.": ["mkcid", "mkrid", "crlp", "campid", "customid"]
+};

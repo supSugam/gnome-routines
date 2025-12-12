@@ -27,4 +27,5 @@ export const ACTION_METADATA: Record<ActionType, ActionMetadata> = {
   [ActionType.TAKE_SCREENSHOT]: { canRevert: false },
   [ActionType.CLIPBOARD]: { canRevert: false },
   [ActionType.OPEN_LINK]: { canRevert: false },
+  [ActionType.EXECUTE_COMMAND]: { canRevert: false },
 };

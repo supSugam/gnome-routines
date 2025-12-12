@@ -4,7 +4,7 @@ import { BaseAction } from './base.js';
 import { SanitizationMode, ActionType, ClipboardOperation } from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore
-import trackingParams from '../../data/tracking_params.json' assert { type: 'json' };
+import { trackingParams } from '../../data/trackingParams.js';
 import debugLog from '../../utils/log.js';
 
 export class ClipboardAction extends BaseAction {
