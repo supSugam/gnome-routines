@@ -62,6 +62,8 @@ export class WifiTrigger extends BaseTrigger {
     }
   }
 
+  private cleanup: (() => void) | null = null;
+
   activate(): void {
     if (this._isActivated) return;
 
@@ -71,12 +73,14 @@ export class WifiTrigger extends BaseTrigger {
       this.config.state === ConnectionState.ENABLED ||
       this.config.state === ConnectionState.DISABLED
     ) {
-      this.adapter.onWifiPowerStateChanged((isEnabled: boolean) => {
-        debugLog(`[WifiTrigger] Wifi power changed to: ${isEnabled}`);
-        this.emit('triggered');
-      });
+      this.cleanup = this.adapter.onWifiPowerStateChanged(
+        (isEnabled: boolean) => {
+          debugLog(`[WifiTrigger] Wifi power changed to: ${isEnabled}`);
+          this.emit('triggered');
+        }
+      );
     } else {
-      this.adapter.onWifiStateChanged((isConnected: boolean) => {
+      this.cleanup = this.adapter.onWifiStateChanged((isConnected: boolean) => {
         debugLog(
           `[WifiTrigger] Wifi connection state changed to: ${isConnected}`
         );
@@ -85,5 +89,16 @@ export class WifiTrigger extends BaseTrigger {
     }
 
     this._isActivated = true;
+  }
+
+  deactivate(): void {
+    if (!this._isActivated) return;
+
+    debugLog(`[WifiTrigger] Deactivating listener`);
+    if (this.cleanup) {
+      this.cleanup();
+      this.cleanup = null;
+    }
+    this._isActivated = false;
   }
 }

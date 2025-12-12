@@ -19,12 +19,16 @@ export class ClipboardTrigger extends BaseTrigger {
 
   private _hasTriggered: boolean = false;
   private debounceId: number | null = null;
+  public _isActivated: boolean = false;
+  private cleanup: (() => void) | null = null;
 
   activate(): void {
+    if (this._isActivated) return;
+
     debugLog(
       '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'
     );
-    this.adapter.onClipboardChanged(() => {
+    this.cleanup = this.adapter.onClipboardChanged(() => {
       debugLog(
         '[ClipboardTrigger] Adapter reported change. Scheduling debounce...'
       );
@@ -54,6 +58,22 @@ export class ClipboardTrigger extends BaseTrigger {
         return false;
       });
     });
+    this._isActivated = true;
+  }
+
+  deactivate(): void {
+    if (!this._isActivated) return;
+
+    debugLog('[ClipboardTrigger] Deactivating trigger.');
+    if (this.cleanup) {
+      this.cleanup();
+      this.cleanup = null;
+    }
+    if (this.debounceId) {
+      GLib.source_remove(this.debounceId);
+      this.debounceId = null;
+    }
+    this._isActivated = false;
   }
 
   private async verifyMatch(): Promise<boolean> {

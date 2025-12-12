@@ -69,7 +69,11 @@ export class BluetoothTrigger extends BaseTrigger {
     }
   }
 
+  private cleanup: (() => void) | null = null;
+
   activate(): void {
+    if (this._isActivated) return;
+
     debugLog(`[BluetoothTrigger] Activating listener for ${this.config.state}`);
     this._isActivated = true;
 
@@ -88,11 +92,11 @@ export class BluetoothTrigger extends BaseTrigger {
       this.config.state === ConnectionState.ENABLED ||
       this.config.state === ConnectionState.DISABLED
     ) {
-      this.adapter.onBluetoothPowerStateChanged(() => {
+      this.cleanup = this.adapter.onBluetoothPowerStateChanged(() => {
         this._handleStateChange();
       });
     } else {
-      this.adapter.onBluetoothDeviceStateChanged(() => {
+      this.cleanup = this.adapter.onBluetoothDeviceStateChanged(() => {
         this._handleStateChange();
       });
     }
@@ -129,6 +133,12 @@ export class BluetoothTrigger extends BaseTrigger {
   deactivate(): void {
     this._isActivated = false;
     this._lastMatchState = null; // Reset state on deactivate
+
+    if (this.cleanup) {
+      this.cleanup();
+      this.cleanup = null;
+    }
+
     debugLog(`[BluetoothTrigger] Deactivated`);
   }
 }

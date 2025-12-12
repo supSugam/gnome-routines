@@ -607,24 +607,32 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  onWifiStateChanged(callback: (isConnected: boolean) => void): void {
+  onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
     try {
-      this.nmClient = NM.Client.new(null);
-      if (this.nmClient) {
-        // Listen for changes in active connections
-        this.wifiSignalId = this.nmClient.connect(
-          'notify::active-connections',
-          () => {
-            const isConnected = this.getWifiState();
-            callback(isConnected);
-          }
-        );
-      }
+      const client = NM.Client.new(null);
+      if (!client) return () => {};
+
+      const signalId = client.connect('notify::active-connections', () => {
+        const isConnected = this.getWifiState();
+        callback(isConnected);
+      });
+
+      return () => {
+        try {
+          client.disconnect(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error disconnecting wifi listener',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to Wifi changes:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1191,19 +1199,31 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void {
+  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     try {
       const client = NM.Client.new(null);
-      if (client) {
-        client.connect('notify::wireless-enabled', () => {
-          callback(client.wireless_enabled);
-        });
-      }
+      if (!client) return () => {};
+
+      const signalId = client.connect('notify::wireless-enabled', () => {
+        callback(client.wireless_enabled);
+      });
+
+      return () => {
+        try {
+          client.disconnect(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error disconnecting wifi power listener',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to Wifi power changes:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1211,16 +1231,15 @@ export class GnomeShellAdapter implements SystemAdapter {
     return this.getBluetooth();
   }
 
-  onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void {
+  onBluetoothPowerStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void {
     try {
-      const DBus = Gio.DBus;
-
-      // Subscribe to PropertiesChanged on org.bluez
-      Gio.DBus.system.signal_subscribe(
+      const signalId = Gio.DBus.system.signal_subscribe(
         'org.bluez',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
-        null, // path (null for all adapters)
+        null,
         null,
         0,
         (
@@ -1240,11 +1259,23 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         }
       );
+
+      return () => {
+        try {
+          Gio.DBus.system.signal_unsubscribe(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error unsubscribe bluetooth power',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to Bluetooth power:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1329,12 +1360,10 @@ export class GnomeShellAdapter implements SystemAdapter {
     });
   }
 
-  onBluetoothDeviceStateChanged(callback: () => void): void {
+  onBluetoothDeviceStateChanged(callback: () => void): () => void {
     try {
-      // Subscribe to PropertiesChanged on org.bluez.Device1
-      // When 'Connected' property changes
-      Gio.DBus.system.signal_subscribe(
-        'org.bluez', // Listen only to org.bluez
+      const signalId = Gio.DBus.system.signal_subscribe(
+        'org.bluez',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -1361,11 +1390,22 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         }
       );
+      return () => {
+        try {
+          Gio.DBus.system.signal_unsubscribe(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error unsubscribe bluetooth device',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to Bluetooth device changes:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1396,43 +1436,46 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
-  ): void {
+  ): () => void {
     try {
       if (!this.upClient) {
         this.upClient = UPower.Client.new_full(null);
       }
-      const client = this.upClient; // Use class property
+      const client = this.upClient;
 
-      // Signal for changes
-      this.batterySignalId = client.connect(
+      // We attach two listeners here for robustness.
+      // 1. Device added (plug/unplug)
+      const addedId = client.connect(
         'device-added',
         (client: any, device: any) => {
           this._checkBattery(callback);
         }
       );
-      // Also check display device changes
-      // Note: UPowerGlib usage might vary. Usually 'notify::display-device' or similar on client.
-      // But let's assume standard client signal or property change.
-      // Simplify: polling or basic signal.
-      // Re-using exiting code logic but saving ID.
 
-      // Since existing code wasn't visible in snippet, assuming standard implementation:
-      // We'll replace the whole block with a robust one tracking the signal.
-
-      const signalId = client.connect('notify::display-device', () => {
+      // 2. Display device change
+      const changedId = client.connect('notify::display-device', () => {
         this._checkBattery(callback);
       });
-      // Overwrite if multiple calls? Ideally we only support one listener or use an array.
-      // For this extension, usually one trigger active per type.
-      this.batterySignalId = signalId;
 
-      // Initial check
-      this._checkBattery(callback);
+      this._checkBattery(callback); // Initial check
+
+      return () => {
+        try {
+          client.disconnect(addedId);
+          client.disconnect(changedId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error disconnecting battery listeners',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to battery changes:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1479,12 +1522,9 @@ export class GnomeShellAdapter implements SystemAdapter {
     });
   }
 
-  onPowerSaverStateChanged(callback: (isActive: boolean) => void): void {
-    // Polling is safest for command line check, but we can try DBus signal
-    // For now, let's use a polling interval since powerprofilesctl doesn't emit easy signals without DBus proxy
-    // Actually, we can watch the DBus property
+  onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void {
     try {
-      Gio.DBus.system.signal_subscribe(
+      const signalId = Gio.DBus.system.signal_subscribe(
         'org.freedesktop.UPower.PowerProfiles',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
@@ -1499,15 +1539,22 @@ export class GnomeShellAdapter implements SystemAdapter {
           signal: any,
           params: any
         ) => {
-          // Re-check state when properties change
           this.getPowerSaverState().then((state) => callback(state));
         }
       );
+      return () => {
+        try {
+          Gio.DBus.system.signal_unsubscribe(signalId);
+        } catch (e) {
+          console.error('[GnomeShellAdapter] Error unsubscribe power saver', e);
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to power saver changes:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1519,13 +1566,21 @@ export class GnomeShellAdapter implements SystemAdapter {
     return settings.get_string('color-scheme') === 'prefer-dark';
   }
 
-  onDarkModeStateChanged(callback: (isDark: boolean) => void): void {
+  onDarkModeStateChanged(callback: (isDark: boolean) => void): () => void {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.interface',
     });
-    settings.connect('changed::color-scheme', () => {
+    const signalId = settings.connect('changed::color-scheme', () => {
       callback(settings.get_string('color-scheme') === 'prefer-dark');
     });
+
+    return () => {
+      try {
+        settings.disconnect(signalId);
+      } catch (e) {
+        console.error('[GnomeShellAdapter] Error disconnecting dark mode', e);
+      }
+    };
   }
 
   // Airplane Mode
@@ -1603,12 +1658,11 @@ export class GnomeShellAdapter implements SystemAdapter {
   // ... (Other methods remain unchanged by this block if not overlapping) ...
   // Note: disconnectBluetoothDevice is earlier in the file, will do next.
 
-  onAirplaneModeStateChanged(callback: (isEnabled: boolean) => void): void {
-    // rfkill events are hard to catch without udev or DBus
-    // We'll use a polling fallback or DBus if possible
-    // org.gnome.SettingsDaemon.Rfkill
+  onAirplaneModeStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void {
     try {
-      Gio.DBus.session.signal_subscribe(
+      const signalId = Gio.DBus.session.signal_subscribe(
         'org.gnome.SettingsDaemon.Rfkill',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
@@ -1619,11 +1673,22 @@ export class GnomeShellAdapter implements SystemAdapter {
           this.getAirplaneModeState().then((state) => callback(state));
         }
       );
+      return () => {
+        try {
+          Gio.DBus.session.signal_unsubscribe(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error unsubscribe airplane mode',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to airplane mode:',
         e
       );
+      return () => {};
     }
   }
 
@@ -1631,22 +1696,20 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onWiredHeadphonesStateChanged(
     callback: (isConnected: boolean) => void
-  ): void {
-    // PulseAudio subscription is complex via command line (pactl subscribe)
-    // We can spawn a persistent process to listen? No, that's heavy.
-    // We'll use a polling interval for now as it's the most reliable "universal" way without native bindings
-    // Or we can try to hook into GVC (Gnome Volume Control) if available in Shell context
-    // Shell.Global.get().get_display()? No.
-    // Let's use a polling timer for this specific trigger if activated.
-    // But the adapter interface expects a callback registration.
-    // We'll simulate it with a timeout for now.
-
-    GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
+  ): () => void {
+    let timeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 2, () => {
       this.getWiredHeadphonesState().then((newState) => {
         callback(newState);
       });
       return GLib.SOURCE_CONTINUE;
     });
+
+    return () => {
+      if (timeoutId) {
+        GLib.source_remove(timeoutId);
+        timeoutId = 0;
+      }
+    };
   }
 
   getActiveApp(): string | null {
@@ -1657,27 +1720,83 @@ export class GnomeShellAdapter implements SystemAdapter {
     return app ? app.get_name() : null;
   }
 
-  onActiveAppChanged(callback: (appName: string) => void): void {
+  onActiveAppChanged(callback: (appName: string) => void): () => void {
     try {
       const appSystem = Shell.AppSystem.get_default();
-
-      // Listen for app state changes - use STARTING (1) to catch apps immediately
-      // STARTING = 1, RUNNING = 2
-      this.appListenerId = appSystem.connect(
+      const signalId = appSystem.connect(
         'app-state-changed',
         (sys: any, app: any) => {
-          // Trigger on STARTING state (1) for immediate detection
           if (app.state === 1 || app.state === Shell.AppState.RUNNING) {
             callback(app.get_name());
           }
         }
       );
+      return () => {
+        try {
+          appSystem.disconnect(signalId);
+        } catch (e) {
+          console.error(
+            '[GnomeShellAdapter] Error disconnecting app listener',
+            e
+          );
+        }
+      };
     } catch (e) {
       console.error(
         '[GnomeShellAdapter] Failed to subscribe to app changes:',
         e
       );
+      return () => {};
     }
+  }
+
+  // ... (existing helper methods remain)
+
+  onClipboardChanged(callback: () => void): () => void {
+    const clipboard = St.Clipboard.get_default();
+    let lastContent: string | null = null;
+    let timeoutId: number = 0;
+
+    clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb: any, text: string) => {
+      lastContent = text;
+
+      timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+        clipboard.get_text(
+          St.ClipboardType.CLIPBOARD,
+          (cb: any, newText: string) => {
+            if (newText === lastContent) return;
+            if (newText === null || newText === undefined || newText === '')
+              return;
+            if (
+              lastContent === null ||
+              lastContent === undefined ||
+              lastContent === ''
+            ) {
+              lastContent = newText;
+              return;
+            }
+
+            lastContent = newText;
+            try {
+              callback();
+            } catch (e) {
+              console.error(
+                '[GnomeShellAdapter] Error in clipboard callback:',
+                e
+              );
+            }
+          }
+        );
+        return GLib.SOURCE_CONTINUE;
+      });
+    });
+
+    return () => {
+      if (timeoutId) {
+        GLib.source_remove(timeoutId);
+        timeoutId = 0;
+      }
+    };
   }
 
   // Clipboard
@@ -1722,140 +1841,20 @@ export class GnomeShellAdapter implements SystemAdapter {
     this.setClipboardText('');
   }
 
-  private clipboardTimeoutId: number = 0;
-
-  onClipboardChanged(callback: () => void): void {
-    // St.Clipboard has no signals. We must poll.
-
-    const clipboard = St.Clipboard.get_default();
-
-    let lastContent: string | null = null;
-
-    // Clear existing timeout if any
-    if (this.clipboardTimeoutId) {
-      GLib.source_remove(this.clipboardTimeoutId);
-      this.clipboardTimeoutId = 0;
-    }
-
-    // Initialize lastContent
-    clipboard.get_text(St.ClipboardType.CLIPBOARD, (cb: any, text: string) => {
-      lastContent = text;
-      debugLog(
-        `[GnomeShellAdapter] Clipboard INIT. Content: "${text}" (Type: ${typeof text})`
-      );
-
-      // Start polling only after initialization
-      this.clipboardTimeoutId = GLib.timeout_add(
-        GLib.PRIORITY_DEFAULT,
-        1000,
-        () => {
-          clipboard.get_text(
-            St.ClipboardType.CLIPBOARD,
-            (cb: any, newText: string) => {
-              // If content hasn't changed, skip
-              if (newText === lastContent) {
-                return;
-              }
-
-              // Ignore transitions TO empty/null (happens on wake/unlock)
-              // Only care about transitions TO actual content
-              if (newText === null || newText === undefined || newText === '') {
-                debugLog(
-                  `[GnomeShellAdapter] Clipboard became empty/null. Ignoring (likely system event).`
-                );
-                // Keep lastContent - don't update it
-                return;
-              }
-
-              // If we get here, clipboard changed to non-empty content
-              // But skip if lastContent was also empty (initial setup)
-              if (
-                lastContent === null ||
-                lastContent === undefined ||
-                lastContent === ''
-              ) {
-                debugLog(
-                  `[GnomeShellAdapter] Clipboard initial content detected: "${newText}". No trigger.`
-                );
-                lastContent = newText;
-                return;
-              }
-
-              // Real clipboard change detected!
-              debugLog(
-                `[GnomeShellAdapter] Clipboard CHANGE DETECTED! Old: "${lastContent}" -> New: "${newText}"`
-              );
-
-              lastContent = newText;
-              try {
-                debugLog('[GnomeShellAdapter] Calling clipboard callback...');
-                callback();
-              } catch (e) {
-                console.error(
-                  '[GnomeShellAdapter] Error in clipboard callback:',
-                  e
-                );
-              }
-            }
-          );
-          return GLib.SOURCE_CONTINUE;
-        }
-      );
-    });
-  }
-
   // Tracked resources for cleanup
   private nmClient: any | null = null;
-  private wifiSignalId: number = 0;
   private upClient: any | null = null;
-  private batterySignalId: number = 0;
   private notificationSource: any | null = null;
-  private btClient: any | null = null;
-  private btSignalId: number = 0;
+  // Note: Signal IDs are now handled by individual listeners returning cleanup functions.
 
   destroy() {
     debugLog('[GnomeShellAdapter] Destroying resources...');
 
-    // Stop App Listener
-    if (this.appListenerId) {
-      const appSystem = Shell.AppSystem.get_default();
-      // @ts-ignore
-      appSystem.disconnect(this.appListenerId);
-      this.appListenerId = 0;
-    }
-
-    // Stop Clipboard Polling
-    if (this.clipboardTimeoutId) {
-      GLib.source_remove(this.clipboardTimeoutId);
-      this.clipboardTimeoutId = 0;
-      debugLog('[GnomeShellAdapter] Clipboard polling stopped.');
-    }
-
-    // Cleanup Wifi
-    if (this.nmClient && this.wifiSignalId) {
-      try {
-        this.nmClient.disconnect(this.wifiSignalId);
-      } catch (e) {
-        console.error('Error disconnecting wifi signal', e);
-      }
-      this.wifiSignalId = 0;
-    }
+    // Cleanup resources that might be shared or persistent
+    // If nmClient or upClient need explicit destroy?
+    // GJS/GObject usually handles disposal if references are dropped.
     this.nmClient = null;
-
-    // Cleanup Battery
-    if (this.upClient && this.batterySignalId) {
-      try {
-        this.upClient.disconnect(this.batterySignalId);
-      } catch (e) {
-        console.error('Error disconnecting battery signal', e);
-      }
-      this.batterySignalId = 0;
-    }
     this.upClient = null;
-
-    // Cleanup Bluetooth (if using dbus/bluez listener)
-    // Currently we rely on DBus proxy logic or bluetoothctl, if we added a listener we'd clean it here.
-    // NOTE: onBluetoothDeviceStateChanged uses a polling or DBus signal. We should verify implementation.
 
     // Cleanup Notification Source
     if (this.notificationSource) {

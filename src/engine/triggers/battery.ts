@@ -12,6 +12,8 @@ export class BatteryTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
 
+  private cleanup: (() => void) | null = null;
+
   constructor(
     id: string,
     config: {
@@ -56,7 +58,7 @@ export class BatteryTrigger extends BaseTrigger {
     if (this._isActivated) return;
 
     debugLog(`[BatteryTrigger] Activating listener`);
-    this.adapter.onBatteryStateChanged((level, isCharging) => {
+    this.cleanup = this.adapter.onBatteryStateChanged((level, isCharging) => {
       debugLog(
         `[BatteryTrigger] Battery state changed: ${level}%, Charging: ${isCharging}`
       );
@@ -64,5 +66,16 @@ export class BatteryTrigger extends BaseTrigger {
     });
 
     this._isActivated = true;
+  }
+
+  deactivate(): void {
+    if (!this._isActivated) return;
+
+    debugLog(`[BatteryTrigger] Deactivating listener`);
+    if (this.cleanup) {
+      this.cleanup();
+      this.cleanup = null;
+    }
+    this._isActivated = false;
   }
 }

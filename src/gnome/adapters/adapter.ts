@@ -28,46 +28,52 @@ export interface SystemAdapter {
 
   // App Tracking
   getActiveApp(): string | null;
-  onActiveAppChanged(callback: (appName: string) => void): void;
+  onActiveAppChanged(callback: (appName: string) => void): () => void;
 
   // Startup State
   getStartupState(): { isStartup: boolean; timeSinceInit: number };
 
   // Network Tracking
-  onWifiStateChanged(callback: (isConnected: boolean) => void): void;
+  onWifiStateChanged(callback: (isConnected: boolean) => void): () => void;
   getCurrentWifiSSID(): string | null;
   getSavedWifiNetworks(): string[];
 
   // Wifi Power
   getWifiPowerState(): boolean;
-  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void;
+  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void;
 
   // Bluetooth Tracking
   getBluetoothPowerState(): Promise<boolean>;
-  onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void;
+  onBluetoothPowerStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void;
   getConnectedBluetoothDevices(): Promise<{ name: string; address: string }[]>; // Returns list of device objects
-  onBluetoothDeviceStateChanged(callback: () => void): void;
+  onBluetoothDeviceStateChanged(callback: () => void): () => void;
 
   // Power & Battery
   getBatteryLevel(): number;
   isCharging(): boolean;
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
-  ): void;
+  ): () => void;
 
   getPowerSaverState(): Promise<boolean>;
-  onPowerSaverStateChanged(callback: (isActive: boolean) => void): void;
+  onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void;
 
   // System Settings
   getDarkModeState(): boolean;
-  onDarkModeStateChanged(callback: (isDark: boolean) => void): void;
+  onDarkModeStateChanged(callback: (isDark: boolean) => void): () => void;
 
   getAirplaneModeState(): Promise<boolean>;
-  onAirplaneModeStateChanged(callback: (isEnabled: boolean) => void): void;
+  onAirplaneModeStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void;
 
   // Audio
   getWiredHeadphonesState(): Promise<boolean>;
-  onWiredHeadphonesStateChanged(callback: (isConnected: boolean) => void): void;
+  onWiredHeadphonesStateChanged(
+    callback: (isConnected: boolean) => void
+  ): () => void;
 
   // New Actions - Connections
   connectBluetoothDevice(id: string): Promise<void>;
@@ -105,5 +111,5 @@ export interface SystemAdapter {
   }>;
   setClipboardText(text: string): void;
   clearClipboard(): void;
-  onClipboardChanged(callback: () => void): void;
+  onClipboardChanged(callback: () => void): () => void;
 }
