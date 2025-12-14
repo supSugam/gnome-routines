@@ -5,6 +5,7 @@ import {
   OpenLinkActionConfig,
   OpenAppActionConfig,
 } from '../types.js';
+import debugLog from '../../utils/log.js';
 
 export class OpenLinkAction extends BaseAction {
   constructor(
@@ -44,7 +45,14 @@ export class OpenAppAction extends BaseAction {
   }
 
   async execute(): Promise<void> {
-    this.adapter.openApp(this.config.appIds || []);
+    const apps = this.config.appIds || [];
+    if (apps.length === 0) {
+      debugLog(
+        `[OpenAppAction] No apps configured to open for action ${this.id}`
+      );
+      return;
+    }
+    this.adapter.openApp(apps);
   }
 
   async revert(): Promise<void> {

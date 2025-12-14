@@ -161,11 +161,15 @@ export const getActionSummary = (action: Action): string => {
   }
   if (action.type === ActionType.CONNECT_BLUETOOTH) {
     const config = action.config as ConnectBluetoothActionConfig;
-    return `Connect to Bluetooth device: ${config.deviceId}`;
+    return `Connect to Bluetooth device: ${
+      config.deviceName || config.deviceId
+    }`;
   }
   if (action.type === ActionType.DISCONNECT_BLUETOOTH) {
     const config = action.config as ConnectBluetoothActionConfig;
-    return `Disconnect from Bluetooth device: ${config.deviceId}`;
+    return `Disconnect from Bluetooth device: ${
+      config.deviceName || config.deviceId
+    }`;
   }
   if (action.type === ActionType.CONNECT_WIFI) {
     const config = action.config as ConnectWifiActionConfig;

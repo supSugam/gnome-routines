@@ -4,20 +4,32 @@ import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 
+import { ActionType, VolumeActionConfig } from '../types.js';
+
 export class VolumeAction extends BaseAction {
   private previousVolume: number | null = null;
+  private isEnforcing: boolean = false;
 
-  constructor(id: string, config: { level: number }, adapter: SystemAdapter) {
-    super(id, 'volume', config, adapter);
+  constructor(id: string, config: VolumeActionConfig, adapter: SystemAdapter) {
+    super(id, ActionType.VOLUME, config, adapter);
   }
 
   async execute(): Promise<void> {
     debugLog(
       `[VolumeAction] Starting volume enforcement. Target: ${this.config.level}%`
     );
+    this.isEnforcing = true;
     try {
-      this.previousVolume = await this.adapter.getVolume();
-      debugLog(`[VolumeAction] Initial volume: ${this.previousVolume}%`);
+      if (this.previousVolume === null) {
+        this.previousVolume = await this.adapter.getVolume();
+        debugLog(
+          `[VolumeAction] Initial volume captured: ${this.previousVolume}%`
+        );
+      } else {
+        debugLog(
+          `[VolumeAction] Using previously captured volume: ${this.previousVolume}%`
+        );
+      }
 
       let attempts = 0;
       let stableCount = 0;
@@ -25,6 +37,11 @@ export class VolumeAction extends BaseAction {
       const stabilityThreshold = 10; // 10 * 500ms = 5 seconds of stability
 
       const checkLoop = async () => {
+        if (!this.isEnforcing) {
+          debugLog(`[VolumeAction] Enforcement cancelled (stopped/reverted).`);
+          return;
+        }
+
         attempts++;
 
         // Check current volume
@@ -51,6 +68,7 @@ export class VolumeAction extends BaseAction {
           debugLog(
             `[VolumeAction] Volume stable at ${this.config.level}% for 2s. Finishing.`
           );
+          this.isEnforcing = false;
           return;
         }
 
@@ -58,6 +76,7 @@ export class VolumeAction extends BaseAction {
           debugLog(
             `[VolumeAction] Enforcement finished (max attempts reached)`
           );
+          this.isEnforcing = false;
           return;
         }
 
@@ -72,10 +91,13 @@ export class VolumeAction extends BaseAction {
       checkLoop();
     } catch (e) {
       console.error(`[VolumeAction] Failed to execute:`, e);
+      this.isEnforcing = false;
     }
   }
 
   async revert(): Promise<void> {
+    this.isEnforcing = false; // Stop enforcement loop
+
     if (this.previousVolume !== null) {
       debugLog(`[VolumeAction] Reverting volume to: ${this.previousVolume}%`);
       try {
@@ -84,6 +106,8 @@ export class VolumeAction extends BaseAction {
       } catch (e) {
         console.error(`[VolumeAction] Failed to revert:`, e);
       }
+      this.previousVolume = null;
     }
   }
 }
+

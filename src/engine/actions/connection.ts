@@ -3,7 +3,14 @@ import GLib from 'gi://GLib';
 import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
-import { ActionType } from '../types.js';
+import {
+  ActionType,
+  ConnectWifiActionConfig,
+  ConnectBluetoothActionConfig,
+  BluetoothDeviceActionConfig,
+  ActionOperation,
+} from '../types.js';
+import { RETRY_DEFAULTS } from '../constants.js';
 
 const delay = (ms: number) =>
   new Promise((resolve) => {
@@ -19,39 +26,41 @@ export class WifiAction extends BaseAction {
 
   constructor(
     id: string,
-    config: {
-      enabled: boolean;
-      ssid?: string;
-      timeout?: number;
-      interval?: number;
-    },
+    config: ConnectWifiActionConfig,
     adapter: SystemAdapter
   ) {
     super(id, ActionType.WIFI, config, adapter);
   }
 
   async execute(): Promise<void> {
-    // Capture state if not already captured (to avoid overwriting on re-execution if not reverted)
+    // Capture state if not already captured
     if (this.initialState === null) {
       this.initialState = this.adapter.getWifiState();
       this.initialSsid = this.adapter.getCurrentWifiSSID();
     }
 
-    this.adapter.setWifi(this.config.enabled);
+    // Default to true if undefined (legacy/connect_wifi compatibility)
+    const shouldEnable = this.config.enabled !== false;
 
-    if (this.config.enabled && this.config.ssid) {
-      const timeout = (this.config.timeout || 30) * 1000;
-      const interval = (this.config.interval || 5) * 1000;
+    this.adapter.setWifi(shouldEnable);
+
+    if (shouldEnable && this.config.ssid) {
+      const timeoutMs =
+        (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT) * 1000;
+      const intervalMs =
+        (this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT) * 1000;
       const startTime = Date.now();
 
-      debugLog('[WifiAction] Starting auto-connect to ' + this.config.ssid);
+      debugLog(
+        `[WifiAction] Auto-connecting to ${this.config.ssid}. Timeout: ${
+          timeoutMs / 1000
+        }s, Interval: ${intervalMs / 1000}s`
+      );
 
-      // Initial attempt
-      this.adapter.connectToWifi(this.config.ssid);
+      // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
 
-      while (Date.now() - startTime < timeout) {
-        await delay(interval);
-
+      while (true) {
+        // Attempt
         const currentSSID = this.adapter.getCurrentWifiSSID();
         if (currentSSID === this.config.ssid) {
           debugLog(
@@ -61,11 +70,21 @@ export class WifiAction extends BaseAction {
         }
 
         debugLog(
-          '[WifiAction] Retrying connection to ' + this.config.ssid + '...'
+          '[WifiAction] Attempting connection to ' + this.config.ssid + '...'
         );
         this.adapter.connectToWifi(this.config.ssid);
+
+        // Check if we should wait for next attempt
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= timeoutMs) break;
+
+        // Calculate time to next interval or timeout cap
+        const remaining = timeoutMs - elapsed;
+        const waitTime = Math.min(intervalMs, remaining);
+
+        await delay(waitTime);
       }
-      console.warn('[WifiAction] Timed out connecting to ' + this.config.ssid);
+      debugLog('[WifiAction] Timed out connecting to ' + this.config.ssid);
     }
   }
 
@@ -102,12 +121,7 @@ export class BluetoothAction extends BaseAction {
 
   constructor(
     id: string,
-    config: {
-      enabled: boolean;
-      deviceId?: string;
-      timeout?: number;
-      interval?: number;
-    },
+    config: ConnectBluetoothActionConfig,
     adapter: SystemAdapter
   ) {
     super(id, ActionType.BLUETOOTH, config, adapter);
@@ -121,48 +135,60 @@ export class BluetoothAction extends BaseAction {
     await this.adapter.setBluetooth(this.config.enabled);
 
     if (this.config.enabled && this.config.deviceId) {
-      const timeout = (this.config.timeout || 30) * 1000;
-      const interval = (this.config.interval || 5) * 1000;
+      const timeoutMs =
+        (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT) * 1000;
+      const intervalMs =
+        (this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT) * 1000;
       const startTime = Date.now();
 
       debugLog(
-        '[BluetoothAction] Starting auto-connect to ' + this.config.deviceId
+        `[BluetoothAction] Auto-connecting to ${
+          this.config.deviceName || this.config.deviceId
+        }. Timeout: ${timeoutMs / 1000}s, Interval: ${intervalMs / 1000}s`
       );
 
-      // Initial attempt
-      await this.adapter.connectBluetoothDevice(this.config.deviceId);
-
-      while (Date.now() - startTime < timeout) {
-        await delay(interval);
-
+      // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
+      while (true) {
+        // Check if connected
         const connectedDevices =
           await this.adapter.getConnectedBluetoothDevices();
 
-        // Robust matching: check name OR address
         const isConnected = connectedDevices.some(
           (d) =>
             d.name === this.config.deviceId ||
             d.address === this.config.deviceId ||
-            d.name.includes(this.config.deviceId!)
+            (d.name && d.name.includes(this.config.deviceId!))
         );
 
         if (isConnected) {
           debugLog(
             '[BluetoothAction] Successfully connected to ' +
-              this.config.deviceId
+              (this.config.deviceName || this.config.deviceId)
           );
           return;
         }
 
         debugLog(
-          '[BluetoothAction] Retrying connection to ' +
-            this.config.deviceId +
+          '[BluetoothAction] Attempting connection to ' +
+            (this.config.deviceName || this.config.deviceId) +
             '...'
         );
         await this.adapter.connectBluetoothDevice(this.config.deviceId);
+
+        // Check if we should wait for next attempt
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= timeoutMs) break;
+
+        // Calculate time to next interval or timeout cap
+        const remaining = timeoutMs - elapsed;
+        const waitTime = Math.min(intervalMs, remaining);
+
+        await delay(waitTime);
       }
-      console.warn(
-        '[BluetoothAction] Timed out connecting to ' + this.config.deviceId
+
+      debugLog(
+        '[BluetoothAction] Timed out connecting to ' +
+          (this.config.deviceName || this.config.deviceId)
       );
     }
   }
@@ -177,20 +203,94 @@ export class BluetoothAction extends BaseAction {
   }
 }
 
-// Deprecated - kept for backward compatibility if needed, but ActionFactory should handle migration
 export class BluetoothDeviceAction extends BaseAction {
   constructor(
     id: string,
-    config: { deviceId: string; action: 'connect' | 'disconnect' },
+    config: BluetoothDeviceActionConfig,
     adapter: SystemAdapter
   ) {
-    super(id, 'bluetooth_device' as any, config, adapter);
+    // Determine strict type based on action
+    const type =
+      config.action === ActionOperation.CONNECT
+        ? ActionType.CONNECT_BLUETOOTH
+        : ActionType.DISCONNECT_BLUETOOTH;
+    super(id, type, config, adapter);
   }
 
   async execute(): Promise<void> {
-    if (this.config.action === 'connect') {
-      this.adapter.connectBluetoothDevice(this.config.deviceId);
+    if (this.config.action === ActionOperation.CONNECT) {
+      const timeoutMs =
+        (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT) * 1000;
+      const intervalMs =
+        (this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT) * 1000;
+      const startTime = Date.now();
+
+      debugLog(
+        `[BluetoothDeviceAction] Auto-connecting to ${
+          this.config.deviceName || this.config.deviceId
+        }. Timeout: ${timeoutMs / 1000}s, Interval: ${intervalMs / 1000}s`
+      );
+
+      // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
+      while (true) {
+        // Attempt connection
+        // Note: We don't check already connected first because user might want to force reconnect
+        // But for efficiency we should probably check?
+        // Let's stick to connect() -> verify pattern
+
+        // Check verification first?
+        const connectedDevices =
+          await this.adapter.getConnectedBluetoothDevices();
+        const isConnected = connectedDevices.some(
+          (d) =>
+            d.address === this.config.deviceId ||
+            d.name === this.config.deviceId
+        );
+
+        if (isConnected) {
+          debugLog(
+            `[BluetoothDeviceAction] Successfully connected to ${
+              this.config.deviceName || this.config.deviceId
+            }`
+          );
+          return;
+        }
+
+        debugLog(
+          `[BluetoothDeviceAction] Attempting connection to ${
+            this.config.deviceName || this.config.deviceId
+          }...`
+        );
+        try {
+          await this.adapter.connectBluetoothDevice(this.config.deviceId);
+        } catch (e) {
+          console.error(
+            `[BluetoothDeviceAction] Connection attempt failed:`,
+            e
+          );
+        }
+
+        // Check if we should wait for next attempt
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= timeoutMs) break;
+
+        // Calculate time to next interval or timeout cap
+        const remaining = timeoutMs - elapsed;
+        const waitTime = Math.min(intervalMs, remaining);
+
+        await delay(waitTime);
+      }
+      debugLog(
+        `[BluetoothDeviceAction] Failed to connect to ${
+          this.config.deviceName || this.config.deviceId
+        } after timeout`
+      );
     } else {
+      debugLog(
+        `[BluetoothDeviceAction] Disconnecting from ${
+          this.config.deviceName || this.config.deviceId
+        }`
+      );
       this.adapter
         .disconnectBluetoothDevice(this.config.deviceId)
         .catch((e) => console.error(e));
@@ -206,11 +306,14 @@ export class BluetoothDeviceAction extends BaseAction {
       return;
     }
 
-    if (this.config.action === 'connect') {
+    if (this.config.action === ActionOperation.CONNECT) {
+      // Revert of connect is disconnect
       this.adapter
         .disconnectBluetoothDevice(this.config.deviceId)
         .catch((e) => console.error(e));
     } else {
+      // Revert of disconnect is connect
+      // Should we use loop here? Usually revert is "fire and forget" or simple attempt
       this.adapter
         .connectBluetoothDevice(this.config.deviceId)
         .catch((e) => console.error(e));

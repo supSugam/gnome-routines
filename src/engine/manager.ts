@@ -18,6 +18,7 @@ import { SystemAdapter } from '../gnome/adapters/adapter.js';
 import { TriggerFactory } from './triggerFactory.js';
 import { ActionFactory } from './actionFactory.js';
 import { StateManager } from './stateManager.js';
+import { RoutineValidator } from './validator.js';
 
 export class RoutineManager implements RoutineManagerInterface {
   private routines: Map<string, Routine> = new Map();
@@ -229,6 +230,30 @@ export class RoutineManager implements RoutineManagerInterface {
   addRoutine(rawRoutine: Routine): void {
     const routine = this._hydrate(rawRoutine);
     if (routine) {
+      // Validate
+      const validation = RoutineValidator.validate(routine);
+      if (!validation.valid) {
+        console.error(
+          `[RoutineManager] Validation Failed for ${routine.name}: ${validation.error}`
+        );
+        // We still add it so user can see it's broken in UI (if UI supports it)
+        // But we mark it as ERROR immediately
+        this.routines.set(routine.id, routine);
+        this.updateHealth(routine.id, RoutineHealth.ERROR, {
+          type: ExecutionType.CHECK,
+          status: ExecutionStatus.FAILURE,
+          message: validation.error,
+        });
+        // Do NOT save enabled state as valid?
+        // Actually, if we add it, we should clear 'enabled' flag?
+        // Or just rely on Health check preventing run?
+
+        // Ideally: Disable it.
+        routine.enabled = false;
+        this.save();
+        return;
+      }
+
       this.routines.set(routine.id, routine);
       this.save();
       this.evaluate();
@@ -404,32 +429,46 @@ export class RoutineManager implements RoutineManagerInterface {
         if (trigger.on) {
           trigger.on('triggered', async () => {
             debugLog(
-              `[RoutineManager] Trigger ${trigger.id} fired for routine ${routine.name}.`
+              `[GR-DEBUG] [RoutineManager] Trigger ${trigger.id} fired for routine "${routine.name}". Evaluating condition...`
             );
 
             // Verify if the trigger condition is actually currently valid
             const isValid = await trigger.check();
+            debugLog(
+              `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid}`
+            );
 
             if (routine.isActive) {
               if (isValid) {
-                debugLog(
-                  `[RoutineManager] Routine active & trigger valid. Re-executing actions.`
-                );
-                this.activateRoutine(routine);
+                const state = this.getRoutineHealth(routine.id);
+                const timeSinceLastRun = Date.now() - state.lastRun;
+                if (timeSinceLastRun > 10000) {
+                  // 10s debounce to prevent infinite loop
+                  debugLog(
+                    `[GR-DEBUG] [RoutineManager] Routine active & trigger valid & debounce passed (${timeSinceLastRun}ms). Re-executing actions.`
+                  );
+                  this.activateRoutine(routine);
+                } else {
+                  debugLog(
+                    `[GR-DEBUG] [RoutineManager] Routine active & trigger valid but DEBOUNCED (${timeSinceLastRun}ms < 10000ms). Skipping re-execution.`
+                  );
+                }
               } else {
                 debugLog(
-                  `[RoutineManager] Routine active but trigger invalid (e.g. disconnected). Evaluating...`
+                  `[GR-DEBUG] [RoutineManager] Routine active but trigger invalid (e.g. disconnected). Re-evaluating manager state...`
                 );
                 this.evaluate();
               }
             } else {
               if (isValid) {
                 debugLog(
-                  `[RoutineManager] Routine inactive & trigger valid. Evaluating with forced trigger...`
+                  `[GR-DEBUG] [RoutineManager] Routine inactive & trigger valid. Evaluating with forced trigger...`
                 );
                 this.evaluate([trigger]);
               } else {
-                debugLog(`[RoutineManager] Routine inactive. Evaluating...`);
+                debugLog(
+                  `[GR-DEBUG] [RoutineManager] Routine inactive & trigger invalid. Evaluating normal flow...`
+                );
                 this.evaluate();
               }
             }
@@ -508,13 +547,16 @@ export class RoutineManager implements RoutineManagerInterface {
 
     for (const action of routine.actions) {
       debugLog(
-        `[RoutineManager] Executing action ${action.id} (Type: ${action.type})`
+        `[GR-DEBUG] [RoutineManager] Executing action ${action.id} (Type: ${action.type}) for routine "${routine.name}"`
       );
       try {
         await action.execute();
+        debugLog(
+          `[GR-DEBUG] [RoutineManager] Action ${action.id} completed successfully.`
+        );
       } catch (e) {
         console.error(
-          `Failed to execute action ${action.id} in routine ${routine.name}:`,
+          `[GR-DEBUG] Failed to execute action ${action.id} in routine ${routine.name}:`,
           e
         );
         this.updateHealth(routine.id, RoutineHealth.ERROR, {

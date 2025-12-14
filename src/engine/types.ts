@@ -193,11 +193,26 @@ export interface RefreshRateActionConfig {
 }
 
 export interface ConnectWifiActionConfig {
+  enabled: boolean;
   ssid: string;
+  timeout?: number;
+  interval?: number;
 }
 
 export interface ConnectBluetoothActionConfig {
+  enabled: boolean;
   deviceId: string;
+  deviceName?: string;
+  timeout?: number;
+  interval?: number;
+}
+
+export interface BluetoothDeviceActionConfig {
+  deviceId: string;
+  deviceName?: string;
+  action: ActionOperation;
+  timeout?: number;
+  interval?: number;
 }
 
 export interface OpenLinkActionConfig {
@@ -214,6 +229,11 @@ export enum ClipboardOperation {
   CLEAR = 'clear',
   REPLACE = 'replace',
   NONE = 'none',
+}
+
+export enum ActionOperation {
+  CONNECT = 'connect',
+  DISCONNECT = 'disconnect',
 }
 
 export interface ClipboardActionConfig {
@@ -243,6 +263,7 @@ export type ActionConfig =
   | RefreshRateActionConfig
   | ConnectWifiActionConfig
   | ConnectBluetoothActionConfig
+  | BluetoothDeviceActionConfig
   | OpenLinkActionConfig
   | ClipboardActionConfig
   | ExecuteCommandActionConfig

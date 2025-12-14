@@ -7,17 +7,67 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
+import { RETRY_DEFAULTS } from '../../../engine/constants.js';
+import { ActionOperation } from '../../../engine/types.js';
 
 export class ConnectBluetoothActionEditor extends BaseEditor {
   render(group: any): void {
     const row = new Adw.ExpanderRow({
       title: 'Select Device',
-      subtitle: this.config.deviceId || 'No device selected',
+      subtitle:
+        this.config.deviceName || this.config.deviceId || 'No device selected',
       expanded: true,
     });
     group.add(row);
 
     this.loadDevices(row);
+    this.addRetrySettings(group);
+  }
+
+  private addRetrySettings(group: any) {
+    // Timeout Row
+    const timeoutRow = new Adw.ActionRow({
+      title: 'Wait Timeout (seconds)',
+      subtitle: 'Stop trying after this many seconds',
+    });
+    const timeoutSpin = new Gtk.SpinButton({
+      adjustment: new Gtk.Adjustment({
+        lower: RETRY_DEFAULTS.TIMEOUT.MIN,
+        upper: RETRY_DEFAULTS.TIMEOUT.MAX,
+        step_increment: RETRY_DEFAULTS.TIMEOUT.STEP,
+        value: this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT,
+      }),
+      valign: Gtk.Align.CENTER,
+    });
+    // @ts-ignore
+    timeoutSpin.connect('value-changed', () => {
+      this.config.timeout = timeoutSpin.get_value();
+      this.onChange();
+    });
+    timeoutRow.add_suffix(timeoutSpin);
+    group.add(timeoutRow);
+
+    // Interval Row
+    const intervalRow = new Adw.ActionRow({
+      title: 'Retry Interval (seconds)',
+      subtitle: 'Wait this long between attempts',
+    });
+    const intervalSpin = new Gtk.SpinButton({
+      adjustment: new Gtk.Adjustment({
+        lower: RETRY_DEFAULTS.INTERVAL.MIN,
+        upper: RETRY_DEFAULTS.INTERVAL.MAX,
+        step_increment: RETRY_DEFAULTS.INTERVAL.STEP,
+        value: this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT,
+      }),
+      valign: Gtk.Align.CENTER,
+    });
+    // @ts-ignore
+    intervalSpin.connect('value-changed', () => {
+      this.config.interval = intervalSpin.get_value();
+      this.onChange();
+    });
+    intervalRow.add_suffix(intervalSpin);
+    group.add(intervalRow);
   }
 
   private loadDevices(row: any) {
@@ -189,7 +239,8 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
             }
 
             this.config.deviceId = dev.address;
-            this.config.action = 'connect';
+            this.config.deviceName = dev.alias;
+            this.config.action = ActionOperation.CONNECT;
             row.subtitle = dev.alias;
           } else {
             // If we are unchecking the CURRENTLY selected device, clear it
@@ -209,6 +260,12 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.deviceId) return 'Select a device';
+    if (
+      (this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT) >
+      (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT)
+    ) {
+      return 'Retry interval cannot be longer than timeout';
+    }
     return true;
   }
 }

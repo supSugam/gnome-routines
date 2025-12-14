@@ -55,6 +55,7 @@ export class ActionFactory {
         ) as unknown as Action;
         break;
       case ActionType.WIFI:
+      case ActionType.CONNECT_WIFI:
         action = new WifiAction(
           data.id,
           data.config,
@@ -198,7 +199,7 @@ export class ActionFactory {
         ) as unknown as Action;
         break;
       default:
-        console.warn(`Unknown action type: ${data.type}`);
+        debugLog(`Unknown action type: ${data.type}`);
         return null;
     }
 

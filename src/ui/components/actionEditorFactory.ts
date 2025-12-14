@@ -22,6 +22,7 @@ import { NotificationActionEditor } from '../features/system/notificationActionE
 import { ClipboardActionEditor } from '../features/clipboard/clipboardActionEditor.js';
 import { OpenLinkActionEditor } from '../features/system/openLinkActionEditor.js';
 import { ExecuteCommandEditor } from '../features/function/commandEditor.js';
+import debugLog from '../../utils/log.js';
 
 export class ActionEditorFactory {
   static create(
@@ -75,7 +76,7 @@ export class ActionEditorFactory {
       case ActionType.EXECUTE_COMMAND:
         return new ExecuteCommandEditor(config, onChange);
       default:
-        console.warn(`No editor found for action type: ${type}`);
+        debugLog(`No editor found for action type: ${type}`);
         return null;
     }
   }

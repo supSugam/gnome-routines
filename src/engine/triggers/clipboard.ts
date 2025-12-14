@@ -23,7 +23,7 @@ export class ClipboardTrigger extends BaseTrigger {
   private cleanup: (() => void) | null = null;
 
   activate(): void {
-    if (this._isActivated) return;
+
 
     debugLog(
       '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'

@@ -5,6 +5,7 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import NM from 'gi://NM';
 import { BaseEditor } from '../../components/baseEditor.js';
+import { RETRY_DEFAULTS } from '../../../engine/constants.js';
 
 export class ConnectWifiActionEditor extends BaseEditor {
   render(group: any): void {
@@ -16,6 +17,53 @@ export class ConnectWifiActionEditor extends BaseEditor {
     group.add(row);
 
     this.loadNetworks(row);
+    this.addRetrySettings(group);
+  }
+
+  private addRetrySettings(group: any) {
+    // Timeout Row
+    const timeoutRow = new Adw.ActionRow({
+      title: 'Wait Timeout (seconds)',
+      subtitle: 'Stop trying after this many seconds',
+    });
+    const timeoutSpin = new Gtk.SpinButton({
+      adjustment: new Gtk.Adjustment({
+        lower: RETRY_DEFAULTS.TIMEOUT.MIN,
+        upper: RETRY_DEFAULTS.TIMEOUT.MAX,
+        step_increment: RETRY_DEFAULTS.TIMEOUT.STEP,
+        value: this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT,
+      }),
+      valign: Gtk.Align.CENTER,
+    });
+    // @ts-ignore
+    timeoutSpin.connect('value-changed', () => {
+      this.config.timeout = timeoutSpin.get_value();
+      this.onChange();
+    });
+    timeoutRow.add_suffix(timeoutSpin);
+    group.add(timeoutRow);
+
+    // Interval Row
+    const intervalRow = new Adw.ActionRow({
+      title: 'Retry Interval (seconds)',
+      subtitle: 'Wait this long between attempts',
+    });
+    const intervalSpin = new Gtk.SpinButton({
+      adjustment: new Gtk.Adjustment({
+        lower: RETRY_DEFAULTS.INTERVAL.MIN,
+        upper: RETRY_DEFAULTS.INTERVAL.MAX,
+        step_increment: RETRY_DEFAULTS.INTERVAL.STEP,
+        value: this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT,
+      }),
+      valign: Gtk.Align.CENTER,
+    });
+    // @ts-ignore
+    intervalSpin.connect('value-changed', () => {
+      this.config.interval = intervalSpin.get_value();
+      this.onChange();
+    });
+    intervalRow.add_suffix(intervalSpin);
+    group.add(intervalRow);
   }
 
   private loadNetworks(row: any) {
@@ -87,6 +135,12 @@ export class ConnectWifiActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.ssid) return 'Select a network';
+    if (
+      (this.config.interval || RETRY_DEFAULTS.INTERVAL.DEFAULT) >
+      (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT)
+    ) {
+      return 'Retry interval cannot be longer than timeout';
+    }
     return true;
   }
 }

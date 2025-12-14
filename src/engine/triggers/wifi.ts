@@ -6,6 +6,8 @@ import debugLog from '../../utils/log.js';
 export class WifiTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
+  private _initialized: boolean = false;
+  private cleanup: (() => void) | null = null;
 
   constructor(
     id: string,
@@ -50,6 +52,10 @@ export class WifiTrigger extends BaseTrigger {
         );
       } else {
         // Disconnected logic with specific networks
+        // "Disconnected FROM X" check.
+        // If we are currently disconnected, we satisfy "Disconnected from X".
+        // If we are currently connected to Y (and Y is not X), we strictly allow "Disconnected from X".
+        // If we are connected to X, we are NOT disconnected from X.
         return currentSSID === null || !this.config.ssids.includes(currentSSID);
       }
     }
@@ -62,29 +68,100 @@ export class WifiTrigger extends BaseTrigger {
     }
   }
 
-  private cleanup: (() => void) | null = null;
+  private _lastState: boolean | null = null;
 
   activate(): void {
-    if (this._isActivated) return;
-
     debugLog(`[WifiTrigger] Activating listener for ${this.config.state}`);
+    this._initialized = false;
+    this._lastState = null;
 
+    // Initialize baseline state immediately
     if (
       this.config.state === ConnectionState.ENABLED ||
       this.config.state === ConnectionState.DISABLED
     ) {
+      // Power Baseline
+      this._lastState = this.adapter.getWifiPowerState();
+      debugLog(
+        `[WifiTrigger] Initial Power State: ${this._lastState} (Baselined)`
+      );
+      this._initialized = true;
+
       this.cleanup = this.adapter.onWifiPowerStateChanged(
         (isEnabled: boolean) => {
-          debugLog(`[WifiTrigger] Wifi power changed to: ${isEnabled}`);
-          this.emit('triggered');
+          if (!this._initialized) return;
+
+          if (this._lastState === isEnabled) {
+            // Duplicate event / No change
+            return;
+          }
+          this._lastState = isEnabled;
+          debugLog(
+            `[WifiTrigger] Wifi power changed: ${!isEnabled} -> ${isEnabled}`
+          );
+
+          if (this.config.state === ConnectionState.ENABLED && isEnabled) {
+            this.emit('triggered');
+          } else if (
+            this.config.state === ConnectionState.DISABLED &&
+            !isEnabled
+          ) {
+            this.emit('triggered');
+          }
         }
       );
     } else {
+      // Connection Baseline
+      this._lastState = this.adapter.getWifiState();
+      debugLog(
+        `[WifiTrigger] Initial Connection State: ${this._lastState} (Baselined)`
+      );
+      this._initialized = true;
+
       this.cleanup = this.adapter.onWifiStateChanged((isConnected: boolean) => {
+        if (!this._initialized) return;
+
+        if (this._lastState === isConnected) {
+          // Duplicate event / No change
+          return;
+        }
+        this._lastState = isConnected;
         debugLog(
-          `[WifiTrigger] Wifi connection state changed to: ${isConnected}`
+          `[WifiTrigger] Wifi connection changed: ${!isConnected} -> ${isConnected}`
         );
-        this.emit('triggered');
+
+        // Handle specific logic
+        if (this.config.state === ConnectionState.CONNECTED) {
+          if (isConnected) {
+            // ... (Logic for specific SSIDs remains same - triggered check)
+            const currentSSID = this.adapter.getCurrentWifiSSID();
+            if (this.config.ssids && this.config.ssids.length > 0) {
+              if (currentSSID && this.config.ssids.includes(currentSSID)) {
+                this.emit('triggered');
+              }
+            } else {
+              this.emit('triggered');
+            }
+          }
+        } else if (this.config.state === ConnectionState.DISCONNECTED) {
+          if (!isConnected) {
+            // USER REQUIREMENT: Turning off Wifi is NOT a disconnect event.
+            const isPowerOn = this.adapter.getWifiPowerState();
+            if (!isPowerOn) {
+              debugLog(
+                `[WifiTrigger] Ignored Disconnect event because Wi-Fi Power is OFF.`
+              );
+              return;
+            }
+
+            // Proceed as normal disconnect
+            if (!this.config.ssids || this.config.ssids.length === 0) {
+              this.emit('triggered');
+            } else {
+              this.emit('triggered'); // Assuming valid disconnect from specific (limitation noted)
+            }
+          }
+        }
       });
     }
 
@@ -93,7 +170,6 @@ export class WifiTrigger extends BaseTrigger {
 
   deactivate(): void {
     if (!this._isActivated) return;
-
     debugLog(`[WifiTrigger] Deactivating listener`);
     if (this.cleanup) {
       this.cleanup();

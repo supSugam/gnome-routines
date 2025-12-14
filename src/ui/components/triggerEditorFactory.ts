@@ -11,6 +11,7 @@ import { DarkModeTriggerEditor } from '../features/display/darkModeTriggerEditor
 import { PowerSaverTriggerEditor } from '../features/power/powerSaverTriggerEditor.js';
 import { HeadphonesTriggerEditor } from '../features/audio/headphonesTriggerEditor.js';
 import { StartupTriggerEditor } from '../features/system/startupTriggerEditor.js';
+import debugLog from '../../utils/log.js';
 
 export class TriggerEditorFactory {
   static create(
@@ -42,7 +43,7 @@ export class TriggerEditorFactory {
       case TriggerType.STARTUP:
         return new StartupTriggerEditor(config, onChange);
       default:
-        console.warn(`No editor found for trigger type: ${type}`);
+        debugLog(`No editor found for trigger type: ${type}`);
         return null;
     }
   }

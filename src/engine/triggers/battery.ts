@@ -11,6 +11,7 @@ import debugLog from '../../utils/log.js';
 export class BatteryTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
   public _isActivated: boolean = false;
+  private _lastMatch: boolean | null = null;
 
   private cleanup: (() => void) | null = null;
 
@@ -55,17 +56,37 @@ export class BatteryTrigger extends BaseTrigger {
   }
 
   activate(): void {
-    if (this._isActivated) return;
-
     debugLog(`[BatteryTrigger] Activating listener`);
-    this.cleanup = this.adapter.onBatteryStateChanged((level, isCharging) => {
-      debugLog(
-        `[BatteryTrigger] Battery state changed: ${level}%, Charging: ${isCharging}`
-      );
-      this.emit('triggered');
+    this._isActivated = true;
+
+    // Initialize baseline
+    this.check().then((isMatch) => {
+      this._lastMatch = isMatch;
+      debugLog(`[BatteryTrigger] Initial state: ${isMatch}`);
     });
 
-    this._isActivated = true;
+    this.cleanup = this.adapter.onBatteryStateChanged(
+      async (level, isCharging) => {
+        // Re-evaluate condition
+        const isMatch = await this.check();
+
+        if (this._lastMatch === null) {
+          this._lastMatch = isMatch;
+          return;
+        }
+
+        // Emitting only on state change prevents spamming
+        if (isMatch !== this._lastMatch) {
+          debugLog(
+            `[BatteryTrigger] Condition changed: ${this._lastMatch} -> ${isMatch}`
+          );
+          this._lastMatch = isMatch;
+          if (isMatch) {
+            this.emit('triggered');
+          }
+        }
+      }
+    );
   }
 
   deactivate(): void {
@@ -77,5 +98,6 @@ export class BatteryTrigger extends BaseTrigger {
       this.cleanup = null;
     }
     this._isActivated = false;
+    this._lastMatch = null;
   }
 }

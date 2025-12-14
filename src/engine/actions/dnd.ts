@@ -16,10 +16,7 @@ export class DndAction extends BaseAction {
   execute(): void {
     debugLog(`[DNDAction] Setting DND to: ${this.config.enabled}`);
     // Store current state before changing
-    const settings = new (require('gi://Gio').Settings)({
-      schema_id: 'org.gnome.desktop.notifications',
-    });
-    this.previousDndState = !settings.get_boolean('show-banners');
+    this.previousDndState = this.adapter.getDND();
     debugLog(`[DNDAction] Previous DND state: ${this.previousDndState}`);
 
     this.adapter.setDND(this.config.enabled);

@@ -7,7 +7,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import { GSettingsStorageAdapter } from './gnome/adapters/gsettingsStorage.js';
 
-import debugLog from './utils/log.js';
+import debugLog, { closeLog, startFreshLog } from './utils/log.js';
 
 import { createQuickSettingsToggle } from './gnome/ui/quickSettings.js';
 
@@ -19,7 +19,8 @@ export default class GnomeRoutinesExt extends Extension {
   private quickSettingsUpdateFn: (() => void) | null = null;
 
   enable() {
-    debugLog('[GnomeRoutines] Enabling extension version 1.');
+    startFreshLog();
+    debugLog('[GnomeRoutines] Enabling extension version 3.');
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);
@@ -66,6 +67,7 @@ export default class GnomeRoutinesExt extends Extension {
 
   disable() {
     debugLog('Disabling Gnome Routines');
+    closeLog();
 
     if (this.quickSettingsToggle) {
       this.quickSettingsToggle.destroy();

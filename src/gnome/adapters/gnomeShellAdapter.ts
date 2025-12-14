@@ -33,6 +33,7 @@ export class GnomeShellAdapter implements SystemAdapter {
     sessionType: string;
   } | null = null;
   private _startupStateChecked: boolean = false;
+  private nmClient: any = null;
 
   constructor() {
     this.appSystem = Shell.AppSystem.get_default();
@@ -237,6 +238,21 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
 
     return { isStartup: true, timeSinceInit: 0 };
+  }
+
+  private getNMClient(): any {
+    if (!this.nmClient) {
+      try {
+        debugLog('[GnomeShellAdapter] Creating new NMClient...');
+        this.nmClient = NM.Client.new(null);
+        debugLog(
+          `[GnomeShellAdapter] NMClient created. Wireless Enabled: ${this.nmClient?.wireless_enabled}, Networking Enabled: ${this.nmClient?.networking_enabled}`
+        );
+      } catch (e) {
+        console.error('[GnomeShellAdapter] Failed to create NMClient:', e);
+      }
+    }
+    return this.nmClient;
   }
 
   showNotification(title: string, body: string): void {
@@ -513,7 +529,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               } via bluetoothctl`
             );
           } catch (e) {
-            console.warn(
+            debugLog(
               `[GnomeShellAdapter] bluetoothctl failed, trying rfkill: ${e}`
             );
             // Fallback to rfkill
@@ -594,8 +610,14 @@ export class GnomeShellAdapter implements SystemAdapter {
   setWifi(enabled: boolean): void {
     debugLog(`[GnomeShellAdapter] Setting Wifi to ${enabled}`);
     try {
-      const cmd = enabled ? 'nmcli radio wifi on' : 'nmcli radio wifi off';
-      GLib.spawn_command_line_async(cmd);
+      const client = this.getNMClient();
+      if (client) {
+        client.wireless_enabled = enabled;
+      } else {
+        // Fallback to CLI if client fails
+        const cmd = enabled ? 'nmcli radio wifi on' : 'nmcli radio wifi off';
+        GLib.spawn_command_line_async(cmd);
+      }
     } catch (e) {
       console.error('[GnomeShellAdapter] Failed to set Wifi:', e);
     }
@@ -624,7 +646,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   // Network Tracking
   getWifiState(): boolean {
     try {
-      const client = NM.Client.new(null);
+      const client = this.getNMClient();
       if (!client) return false;
 
       const connections = client.get_active_connections();
@@ -647,7 +669,7 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
     try {
-      const client = NM.Client.new(null);
+      const client = this.getNMClient();
       if (!client) return () => {};
 
       const signalId = client.connect('notify::active-connections', () => {
@@ -676,7 +698,7 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getCurrentWifiSSID(): string | null {
     try {
-      const client = NM.Client.new(null);
+      const client = this.getNMClient();
       if (!client) return null;
 
       const connections = client.get_active_connections();
@@ -700,7 +722,7 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   getSavedWifiNetworks(): string[] {
     try {
-      const client = NM.Client.new(null);
+      const client = this.getNMClient();
       if (!client) return [];
 
       const connections = client.get_connections();
@@ -942,7 +964,7 @@ export class GnomeShellAdapter implements SystemAdapter {
                 debugLog(`[GnomeShellAdapter] Executing: ${cmd}`);
                 GLib.spawn_command_line_async(cmd);
               } else {
-                console.warn(
+                debugLog(
                   `[GnomeShellAdapter] Could not determine display (${displayName}) or resolution (${currentResolution})`
                 );
               }
@@ -983,7 +1005,7 @@ export class GnomeShellAdapter implements SystemAdapter {
                 return;
               }
             }
-            console.warn(
+            debugLog(
               '[GnomeShellAdapter] Could not detect current refresh rate, defaulting to 60'
             );
             resolve(60);
@@ -1239,15 +1261,28 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     try {
-      const client = NM.Client.new(null);
-      if (!client) return () => {};
+      debugLog('[GnomeShellAdapter] Setting up Wifi Power State listener...');
+      const client = this.getNMClient();
+      if (!client) {
+        debugLog(
+          '[GnomeShellAdapter] NMClient not available for Wifi Power listener'
+        );
+        return () => {};
+      }
 
       const signalId = client.connect('notify::wireless-enabled', () => {
+        debugLog(
+          `[GnomeShellAdapter] NMClient notify::wireless-enabled fired. Value: ${client.wireless_enabled}`
+        );
         callback(client.wireless_enabled);
       });
+      debugLog(
+        `[GnomeShellAdapter] Subscribed to notify::wireless-enabled (Signal ID: ${signalId})`
+      );
 
       return () => {
         try {
+          debugLog('[GnomeShellAdapter] Disconnecting Wifi Power listener');
           client.disconnect(signalId);
         } catch (e) {
           console.error(
@@ -1273,8 +1308,11 @@ export class GnomeShellAdapter implements SystemAdapter {
     callback: (isEnabled: boolean) => void
   ): () => void {
     try {
+      debugLog(
+        '[GR-DEBUG] [GnomeShellAdapter] Subscribing to system DBus signal: org.freedesktop.DBus.Properties.PropertiesChanged'
+      );
       const signalId = Gio.DBus.system.signal_subscribe(
-        'org.bluez',
+        null, // Sender: null to match ANY sender (using 'org.bluez' can fail if signal comes from unique name)
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -1288,12 +1326,35 @@ export class GnomeShellAdapter implements SystemAdapter {
           signal: any,
           params: any
         ) => {
-          const [interfaceName, changedProps] = params.deep_unpack();
-          if (
-            interfaceName === 'org.bluez.Adapter1' &&
-            changedProps.Powered !== undefined
-          ) {
-            callback(changedProps.Powered.get_boolean());
+          try {
+            debugLog(
+              `[GR-DEBUG] [GnomeShellAdapter] DBus Signal received. Path: ${path}, Sender: ${sender}`
+            );
+            const unpacked = params.deep_unpack();
+            // Expected: [interfaceName, changedProps, invalidatedProps]
+            const interfaceName = unpacked[0];
+            const changedProps = unpacked[1];
+
+            debugLog(
+              `[GR-DEBUG] [GnomeShellAdapter] Signal unpacked. Interface: ${interfaceName}, Props keys: ${Object.keys(
+                changedProps
+              ).join(', ')}`
+            );
+
+            if (
+              interfaceName === 'org.bluez.Adapter1' &&
+              changedProps.Powered !== undefined
+            ) {
+              const newState = changedProps.Powered.get_boolean();
+              debugLog(
+                `[GR-DEBUG] [GnomeShellAdapter] Bluetooth Powered state changed to: ${newState}`
+              );
+              callback(newState);
+            }
+          } catch (err) {
+            console.error(
+              `[GR-DEBUG] [GnomeShellAdapter] Error parsing DBus signal: ${err}`
+            );
           }
         }
       );
@@ -1880,7 +1941,7 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   // Tracked resources for cleanup
-  private nmClient: any | null = null;
+  // nmClient is defined at the top
   private upClient: any | null = null;
   private notificationSource: any | null = null;
   // Note: Signal IDs are now handled by individual listeners returning cleanup functions.

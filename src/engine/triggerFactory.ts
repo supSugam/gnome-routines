@@ -7,6 +7,7 @@ import { BatteryTrigger } from './triggers/battery.js';
 import { SystemTrigger } from './triggers/system.js';
 import { ClipboardTrigger } from './triggers/clipboard.js';
 import { StartupTrigger } from './triggers/startup.js';
+import debugLog from '../utils/log.js';
 
 export class TriggerFactory {
   static create(data: any, adapter: any): Trigger | null {
@@ -32,7 +33,7 @@ export class TriggerFactory {
       case TriggerType.STARTUP:
         return new StartupTrigger(data.id, data.config, adapter);
       default:
-        console.warn(`Unknown trigger type: ${data.type}`);
+        debugLog(`Unknown trigger type: ${data.type}`);
         return null;
     }
   }

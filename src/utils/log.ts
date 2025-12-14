@@ -2,10 +2,7 @@
 import GLib from 'gi://GLib';
 // @ts-ignore
 import Gio from 'gi://Gio';
-
-// Set to true for production debugging if needed, or control via setting
-const DEBUG = false;
-const LOG_TO_FILE = false;
+import { EXTENSION_DEFAULTS } from '../data/constants.js';
 
 let logStream: any = null;
 
@@ -13,16 +10,40 @@ function getLogStream() {
   if (logStream) return logStream;
   try {
     const cacheDir = GLib.get_user_cache_dir();
-    const logDir = GLib.build_filenamev([cacheDir, 'gnome-routines']);
+    const logDir = GLib.build_filenamev([cacheDir, EXTENSION_DEFAULTS.log.dir]);
 
     if (GLib.mkdir_with_parents(logDir, 0o755) !== 0) {
       // Ignore error if exists
     }
 
-    const sessionId =
-      GLib.getenv('XDG_SESSION_ID') || `${new Date().getTime()}`;
-    const fileName = `debug-session-${sessionId}.log`;
-    const logFile = GLib.build_filenamev([logDir, fileName]);
+    // Cleanup leftover temp files (.goutputstream-*)
+    try {
+      const dir = Gio.File.new_for_path(logDir);
+      const enumerator = dir.enumerate_children(
+        'standard::name',
+        Gio.FileQueryInfoFlags.NONE,
+        null
+      );
+      let fileInfo;
+      while ((fileInfo = enumerator.next_file(null))) {
+        const name = fileInfo.get_name();
+        if (name.startsWith('.goutputstream')) {
+          const tempFile = dir.get_child(name);
+          try {
+            tempFile.delete(null);
+          } catch (e) {
+            // Ignore delete errors
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore cleanup errors
+    }
+
+    const logFile = GLib.build_filenamev([
+      logDir,
+      EXTENSION_DEFAULTS.log.fileName,
+    ]);
     const file = Gio.File.new_for_path(logFile);
 
     // Append mode
@@ -35,22 +56,29 @@ function getLogStream() {
 }
 
 export default function debugLog(message: string, ...args: any[]) {
-  // Always log ERRORs or critical info marked with [GnomeRoutines-DEBUG] regardless of DEBUG flag?
-  // For now stick to DEBUG constant.
-  if (!DEBUG) return;
-
   const d = new Date();
-  const timestamp = d.toISOString();
+  const hours = d.getHours();
+  const minutes = d.getMinutes();
+  const seconds = d.getSeconds();
+
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM/PM
+
+  const pad = (num: number) => num.toString().padStart(2, '0');
+
+  const timestamp = `[${pad(displayHours)}:${pad(minutes)}:${pad(
+    seconds
+  )} ${ampm}]`;
   const argsStr = args
-    .map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
+    .map((a: any) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
     .join(' ');
-  const fullMessage = `[${timestamp}] ${message} ${argsStr}`;
+  const fullMessage = `${timestamp} ${message} ${argsStr}`;
 
   // Console output
   console.log(fullMessage);
 
   // File output
-  if (LOG_TO_FILE) {
+  if (EXTENSION_DEFAULTS.log.saveToFile) {
     try {
       const stream = getLogStream();
       if (stream) {
@@ -60,5 +88,27 @@ export default function debugLog(message: string, ...args: any[]) {
     } catch (e) {
       console.error('Failed to write to log file:', e);
     }
+  }
+}
+
+export function startFreshLog() {
+  const stream = getLogStream();
+  if (stream) {
+    try {
+      stream.truncate(0, null);
+    } catch (e) {
+      // Truncate might fail on some streams, ignore
+    }
+  }
+}
+
+export function closeLog() {
+  if (logStream) {
+    try {
+      logStream.close(null);
+    } catch (e) {
+      console.error('Failed to close log stream:', e);
+    }
+    logStream = null;
   }
 }

@@ -7,12 +7,14 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
+import { ActionOperation } from '../../../engine/types.js';
 
 export class DisconnectBluetoothActionEditor extends BaseEditor {
   render(group: any): void {
     const row = new Adw.ExpanderRow({
       title: 'Select Device',
-      subtitle: this.config.deviceId || 'No device selected',
+      subtitle:
+        this.config.deviceName || this.config.deviceId || 'No device selected',
       expanded: true,
     });
     group.add(row);
@@ -171,7 +173,8 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
         check.connect('toggled', () => {
           if (check.active) {
             this.config.deviceId = dev.address;
-            this.config.action = 'disconnect';
+            this.config.deviceName = dev.alias;
+            this.config.action = ActionOperation.DISCONNECT;
             row.subtitle = dev.alias;
             this.onChange();
           }
