@@ -336,9 +336,7 @@ export class RoutineManager implements RoutineManagerInterface {
         // STRATEGY CHECK
         if (this._isFirstRun) {
           const allIgnorable = activeTriggers.every(
-            (t) =>
-              t.strategy === TriggerStrategy.INITIAL_IGNORE ||
-              t.strategy === TriggerStrategy.EVENT_CHANGE
+            (t) => t.strategy === TriggerStrategy.NEW_CHANGE_ONLY
           );
 
           if (allIgnorable) {

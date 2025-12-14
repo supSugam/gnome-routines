@@ -1,5 +1,6 @@
 import { Trigger, TriggerType, TriggerStrategy } from '../types.js';
 import { EventEmitter } from '../events.js';
+import { TRIGGER_METADATA } from '../triggerMetadata.js';
 
 export abstract class BaseTrigger extends EventEmitter implements Trigger {
   id: string;
@@ -18,7 +19,13 @@ export abstract class BaseTrigger extends EventEmitter implements Trigger {
     this.id = id;
     this.type = type;
     this.config = config;
-    this.strategy = strategy;
+    
+    const metadata = TRIGGER_METADATA[type];
+    if (metadata?.getStrategy) {
+      this.strategy = strategy || metadata.getStrategy(config);
+    } else {
+      this.strategy = strategy || metadata?.defaultStrategy;
+    }
   }
 
   abstract check(): Promise<boolean> | boolean;

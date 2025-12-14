@@ -13,7 +13,7 @@ export class ClipboardTrigger extends BaseTrigger {
     config: { contentType: 'any' | 'text' | 'image' | 'regex'; regex?: string },
     adapter: SystemAdapter
   ) {
-    super(id, TriggerType.CLIPBOARD, config, TriggerStrategy.EVENT_CHANGE);
+    super(id, TriggerType.CLIPBOARD, config);
     this.adapter = adapter;
   }
 

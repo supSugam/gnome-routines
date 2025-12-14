@@ -7,6 +7,8 @@ import { BatteryTrigger } from './triggers/battery.js';
 import { SystemTrigger } from './triggers/system.js';
 import { ClipboardTrigger } from './triggers/clipboard.js';
 import { StartupTrigger } from './triggers/startup.js';
+import { DarkModeTrigger } from './triggers/darkMode.js';
+import { DndTrigger } from './triggers/dnd.js';
 import debugLog from '../utils/log.js';
 
 export class TriggerFactory {
@@ -23,11 +25,14 @@ export class TriggerFactory {
       case TriggerType.BATTERY:
         return new BatteryTrigger(data.id, data.config, adapter);
       case TriggerType.POWER_SAVER: // Assuming system trigger handles this via SystemTrigger
-      case TriggerType.DARK_MODE:
       case TriggerType.AIRPLANE_MODE:
       case TriggerType.HEADPHONES:
       case 'system': // Backward compatibility
         return new SystemTrigger(data.id, data.config, adapter);
+      case TriggerType.DARK_MODE:
+        return new DarkModeTrigger(data.id, data.config, adapter);
+      case TriggerType.DND:
+        return new DndTrigger(data.id, data.config, adapter);
       case TriggerType.CLIPBOARD:
         return new ClipboardTrigger(data.id, data.config, adapter);
       case TriggerType.STARTUP:

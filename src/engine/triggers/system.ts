@@ -8,7 +8,7 @@ export class SystemTrigger extends BaseTrigger {
   public _isActivated: boolean = false;
 
   constructor(id: string, config: SystemTriggerConfig, adapter: SystemAdapter) {
-    super(id, config.type, config, TriggerStrategy.STATE_PERSISTENT);
+    super(id, config.type, config);
     this.adapter = adapter;
   }
 
@@ -18,9 +18,6 @@ export class SystemTrigger extends BaseTrigger {
     switch (this.config.type) {
       case TriggerType.POWER_SAVER:
         currentState = await this.adapter.getPowerSaverState();
-        break;
-      case TriggerType.DARK_MODE:
-        currentState = this.adapter.getDarkModeState();
         break;
       case TriggerType.AIRPLANE_MODE:
         currentState = await this.adapter.getAirplaneModeState();
@@ -47,12 +44,25 @@ export class SystemTrigger extends BaseTrigger {
     this._isActivated = true;
 
     // Initialize state
+    // Initialize state
     this.check().then((initialState) => {
       if (this._lastMatch === null) {
-        debugLog(
-          `[SystemTrigger] Setting initial state for ${this.config.type}: ${initialState}`
-        );
-        this._lastMatch = initialState;
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        if (shouldIgnoreInitial) {
+          debugLog(
+            `[SystemTrigger] Setting initial state for ${this.config.type}: ${initialState} (Ignored)`
+          );
+          this._lastMatch = initialState;
+        } else {
+          debugLog(
+            `[SystemTrigger] Setting initial state for ${this.config.type}: ${initialState} (Checking immediate)`
+          );
+          this._lastMatch = initialState;
+          if (initialState) {
+            this.emit('triggered');
+          }
+        }
       }
     });
 
@@ -64,8 +74,24 @@ export class SystemTrigger extends BaseTrigger {
       const isMatch = await this.check();
 
       if (this._lastMatch === null) {
-        this._lastMatch = isMatch;
-        return;
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        if (shouldIgnoreInitial) {
+          debugLog(
+            `[SystemTrigger] ${this.config.type} Initial Race: ${isMatch} (Ignored)`
+          );
+          this._lastMatch = isMatch;
+          return;
+        } else {
+          debugLog(
+            `[SystemTrigger] ${this.config.type} Initial Race: ${isMatch} (Checking immediate)`
+          );
+          this._lastMatch = isMatch;
+          if (isMatch) {
+            this.emit('triggered');
+          }
+          return;
+        }
       }
 
       if (isMatch !== this._lastMatch) {
@@ -74,8 +100,15 @@ export class SystemTrigger extends BaseTrigger {
         );
         this._lastMatch = isMatch;
         if (isMatch) {
-          this.emit('triggered');
+          debugLog(
+            `[SystemTrigger] Condition met (TRUE). Emitting 'triggered'.`
+          );
+        } else {
+          debugLog(
+            `[SystemTrigger] Condition lost (FALSE). Emitting 'triggered'.`
+          );
         }
+        this.emit('triggered');
       }
     };
 
@@ -83,11 +116,6 @@ export class SystemTrigger extends BaseTrigger {
       case TriggerType.POWER_SAVER:
         this.cleanup = this.adapter.onPowerSaverStateChanged((isActive) =>
           callback(isActive)
-        );
-        break;
-      case TriggerType.DARK_MODE:
-        this.cleanup = this.adapter.onDarkModeStateChanged((isDark) =>
-          callback(isDark)
         );
         break;
       case TriggerType.AIRPLANE_MODE:

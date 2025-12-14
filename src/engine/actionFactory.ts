@@ -51,7 +51,9 @@ export class ActionFactory {
         action = new DndAction(
           data.id,
           data.config,
-          adapter
+          adapter,
+          stateManager,
+          routineId
         ) as unknown as Action;
         break;
       case ActionType.WIFI:

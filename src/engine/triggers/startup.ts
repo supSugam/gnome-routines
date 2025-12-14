@@ -19,13 +19,18 @@ export class StartupTrigger extends BaseTrigger {
     config: StartupTriggerConfig,
     adapter: SystemAdapter
   ) {
-    super(id, TriggerType.STARTUP, config, TriggerStrategy.STATE_PERSISTENT);
+    super(id, TriggerType.STARTUP, config);
     this.adapter = adapter;
   }
 
   async check(): Promise<boolean> {
     if (!this.adapter) {
       debugLog('[StartupTrigger] No adapter available');
+      return false;
+    }
+
+    if (this.strategy === TriggerStrategy.NEW_CHANGE_ONLY) {
+      debugLog('[StartupTrigger] Ignored by strategy configuration.');
       return false;
     }
 

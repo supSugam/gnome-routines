@@ -10,6 +10,7 @@ export enum TriggerType {
   HEADPHONES = 'headphones',
   CLIPBOARD = 'clipboard',
   STARTUP = 'startup',
+  DND = 'dnd',
 }
 
 export enum ActionType {
@@ -126,9 +127,8 @@ export type TriggerConfig =
   | StartupTriggerConfig;
 
 export enum TriggerStrategy {
-  STATE_PERSISTENT = 'state_persistent', // Run actions on startup if state matches (e.g. Time)
-  EVENT_CHANGE = 'event_change', // Only run on state change, ignore startup (e.g. Clipboard)
-  INITIAL_IGNORE = 'initial_ignore', // Like Event, explicitly ignores first check (e.g. Bluetooth)
+  EXISTING_STATE = 'existing_state', // Checks conditions immediately on startup. (e.g. Battery Level)
+  NEW_CHANGE_ONLY = 'new_change_only', // Ignores startup state, waits for new event. (e.g. Charging Status)
 }
 // Note: EVENT_CHANGE and INITIAL_IGNORE are similar.
 // User specific request: "Bluetooth... not trigger if status was already from before".

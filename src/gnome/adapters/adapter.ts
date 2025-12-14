@@ -68,6 +68,7 @@ export interface SystemAdapter {
   onAirplaneModeStateChanged(
     callback: (isEnabled: boolean) => void
   ): () => void;
+  onDndStateChanged(callback: (enabled: boolean) => void): () => void;
 
   // Audio
   getWiredHeadphonesState(): Promise<boolean>;

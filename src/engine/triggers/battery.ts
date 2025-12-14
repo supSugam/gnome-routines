@@ -5,6 +5,7 @@ import {
   BatteryStatus,
   LevelComparison,
   TriggerType,
+  TriggerStrategy,
 } from '../types.js';
 import debugLog from '../../utils/log.js';
 
@@ -61,8 +62,23 @@ export class BatteryTrigger extends BaseTrigger {
 
     // Initialize baseline
     this.check().then((isMatch) => {
-      this._lastMatch = isMatch;
-      debugLog(`[BatteryTrigger] Initial state: ${isMatch}`);
+      const shouldIgnoreInitial =
+        this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+      if (shouldIgnoreInitial) {
+        debugLog(
+          `[BatteryTrigger] Initial state: ${isMatch} (Baselined - Ignored by Strategy)`
+        );
+        this._lastMatch = isMatch;
+      } else {
+        debugLog(
+          `[BatteryTrigger] Initial state: ${isMatch} (Checking immediate)`
+        );
+        this._lastMatch = isMatch;
+        if (isMatch) {
+          this.emit('triggered');
+        }
+      }
     });
 
     this.cleanup = this.adapter.onBatteryStateChanged(
@@ -71,8 +87,24 @@ export class BatteryTrigger extends BaseTrigger {
         const isMatch = await this.check();
 
         if (this._lastMatch === null) {
-          this._lastMatch = isMatch;
-          return;
+          const shouldIgnoreInitial =
+            this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+          if (shouldIgnoreInitial) {
+            debugLog(
+              `[BatteryTrigger] Initial Event (Race): ${isMatch} (Baselined - Ignored)`
+            );
+            this._lastMatch = isMatch;
+            return;
+          } else {
+            debugLog(
+              `[BatteryTrigger] Initial Event (Race): ${isMatch} (Checking immediate)`
+            );
+            this._lastMatch = isMatch;
+            if (isMatch) {
+              this.emit('triggered');
+            }
+            return;
+          }
         }
 
         // Emitting only on state change prevents spamming
@@ -82,8 +114,15 @@ export class BatteryTrigger extends BaseTrigger {
           );
           this._lastMatch = isMatch;
           if (isMatch) {
-            this.emit('triggered');
+            debugLog(
+              `[BatteryTrigger] Condition met (TRUE). Emitting 'triggered'.`
+            );
+          } else {
+            debugLog(
+              `[BatteryTrigger] Condition lost (FALSE). Emitting 'triggered'.`
+            );
           }
+          this.emit('triggered');
         }
       }
     );

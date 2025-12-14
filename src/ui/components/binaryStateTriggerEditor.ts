@@ -16,6 +16,10 @@ export abstract class BinaryStateTriggerEditor extends BaseEditor {
       strings: [this.getTrueLabel(), this.getFalseLabel()],
     });
 
+    if (this.config.state === undefined) {
+      this.config.state = this.getTrueValue();
+    }
+
     const row = new Adw.ComboRow({
       title: this.getTitle(),
       model: model,

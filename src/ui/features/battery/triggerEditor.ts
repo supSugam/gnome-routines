@@ -19,6 +19,16 @@ export class BatteryTriggerEditor extends BaseEditor {
     const battModeModel = new Gtk.StringList({
       strings: ['Charging Status', 'Battery Level'],
     });
+
+    // Init defaults
+    if (!this.batteryConfig.mode)
+      this.batteryConfig.mode = BatteryTriggerMode.STATUS;
+    if (!this.batteryConfig.status)
+      this.batteryConfig.status = BatteryStatus.CHARGING;
+    if (!this.batteryConfig.levelType)
+      this.batteryConfig.levelType = LevelComparison.BELOW;
+    if (this.batteryConfig.level === undefined) this.batteryConfig.level = 50;
+
     const battModeRow = new Adw.ComboRow({
       title: 'Trigger Type',
       model: battModeModel,

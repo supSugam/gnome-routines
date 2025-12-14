@@ -284,6 +284,31 @@ export class GnomeShellAdapter implements SystemAdapter {
     return !settings.get_boolean('show-banners');
   }
 
+  onDndStateChanged(callback: (enabled: boolean) => void): () => void {
+    const settings = new Gio.Settings({
+      schema_id: 'org.gnome.desktop.notifications',
+    });
+
+    const signalId = settings.connect('changed::show-banners', () => {
+      // 'show-banners' is true when DND is OFF
+      // So 'show-banners' false means DND is ON
+      const dndEnabled = !settings.get_boolean('show-banners');
+      debugLog(`[GnomeShellAdapter] DND State Changed: ${dndEnabled}`);
+      callback(dndEnabled);
+    });
+
+    return () => {
+      try {
+        settings.disconnect(signalId);
+      } catch (e) {
+        console.error(
+          '[GnomeShellAdapter] Failed to disconnect DND listener',
+          e
+        );
+      }
+    };
+  }
+
   setBrightness(percentage: number): void {
     debugLog(`[GnomeShellAdapter] Setting brightness to: ${percentage}%`);
     try {

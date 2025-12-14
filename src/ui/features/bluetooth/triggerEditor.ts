@@ -27,7 +27,12 @@ export class BluetoothTriggerEditor extends BaseEditor {
       ConnectionState.DISABLED,
     ];
 
-    const currentState = this.btConfig.state || ConnectionState.CONNECTED;
+
+    if (!this.btConfig.state) {
+      this.btConfig.state = ConnectionState.CONNECTED;
+    }
+
+    const currentState = this.btConfig.state;
     const selectedIndex = states.indexOf(currentState);
 
     const btRow = new Adw.ComboRow({

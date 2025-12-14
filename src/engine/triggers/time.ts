@@ -8,7 +8,7 @@ export class TimeTrigger extends BaseTrigger {
   private _lastState: boolean = false;
 
   constructor(id: string, config: TimeTriggerConfig) {
-    super(id, TriggerType.TIME, config, TriggerStrategy.STATE_PERSISTENT);
+    super(id, TriggerType.TIME, config);
   }
 
   async check(): Promise<boolean> {
@@ -68,7 +68,36 @@ export class TimeTrigger extends BaseTrigger {
   activate(): void {
     if (this.intervalId) return;
 
-    debugLog(`[TimeTrigger] Activating polling for ${this.id}`);
+    debugLog(
+      `[TimeTrigger] Activating polling for ${this.id}. Strategy: ${this.strategy}`
+    );
+
+    // Initial check logic
+    // Time trigger is polling, so "initial" is just the first run.
+    // However, if we want to support INITIAL_IGNORE for time intervals (e.g. don't trigger if I start extension inside the interval?),
+    // we need to set _lastState carefully.
+
+    // For Time, _lastState defaults to false.
+    // If we are currently IN an interval (check returns true)
+
+    // If STATE_PERSISTENT (Default):
+    // check() -> true. _lastState is false. diff -> emit trigger. Correct.
+
+    // If INITIAL_IGNORE:
+    // check() -> true. _lastState is false. We want to AVOID emit.
+    // So set _lastState = true (swallow the event).
+
+    // We should run an immediate check to set baseline if ignoring.
+    if (this.strategy === TriggerStrategy.NEW_CHANGE_ONLY) {
+      this.check().then((isActive) => {
+        if (isActive) {
+          debugLog(
+            `[TimeTrigger] Initial state matched but ignored by strategy.`
+          );
+          this._lastState = true;
+        }
+      });
+    }
 
     // Check every minute (60 seconds)
     this.intervalId = GLib.timeout_add_seconds(

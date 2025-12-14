@@ -1,7 +1,7 @@
 // @ts-ignore
 import Shell from 'gi://Shell';
 import debugLog from '../../utils/log.js';
-import { TriggerType } from '../types.js';
+import { TriggerType, TriggerStrategy } from '../types.js';
 import { BaseTrigger } from './base.js';
 
 interface AppTriggerConfig {
@@ -67,9 +67,30 @@ export class AppTrigger extends BaseTrigger {
     }
 
     // Only emit if state changed or first check
-    if (this._lastMatch === null || this._lastMatch !== match) {
+    if (this._lastMatch === null) {
+      const shouldIgnoreInitial =
+        this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+      debugLog(
+        `[AppTrigger] Initial Check: ${match} -> Strategy: ${this.strategy}`
+      );
+
+      this._lastMatch = match;
+
+      if (!shouldIgnoreInitial && match) {
+        // If NOT ignoring initial, AND match is true, trigger.
+        this.emit('triggered');
+      }
+      return match;
+    }
+
+    if (this._lastMatch !== match) {
       debugLog(`[AppTrigger] State changed: ${this._lastMatch} -> ${match}`);
       this._lastMatch = match;
+      if (match) {
+        debugLog(`[AppTrigger] Condition met (TRUE). Emitting 'triggered'.`);
+      } else {
+        debugLog(`[AppTrigger] Condition lost (FALSE). Emitting 'triggered'.`);
+      }
       this.emit('triggered');
     }
 

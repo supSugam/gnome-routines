@@ -1,6 +1,6 @@
 import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
-import { ConnectionState, TriggerType } from '../types.js';
+import { ConnectionState, TriggerType, TriggerStrategy } from '../types.js';
 import debugLog from '../../utils/log.js';
 
 export class WifiTrigger extends BaseTrigger {
@@ -81,10 +81,30 @@ export class WifiTrigger extends BaseTrigger {
       this.config.state === ConnectionState.DISABLED
     ) {
       // Power Baseline
+      // Power Baseline
       this._lastState = this.adapter.getWifiPowerState();
-      debugLog(
-        `[WifiTrigger] Initial Power State: ${this._lastState} (Baselined)`
-      );
+
+      const shouldIgnoreInitial =
+        this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+      if (shouldIgnoreInitial) {
+        debugLog(
+          `[WifiTrigger] Initial Power State: ${this._lastState} (Baselined - Ignored)`
+        );
+      } else {
+        debugLog(
+          `[WifiTrigger] Initial Power State: ${this._lastState} (Checking immediate)`
+        );
+        // Check immediate trigger for persistent
+        if (this.config.state === ConnectionState.ENABLED && this._lastState) {
+          this.emit('triggered');
+        } else if (
+          this.config.state === ConnectionState.DISABLED &&
+          !this._lastState
+        ) {
+          this.emit('triggered');
+        }
+      }
       this._initialized = true;
 
       this.cleanup = this.adapter.onWifiPowerStateChanged(
@@ -112,10 +132,34 @@ export class WifiTrigger extends BaseTrigger {
       );
     } else {
       // Connection Baseline
+      // Connection Baseline
       this._lastState = this.adapter.getWifiState();
-      debugLog(
-        `[WifiTrigger] Initial Connection State: ${this._lastState} (Baselined)`
-      );
+      const shouldIgnoreInitial =
+        this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+      if (shouldIgnoreInitial) {
+        debugLog(
+          `[WifiTrigger] Initial Connection State: ${this._lastState} (Baselined - Ignored)`
+        );
+      } else {
+        debugLog(
+          `[WifiTrigger] Initial Connection State: ${this._lastState} (Checking immediate)`
+        );
+        // Check immediate trigger
+        // Note: Logic is complex for SSIDs, we can reuse onWifiStateChanged callback or duplicate check.
+        // Reusing callback is tricky because it expects a change.
+        // Let's explicitly check here if not ignoring.
+
+        if (
+          this.config.state === ConnectionState.CONNECTED &&
+          this._lastState
+        ) {
+          const currentSSID = this.adapter.getCurrentWifiSSID();
+          // Always emit on state change so manager can re-evaluate
+          this.emit('triggered');
+        }
+      }
+
       this._initialized = true;
 
       this.cleanup = this.adapter.onWifiStateChanged((isConnected: boolean) => {

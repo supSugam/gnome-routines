@@ -164,6 +164,7 @@ export class TriggerManager {
         { id: TriggerType.BATTERY, title: UI_STRINGS.triggers.battery },
         { id: TriggerType.POWER_SAVER, title: UI_STRINGS.triggers.powerSaver },
         { id: TriggerType.DARK_MODE, title: UI_STRINGS.triggers.darkMode },
+        { id: TriggerType.DND, title: 'Do Not Disturb' }, // TODO: Add string constant
         {
           id: TriggerType.AIRPLANE_MODE,
           title: UI_STRINGS.triggers.airplaneMode,

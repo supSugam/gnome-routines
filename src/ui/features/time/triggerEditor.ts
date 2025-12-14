@@ -7,6 +7,12 @@ import { BaseEditor } from '../../components/baseEditor.js';
 export class TimeTriggerEditor extends BaseEditor {
   render(group: any): void {
     // Time Mode Selector
+    // Init defaults if completely empty (new trigger)
+    if (!this.config.time && !this.config.startTime && !this.config.endTime) {
+      this.config.time = '09:00';
+    }
+
+    // Time Mode Selector
     const timeTypeRow = new Adw.ComboRow({
       title: 'Time Mode',
       model: new Gtk.StringList({
@@ -18,26 +24,35 @@ export class TimeTriggerEditor extends BaseEditor {
 
     // Time Pickers
     const timeRow = new Adw.ActionRow({ title: 'Time' });
-    const timePicker = this.createTimePicker(this.config.time || '09:00', (t) => {
-      this.config.time = t;
-      this.onChange();
-    });
+    const timePicker = this.createTimePicker(
+      this.config.time || '09:00',
+      (t) => {
+        this.config.time = t;
+        this.onChange();
+      }
+    );
     timeRow.add_suffix(timePicker.widget);
     group.add(timeRow);
 
     const startRow = new Adw.ActionRow({ title: 'Start Time' });
-    const startPicker = this.createTimePicker(this.config.startTime || '09:00', (t) => {
-      this.config.startTime = t;
-      this.onChange();
-    });
+    const startPicker = this.createTimePicker(
+      this.config.startTime || '09:00',
+      (t) => {
+        this.config.startTime = t;
+        this.onChange();
+      }
+    );
     startRow.add_suffix(startPicker.widget);
     group.add(startRow);
 
     const endRow = new Adw.ActionRow({ title: 'End Time' });
-    const endPicker = this.createTimePicker(this.config.endTime || '17:00', (t) => {
-      this.config.endTime = t;
-      this.onChange();
-    });
+    const endPicker = this.createTimePicker(
+      this.config.endTime || '17:00',
+      (t) => {
+        this.config.endTime = t;
+        this.onChange();
+      }
+    );
     endRow.add_suffix(endPicker.widget);
     group.add(endRow);
 
@@ -47,7 +62,7 @@ export class TimeTriggerEditor extends BaseEditor {
       timeRow.visible = !isPeriod;
       startRow.visible = isPeriod;
       endRow.visible = isPeriod;
-      
+
       // Clear irrelevant fields to avoid confusion in config
       if (isPeriod) {
         delete this.config.time;
@@ -84,7 +99,7 @@ export class TimeTriggerEditor extends BaseEditor {
       tooltip_text: 'Toggle All',
     });
     allBtn.add_css_class('flat');
-    
+
     // @ts-ignore
     allBtn.connect('clicked', () => {
       if (this.config.days.length === 7) {
@@ -105,20 +120,22 @@ export class TimeTriggerEditor extends BaseEditor {
         active: this.config.days.includes(index),
       });
       btn.add_css_class('circular');
-      
+
       // @ts-ignore
       btn.connect('toggled', () => {
         if (btn.active) {
           if (!this.config.days.includes(index)) this.config.days.push(index);
         } else {
-          this.config.days = this.config.days.filter((d: number) => d !== index);
+          this.config.days = this.config.days.filter(
+            (d: number) => d !== index
+          );
         }
         this.config.days.sort((a: number, b: number) => a - b);
-        
+
         repeatRow.subtitle = this.getDaysSummary(this.config.days);
         this.onChange();
       });
-      
+
       toggles.push(btn);
       daysBox.append(btn);
     });

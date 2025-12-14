@@ -16,7 +16,7 @@ export class BluetoothTrigger extends BaseTrigger {
     },
     adapter: SystemAdapter
   ) {
-    super(id, TriggerType.BLUETOOTH, config, TriggerStrategy.INITIAL_IGNORE);
+    super(id, TriggerType.BLUETOOTH, config);
     this.adapter = adapter;
   }
 
@@ -79,13 +79,30 @@ export class BluetoothTrigger extends BaseTrigger {
     this._lastMatchState = null;
 
     // Initialize baseline state
+    // Initialize baseline state
     this._evaluateCondition().then((initialState) => {
       if (!this._initialized) {
-        debugLog(
-          `[BluetoothTrigger] Initial State established: ${initialState} (Baselined)`
-        );
-        this._lastMatchState = initialState;
-        this._initialized = true;
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+        if (shouldIgnoreInitial) {
+          debugLog(
+            `[BluetoothTrigger] Initial State established: ${initialState} (Baselined - Ignored by Strategy)`
+          );
+          this._lastMatchState = initialState;
+          this._initialized = true;
+        } else {
+          // STATE_PERSISTENT
+          debugLog(
+            `[BluetoothTrigger] Initial State established: ${initialState} (Checking immediate)`
+          );
+          this._lastMatchState = initialState;
+          this._initialized = true;
+
+          if (initialState) {
+            this.emit('triggered');
+          }
+        }
       }
     });
 
@@ -111,12 +128,23 @@ export class BluetoothTrigger extends BaseTrigger {
       // We accept this as the baseline.
       const currentState = await this._evaluateCondition();
       if (!this._initialized) {
-        debugLog(
-          `[BluetoothTrigger] Initial State established via Event: ${currentState} (Baselined)`
-        );
-        this._lastMatchState = currentState;
-        this._initialized = true;
-        return;
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        if (shouldIgnoreInitial) {
+          debugLog(
+            `[BluetoothTrigger] Initial State established via Event: ${currentState} (Baselined - Ignored)`
+          );
+          this._lastMatchState = currentState;
+          this._initialized = true;
+          return;
+        } else {
+          debugLog(
+            `[BluetoothTrigger] Initial State established via Event: ${currentState} (Checking immediate)`
+          );
+          this._lastMatchState = currentState;
+          this._initialized = true;
+          // Proceed to check below
+        }
       }
     }
 
@@ -128,32 +156,36 @@ export class BluetoothTrigger extends BaseTrigger {
       );
       this._lastMatchState = currentMatch;
 
-      // Only trigger if the condition effectively became true
       if (currentMatch) {
+        // MATCH became TRUE
+
         // USER REQUIREMENT: Disconnect is only valid if Power is ON.
-        // If we are triggering a "DISCONNECTED" state (which makes currentMatch TRUE), check power.
         if (this.config.state === ConnectionState.DISCONNECTED) {
           const isPowerOn = await this.adapter.getBluetoothPowerState();
           if (!isPowerOn) {
             debugLog(
               `[BluetoothTrigger] Ignored Disconnect event because Bluetooth Power is OFF.`
             );
-            // We effectively treat this as "no match" for the purpose of the Trigger
-            // However, _lastMatchState is updated to true (disconnected) so we won't trigger again until connected.
-            // This effectively suppresses the trigger action.
+            // We suppress the emission for this specific edge case.
+            // Logic: The condition IS true (disconnected), but we don't want to act on it.
+            // But we already updated _lastMatchState to true.
+            // So if we don't emit, RoutineManager won't activate.
+            // If we later connect (False), we will emit (False).
             return;
           }
         }
 
         debugLog(
-          `[GR-DEBUG] [BluetoothTrigger] Condition met (TRUE). Emitting 'triggered' event.`
+          `[BluetoothTrigger] Condition met (TRUE). Emitting 'triggered'.`
         );
-        this.emit('triggered');
       } else {
+        // MATCH became FALSE
         debugLog(
-          `[GR-DEBUG] [BluetoothTrigger] Condition unmet (FALSE). No event.`
+          `[BluetoothTrigger] Condition lost (FALSE). Emitting 'triggered'.`
         );
       }
+
+      this.emit('triggered');
     }
   }
 

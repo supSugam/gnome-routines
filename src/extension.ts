@@ -57,10 +57,19 @@ export default class GnomeRoutinesExt extends Extension {
     this.settingsChangedId = settings.connect('changed::routines', () => {
       debugLog('[GnomeRoutines] Settings changed, reloading...');
       if (this.manager) {
-        this.manager.reload();
-      }
-      if (this.quickSettingsUpdateFn) {
-        this.quickSettingsUpdateFn();
+        this.manager
+          .reload()
+          .then(() => {
+            debugLog(
+              '[GnomeRoutines] Reload complete. Updating Quick Settings.'
+            );
+            if (this.quickSettingsUpdateFn) {
+              this.quickSettingsUpdateFn();
+            }
+          })
+          .catch((err) => {
+            console.error('[GnomeRoutines] Failed to reload routines:', err);
+          });
       }
     });
   }

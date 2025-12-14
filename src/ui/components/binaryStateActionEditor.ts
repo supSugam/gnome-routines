@@ -14,6 +14,10 @@ export abstract class BinaryStateActionEditor extends BaseEditor {
       strings: [this.getTrueLabel(), this.getFalseLabel()],
     });
 
+    if (this.config.enabled === undefined) {
+      this.config.enabled = true;
+    }
+
     const row = new Adw.ComboRow({
       title: this.getTitle(),
       model: model,
