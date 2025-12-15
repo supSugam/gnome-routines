@@ -1,12 +1,17 @@
 import debugLog from '../../utils/log.js';
 import { BaseAction } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
+import { ActionType, WallpaperActionConfig } from '../types.js';
 
 export class WallpaperAction extends BaseAction {
   private previousWallpaper: string | null = null;
 
-  constructor(id: string, config: { uri: string }, adapter: SystemAdapter) {
-    super(id, 'wallpaper', config, adapter);
+  constructor(
+    id: string,
+    config: WallpaperActionConfig,
+    adapter: SystemAdapter
+  ) {
+    super(id, ActionType.WALLPAPER, config, adapter);
   }
 
   execute(): void {

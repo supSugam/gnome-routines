@@ -41,7 +41,7 @@ export class BatteryTrigger extends BaseTrigger {
       return this.config.status === BatteryStatus.CHARGING
         ? isCharging
         : !isCharging;
-    } else {
+    } else if (this.config.mode === BatteryTriggerMode.LEVEL) {
       const currentLevel = this.adapter.getBatteryLevel();
       const targetLevel = this.config.level || 0;
       debugLog(
@@ -54,6 +54,7 @@ export class BatteryTrigger extends BaseTrigger {
         return currentLevel >= targetLevel;
       }
     }
+    return false;
   }
 
   activate(): void {
@@ -61,15 +62,26 @@ export class BatteryTrigger extends BaseTrigger {
     this._isActivated = true;
 
     // Initialize baseline
-    this.check().then((isMatch) => {
-      const shouldIgnoreInitial =
-        this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+    this.check().then((isMatch) => this._handleState(isMatch));
 
-      if (shouldIgnoreInitial) {
+    this.cleanup = this.adapter.onBatteryStateChanged(
+      async (level, isCharging) => {
+        // Re-evaluate condition
+        const isMatch = await this.check();
+        this._handleState(isMatch);
+      }
+    );
+  }
+
+  private _handleState(isMatch: boolean): void {
+    // Initial Check logic
+    if (this._lastMatch === null) {
+      if (this.strategy === TriggerStrategy.NEW_CHANGE_ONLY) {
         debugLog(
-          `[BatteryTrigger] Initial state: ${isMatch} (Baselined - Ignored by Strategy)`
+          `[BatteryTrigger] Initial state: ${isMatch} (Ignored by Strategy)`
         );
         this._lastMatch = isMatch;
+        return;
       } else {
         debugLog(
           `[BatteryTrigger] Initial state: ${isMatch} (Checking immediate)`
@@ -78,54 +90,18 @@ export class BatteryTrigger extends BaseTrigger {
         if (isMatch) {
           this.emit('triggered');
         }
+        return;
       }
-    });
+    }
 
-    this.cleanup = this.adapter.onBatteryStateChanged(
-      async (level, isCharging) => {
-        // Re-evaluate condition
-        const isMatch = await this.check();
-
-        if (this._lastMatch === null) {
-          const shouldIgnoreInitial =
-            this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
-          if (shouldIgnoreInitial) {
-            debugLog(
-              `[BatteryTrigger] Initial Event (Race): ${isMatch} (Baselined - Ignored)`
-            );
-            this._lastMatch = isMatch;
-            return;
-          } else {
-            debugLog(
-              `[BatteryTrigger] Initial Event (Race): ${isMatch} (Checking immediate)`
-            );
-            this._lastMatch = isMatch;
-            if (isMatch) {
-              this.emit('triggered');
-            }
-            return;
-          }
-        }
-
-        // Emitting only on state change prevents spamming
-        if (isMatch !== this._lastMatch) {
-          debugLog(
-            `[BatteryTrigger] Condition changed: ${this._lastMatch} -> ${isMatch}`
-          );
-          this._lastMatch = isMatch;
-          if (isMatch) {
-            debugLog(
-              `[BatteryTrigger] Condition met (TRUE). Emitting 'triggered'.`
-            );
-          } else {
-            debugLog(
-              `[BatteryTrigger] Condition lost (FALSE). Emitting 'triggered'.`
-            );
-          }
-          this.emit('triggered');
-        }
-      }
-    );
+    // State Change Logic
+    if (isMatch !== this._lastMatch) {
+      debugLog(
+        `[BatteryTrigger] Condition changed: ${this._lastMatch} -> ${isMatch}`
+      );
+      this._lastMatch = isMatch;
+      this.emit('triggered');
+    }
   }
 
   deactivate(): void {

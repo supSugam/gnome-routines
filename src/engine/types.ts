@@ -13,6 +13,11 @@ export enum TriggerType {
   DND = 'dnd',
 }
 
+export enum SystemType {
+  PC = 'pc',
+  LAPTOP = 'laptop',
+}
+
 export enum ActionType {
   OPEN_APP = 'open_app',
   NOTIFICATION = 'notification',

@@ -1567,26 +1567,60 @@ export class GnomeShellAdapter implements SystemAdapter {
       }
       const client = this.upClient;
 
-      // We attach two listeners here for robustness.
-      // 1. Device added (plug/unplug)
-      const addedId = client.connect(
-        'device-added',
-        (client: any, device: any) => {
-          this._checkBattery(callback);
+      let deviceSignalA: number = 0;
+      let deviceSignalB: number = 0;
+      let currentDevice: any = null;
+
+      const connectToDevice = () => {
+        // Disconnect old
+        if (currentDevice) {
+          try {
+            if (deviceSignalA) currentDevice.disconnect(deviceSignalA);
+            if (deviceSignalB) currentDevice.disconnect(deviceSignalB);
+          } catch (e) {
+            // Ignore disconnect errors
+          }
+          deviceSignalA = 0;
+          deviceSignalB = 0;
         }
+
+        // Get new
+        currentDevice = client.get_display_device();
+        if (currentDevice) {
+          // Connect to property changes
+          deviceSignalA = currentDevice.connect('notify::percentage', () => {
+            this._checkBattery(callback);
+          });
+          deviceSignalB = currentDevice.connect('notify::state', () => {
+            this._checkBattery(callback);
+          });
+        }
+        // Force check
+        this._checkBattery(callback);
+      };
+
+      // Listen for display device swapping
+      const displayChangedId = client.connect(
+        'notify::display-device',
+        connectToDevice
       );
 
-      // 2. Display device change
-      const changedId = client.connect('notify::display-device', () => {
+      // Listen for device insertions (fallback re-check)
+      const addedId = client.connect('device-added', () => {
         this._checkBattery(callback);
       });
 
-      this._checkBattery(callback); // Initial check
+      // Initial
+      connectToDevice();
 
       return () => {
         try {
+          client.disconnect(displayChangedId);
           client.disconnect(addedId);
-          client.disconnect(changedId);
+          if (currentDevice) {
+            if (deviceSignalA) currentDevice.disconnect(deviceSignalA);
+            if (deviceSignalB) currentDevice.disconnect(deviceSignalB);
+          }
         } catch (e) {
           console.error(
             '[GnomeShellAdapter] Error disconnecting battery listeners',

@@ -7,8 +7,9 @@ import GLib from 'gi://GLib';
 
 import { TriggerEditorFactory } from '../components/triggerEditorFactory.js';
 import { getTriggerSummary, getTriggerTitle } from '../utils/summaryHelpers.js';
-import { TriggerType } from '../../engine/types.js';
 import { UI_STRINGS } from '../utils/constants.js';
+import { getSystemType } from '../../utils/system.js';
+import { TriggerType, SystemType } from '../../engine/types.js';
 
 export class TriggerManager {
   private parentWindow: any;
@@ -33,22 +34,22 @@ export class TriggerManager {
     // Ideally we remove all children. Adw.PreferencesGroup doesn't have remove_all.
     // We have to remove them one by one if we kept references, or just not support dynamic reordering easily.
     // BUT given we are inside the editor, it's easier to just return a container that we can clear?
-    // Start fresh: We can't clear the group easily. 
+    // Start fresh: We can't clear the group easily.
     // Hack: We can use a GtkBox inside a single ActionRow? No.
-    
+
     // Proper way: Track all added widgets.
     // Since this is a refactor, I'll stick to the logic seen in prefs.ts:
-    // It seems `page.remove(group)` is possible. 
+    // It seems `page.remove(group)` is possible.
     // So the caller (Editor) should clear the group? No, that exposes implementation.
-    
+
     // Better: `TriggerManager` manages an `Adw.PreferencesPage` content? No, it manages a specific Section.
-    
+
     // Let's implement track-and-remove.
     // But `group.remove(child)` requires the child widget.
     // So I will just store them.
-    
+
     if (this._children) {
-        this._children.forEach(c => this.group.remove(c));
+      this._children.forEach((c) => this.group.remove(c));
     }
     this._children = [];
 
@@ -92,7 +93,7 @@ export class TriggerManager {
         this.refresh();
       });
       row.add_suffix(deleteBtn);
-      
+
       this.group.add(row);
       this._children.push(row);
     });
@@ -124,122 +125,129 @@ export class TriggerManager {
   private _children: any[] = [];
 
   private editTrigger(trigger: any, isNew: boolean, onSave: () => void) {
-      const triggerWindow = new Adw.Window({
-        title: isNew ? 'Add Condition' : 'Edit Condition',
-        transient_for: this.parentWindow,
-        modal: true,
-        width_request: 540,
-        height_request: 480,
-        destroy_with_parent: true,
-      });
+    const triggerWindow = new Adw.Window({
+      title: isNew ? 'Add Condition' : 'Edit Condition',
+      transient_for: this.parentWindow,
+      modal: true,
+      width_request: 540,
+      height_request: 480,
+      destroy_with_parent: true,
+    });
 
-      const toolbarView = new Adw.ToolbarView();
-      triggerWindow.content = toolbarView;
+    const toolbarView = new Adw.ToolbarView();
+    triggerWindow.content = toolbarView;
 
-      const headerBar = new Adw.HeaderBar();
-      toolbarView.add_top_bar(headerBar);
+    const headerBar = new Adw.HeaderBar();
+    toolbarView.add_top_bar(headerBar);
 
-      const addBtn = new Gtk.Button({
-        label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
-        css_classes: ['suggested-action'],
-      });
-      headerBar.pack_end(addBtn);
+    const addBtn = new Gtk.Button({
+      label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
+      css_classes: ['suggested-action'],
+    });
+    headerBar.pack_end(addBtn);
 
-      const content = new Adw.PreferencesPage();
-      toolbarView.content = content;
+    const content = new Adw.PreferencesPage();
+    toolbarView.content = content;
 
-      const group = new Adw.PreferencesGroup();
-      content.add(group);
+    const group = new Adw.PreferencesGroup();
+    content.add(group);
 
-      let tempConfig = JSON.parse(JSON.stringify(trigger.config));
-      let currentType = trigger.type;
+    let tempConfig = JSON.parse(JSON.stringify(trigger.config));
+    let currentType = trigger.type;
 
-      // Use Enums for types
-      const triggerTypes = [
-        { id: TriggerType.STARTUP, title: UI_STRINGS.triggers.startup },
-        { id: TriggerType.TIME, title: UI_STRINGS.triggers.time },
-        { id: TriggerType.APP, title: UI_STRINGS.triggers.app },
-        { id: TriggerType.WIFI, title: UI_STRINGS.triggers.wifi },
-        { id: TriggerType.BLUETOOTH, title: UI_STRINGS.triggers.bluetooth },
-        { id: TriggerType.BATTERY, title: UI_STRINGS.triggers.battery },
-        { id: TriggerType.POWER_SAVER, title: UI_STRINGS.triggers.powerSaver },
-        { id: TriggerType.DARK_MODE, title: UI_STRINGS.triggers.darkMode },
-        { id: TriggerType.DND, title: 'Do Not Disturb' }, // TODO: Add string constant
-        {
-          id: TriggerType.AIRPLANE_MODE,
-          title: UI_STRINGS.triggers.airplaneMode,
-        },
-        { id: TriggerType.HEADPHONES, title: UI_STRINGS.triggers.headphones },
-        { id: TriggerType.CLIPBOARD, title: UI_STRINGS.triggers.clipboard },
-      ];
+    // Use Enums for types
+    let triggerTypes = [
+      { id: TriggerType.STARTUP, title: UI_STRINGS.triggers.startup },
+      { id: TriggerType.TIME, title: UI_STRINGS.triggers.time },
+      { id: TriggerType.APP, title: UI_STRINGS.triggers.app },
+      { id: TriggerType.WIFI, title: UI_STRINGS.triggers.wifi },
+      { id: TriggerType.BLUETOOTH, title: UI_STRINGS.triggers.bluetooth },
+      { id: TriggerType.BATTERY, title: UI_STRINGS.triggers.battery },
+      { id: TriggerType.POWER_SAVER, title: UI_STRINGS.triggers.powerSaver },
+      { id: TriggerType.DARK_MODE, title: UI_STRINGS.triggers.darkMode },
+      { id: TriggerType.DND, title: 'Do Not Disturb' }, // TODO: Add string constant
+      {
+        id: TriggerType.AIRPLANE_MODE,
+        title: UI_STRINGS.triggers.airplaneMode,
+      },
+      { id: TriggerType.HEADPHONES, title: UI_STRINGS.triggers.headphones },
+      { id: TriggerType.CLIPBOARD, title: UI_STRINGS.triggers.clipboard },
+    ];
 
-      const typeModel = new Gtk.StringList({
-        strings: triggerTypes.map((t) => t.title),
-      });
-      const typeRow = new Adw.ComboRow({
-        title: UI_STRINGS.editor.if.conditionType,
-        model: typeModel,
-        selected: triggerTypes.findIndex((t) => t.id === currentType),
-      });
-      group.add(typeRow);
+    // Filter for PC
+    if (getSystemType() === SystemType.PC) {
+      triggerTypes = triggerTypes.filter(
+        (t) => t.id !== TriggerType.BATTERY && t.id !== TriggerType.POWER_SAVER
+      );
+    }
 
-      let editorGroup = new Adw.PreferencesGroup();
-      content.add(editorGroup);
+    const typeModel = new Gtk.StringList({
+      strings: triggerTypes.map((t) => t.title),
+    });
+    const typeRow = new Adw.ComboRow({
+      title: UI_STRINGS.editor.if.conditionType,
+      model: typeModel,
+      selected: triggerTypes.findIndex((t) => t.id === currentType),
+    });
+    group.add(typeRow);
 
-      const updateEditor = () => {
-        content.remove(editorGroup);
-        const newEditorGroup = new Adw.PreferencesGroup();
-        content.add(newEditorGroup);
-        editorGroup = newEditorGroup;
+    let editorGroup = new Adw.PreferencesGroup();
+    content.add(editorGroup);
 
-        const selectedType = triggerTypes[typeRow.selected].id;
-        currentType = selectedType;
+    const updateEditor = () => {
+      content.remove(editorGroup);
+      const newEditorGroup = new Adw.PreferencesGroup();
+      content.add(newEditorGroup);
+      editorGroup = newEditorGroup;
 
-        const editor = TriggerEditorFactory.create(
-          selectedType,
-          tempConfig,
-          () => {
-            const isValid = editor ? editor.validate() : false;
-            if (isValid === true) {
-              addBtn.sensitive = true;
-              addBtn.tooltip_text = '';
-            } else {
-              addBtn.sensitive = false;
-              addBtn.tooltip_text =
-                typeof isValid === 'string'
-                  ? isValid
-                  : UI_STRINGS.editor.errors.invalidConfig;
-            }
+      const selectedType = triggerTypes[typeRow.selected].id;
+      currentType = selectedType;
+
+      const editor = TriggerEditorFactory.create(
+        selectedType,
+        tempConfig,
+        () => {
+          const isValid = editor ? editor.validate() : false;
+          if (isValid === true) {
+            addBtn.sensitive = true;
+            addBtn.tooltip_text = '';
+          } else {
+            addBtn.sensitive = false;
+            addBtn.tooltip_text =
+              typeof isValid === 'string'
+                ? isValid
+                : UI_STRINGS.editor.errors.invalidConfig;
           }
-        );
-
-        if (editor) {
-          editor.render(newEditorGroup);
-          const isValid = editor.validate();
-          addBtn.sensitive = isValid === true;
-        } else {
-          const errorRow = new Adw.ActionRow({
-            title: UI_STRINGS.editor.errors.noEditor,
-          });
-          newEditorGroup.add(errorRow);
-          addBtn.sensitive = false;
         }
-      };
+      );
 
-      // @ts-ignore
-      typeRow.connect('notify::selected', updateEditor);
-      updateEditor();
+      if (editor) {
+        editor.render(newEditorGroup);
+        const isValid = editor.validate();
+        addBtn.sensitive = isValid === true;
+      } else {
+        const errorRow = new Adw.ActionRow({
+          title: UI_STRINGS.editor.errors.noEditor,
+        });
+        newEditorGroup.add(errorRow);
+        addBtn.sensitive = false;
+      }
+    };
 
-      // @ts-ignore
-      addBtn.connect('clicked', () => {
-        trigger.type = currentType;
-        trigger.config = tempConfig;
+    // @ts-ignore
+    typeRow.connect('notify::selected', updateEditor);
+    updateEditor();
 
-        if (isNew) this.routine.triggers.push(trigger);
-        onSave();
-        triggerWindow.close();
-      });
+    // @ts-ignore
+    addBtn.connect('clicked', () => {
+      trigger.type = currentType;
+      trigger.config = tempConfig;
 
-      triggerWindow.present();
+      if (isNew) this.routine.triggers.push(trigger);
+      onSave();
+      triggerWindow.close();
+    });
+
+    triggerWindow.present();
   }
 }
