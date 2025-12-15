@@ -221,7 +221,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         };
       }
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeRoutines-DEBUG] Failed to check/create startup lock file:',
         e
       );
@@ -249,7 +249,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           `[GnomeShellAdapter] NMClient created. Wireless Enabled: ${this.nmClient?.wireless_enabled}, Networking Enabled: ${this.nmClient?.networking_enabled}`
         );
       } catch (e) {
-        console.error('[GnomeShellAdapter] Failed to create NMClient:', e);
+        debugLog('[GnomeShellAdapter] Failed to create NMClient:', e);
       }
     }
     return this.nmClient;
@@ -301,7 +301,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       try {
         settings.disconnect(signalId);
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to disconnect DND listener',
           e
         );
@@ -331,7 +331,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       // Brightness is typically 0-100
       proxy.Brightness = Math.max(0, Math.min(100, percentage));
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set brightness:', e);
+      debugLog('[GnomeShellAdapter] Failed to set brightness:', e);
     }
   }
 
@@ -353,7 +353,7 @@ export class GnomeShellAdapter implements SystemAdapter {
 
       return proxy.Brightness || 100;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get brightness:', e);
+      debugLog('[GnomeShellAdapter] Failed to get brightness:', e);
       return 100;
     }
   }
@@ -380,7 +380,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               proc.wait_check_finish(res);
               debugLog(`[GnomeShellAdapter] Volume set command executed`);
             } catch (e) {
-              console.error(
+              debugLog(
                 '[GnomeShellAdapter] Failed to set volume (async):',
                 e
               );
@@ -388,12 +388,12 @@ export class GnomeShellAdapter implements SystemAdapter {
             resolve();
           });
         } catch (e) {
-          console.error('[GnomeShellAdapter] Failed to spawn set volume:', e);
+          debugLog('[GnomeShellAdapter] Failed to spawn set volume:', e);
           resolve();
         }
       });
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set volume:', e);
+      debugLog('[GnomeShellAdapter] Failed to set volume:', e);
     }
   }
 
@@ -419,7 +419,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             }
             resolve(50);
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get volume (async):',
               e
             );
@@ -427,7 +427,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error('[GnomeShellAdapter] Failed to initiate get volume:', e);
+        debugLog('[GnomeShellAdapter] Failed to initiate get volume:', e);
         resolve(50);
       }
     });
@@ -481,7 +481,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             }
             resolve(found);
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to set Bluetooth volume (async):',
               e
             );
@@ -489,7 +489,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to initiate set Bluetooth volume:',
           e
         );
@@ -504,7 +504,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const command = `pactl set-sink-volume ${sinkName} ${percentage}%`;
       GLib.spawn_command_line_async(command);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set sink volume:', e);
+      debugLog('[GnomeShellAdapter] Failed to set sink volume:', e);
     }
   }
 
@@ -566,7 +566,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           resolve();
         });
       } catch (e) {
-        console.error('[GnomeShellAdapter] Failed to set Bluetooth:', e);
+        debugLog('[GnomeShellAdapter] Failed to set Bluetooth:', e);
         // Try rfkill as last resort
         try {
           const rfkillCommand = enabled
@@ -574,7 +574,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             : 'rfkill block bluetooth';
           GLib.spawn_command_line_async(rfkillCommand);
         } catch (err) {
-          console.error('[GnomeShellAdapter] rfkill fallback failed:', err);
+          debugLog('[GnomeShellAdapter] rfkill fallback failed:', err);
         }
         resolve();
       }
@@ -618,7 +618,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             }
             resolve(false);
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get Bluetooth state (async):',
               e
             );
@@ -627,7 +627,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         });
       });
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Bluetooth power:', e);
+      debugLog('[GnomeShellAdapter] Failed to get Bluetooth power:', e);
       return false;
     }
   }
@@ -644,7 +644,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         GLib.spawn_command_line_async(cmd);
       }
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set Wifi:', e);
+      debugLog('[GnomeShellAdapter] Failed to set Wifi:', e);
     }
   }
 
@@ -663,7 +663,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       GLib.spawn_command_line_async(cmd);
       return true;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to connect to Wifi:', e);
+      debugLog('[GnomeShellAdapter] Failed to connect to Wifi:', e);
       return false;
     }
   }
@@ -687,7 +687,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       }
       return false;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Wifi state:', e);
+      debugLog('[GnomeShellAdapter] Failed to get Wifi state:', e);
       return false;
     }
   }
@@ -706,14 +706,14 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           client.disconnect(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error disconnecting wifi listener',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to Wifi changes:',
         e
       );
@@ -740,7 +740,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       }
       return null;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Wifi SSID:', e);
+      debugLog('[GnomeShellAdapter] Failed to get Wifi SSID:', e);
       return null;
     }
   }
@@ -765,7 +765,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       }
       return ssids.sort();
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to get saved Wifi networks:',
         e
       );
@@ -809,7 +809,7 @@ export class GnomeShellAdapter implements SystemAdapter {
                 }
               }
             } catch (e) {
-              console.error(
+              debugLog(
                 '[GnomeShellAdapter] Failed to resolve bluetooth device (async):',
                 e
               );
@@ -834,7 +834,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         connectProc.init(null);
         resolve();
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to connect bluetooth device:',
           e
         );
@@ -868,7 +868,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             proc.communicate_utf8_finish(res);
             resolve();
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to disconnect BT async:',
               e
             );
@@ -876,7 +876,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to disconnect bluetooth device:',
           e
         );
@@ -891,7 +891,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const cmd = enabled ? 'rfkill block all' : 'rfkill unblock all';
       GLib.spawn_command_line_async(cmd);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set airplane mode:', e);
+      debugLog('[GnomeShellAdapter] Failed to set airplane mode:', e);
     }
   }
 
@@ -949,7 +949,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         orientation === 'portrait' ? 'xrandr -o left' : 'xrandr -o normal';
       GLib.spawn_command_line_async(cmd);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set orientation:', e);
+      debugLog('[GnomeShellAdapter] Failed to set orientation:', e);
     }
   }
 
@@ -995,7 +995,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               }
             }
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to set refresh rate phase 1:',
               e
             );
@@ -1003,7 +1003,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           resolve();
         });
       } catch (e) {
-        console.error('[GnomeShellAdapter] Failed to set refresh rate:', e);
+        debugLog('[GnomeShellAdapter] Failed to set refresh rate:', e);
         resolve();
       }
     });
@@ -1035,7 +1035,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             );
             resolve(60);
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get refresh rate async:',
               e
             );
@@ -1043,7 +1043,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to initiate get refresh rate:',
           e
         );
@@ -1084,7 +1084,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               resolve([60]);
             }
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get available rates async:',
               e
             );
@@ -1092,7 +1092,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to initiate get available rates:',
           e
         );
@@ -1108,7 +1108,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         : 'powerprofilesctl set balanced';
       GLib.spawn_command_line_async(cmd);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set power saver:', e);
+      debugLog('[GnomeShellAdapter] Failed to set power saver:', e);
     }
   }
 
@@ -1121,7 +1121,7 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       Gio.AppInfo.launch_default_for_uri(url, null);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to open link:', e);
+      debugLog('[GnomeShellAdapter] Failed to open link:', e);
     }
   }
 
@@ -1130,7 +1130,7 @@ export class GnomeShellAdapter implements SystemAdapter {
     try {
       GLib.spawn_command_line_async('gnome-screenshot');
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to take screenshot:', e);
+      debugLog('[GnomeShellAdapter] Failed to take screenshot:', e);
     }
   }
 
@@ -1141,7 +1141,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         `/bin/bash -c "${command}"`
       );
       if (!success || !argv) {
-        console.error('[GnomeShellAdapter] Failed to parse command arguments');
+        debugLog('[GnomeShellAdapter] Failed to parse command arguments');
         return;
       }
 
@@ -1153,7 +1153,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         null // Child setup function
       );
     } catch (e) {
-      console.error(
+      debugLog(
         `[GnomeShellAdapter] Failed to execute command '${command}':`,
         e
       );
@@ -1183,7 +1183,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         }
       });
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to open apps:', e);
+      debugLog('[GnomeShellAdapter] Failed to open apps:', e);
     }
   }
   setKeyboardBrightness(percentage: number): void {
@@ -1214,7 +1214,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               `[GnomeShellAdapter] Keyboard brightness set to ${value}%`
             );
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to set keyboard brightness (async):',
               e
             );
@@ -1222,7 +1222,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         }
       );
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to initiate keyboard brightness set:',
         e
       );
@@ -1256,7 +1256,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               );
               resolve(value);
             } catch (e) {
-              console.error(
+              debugLog(
                 '[GnomeShellAdapter] Failed to get keyboard brightness (async):',
                 e
               );
@@ -1265,7 +1265,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         );
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to initiate keyboard brightness get:',
           e
         );
@@ -1279,7 +1279,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const client = NM.Client.new(null);
       return client ? client.wireless_enabled : false;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get Wifi power state:', e);
+      debugLog('[GnomeShellAdapter] Failed to get Wifi power state:', e);
       return false;
     }
   }
@@ -1310,14 +1310,14 @@ export class GnomeShellAdapter implements SystemAdapter {
           debugLog('[GnomeShellAdapter] Disconnecting Wifi Power listener');
           client.disconnect(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error disconnecting wifi power listener',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to Wifi power changes:',
         e
       );
@@ -1377,7 +1377,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               callback(newState);
             }
           } catch (err) {
-            console.error(
+            debugLog(
               `[GR-DEBUG] [GnomeShellAdapter] Error parsing DBus signal: ${err}`
             );
           }
@@ -1388,14 +1388,14 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error unsubscribe bluetooth power',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to Bluetooth power:',
         e
       );
@@ -1466,7 +1466,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               );
               resolve(devices);
             } catch (e) {
-              console.error(
+              debugLog(
                 '[GnomeShellAdapter] Failed to get connected Bluetooth devices via DBus (async):',
                 e
               );
@@ -1475,7 +1475,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         );
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to initiate Bluetooth devices get:',
           e
         );
@@ -1518,14 +1518,14 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error unsubscribe bluetooth device',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to Bluetooth device changes:',
         e
       );
@@ -1541,19 +1541,36 @@ export class GnomeShellAdapter implements SystemAdapter {
       const device = client.get_display_device();
       return device ? device.percentage : 100;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get battery level:', e);
+      debugLog('[GnomeShellAdapter] Failed to get battery level:', e);
       return 100;
     }
   }
 
   isCharging(): boolean {
     try {
-      const client = UPower.Client.new_full(null);
+      // Use existing client if available to avoid overhead/staleness
+      const client = this.upClient || UPower.Client.new_full(null);
       const device = client.get_display_device();
-      // UPower.DeviceState.CHARGING = 1, FULLY_CHARGED = 4
-      return device ? device.state === 1 || device.state === 4 : false;
+
+      if (!device) {
+        debugLog(
+          '[GnomeShellAdapter] No display device found in isCharging'
+        );
+        return false;
+      }
+
+      // Debug current state
+      debugLog(
+        `[GnomeShellAdapter] isCharging check. State: ${device.state}, Kind: ${device.kind}, Percentage: ${device.percentage}%`
+      );
+
+      // UPower.DeviceState:
+      // 1: Charging
+      // 4: Fully Charged
+      // 5: Pending Charge (often occurs briefly when plugged in)
+      return device.state === 1 || device.state === 4 || device.state === 5;
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to check charging state:', e);
+      debugLog('[GnomeShellAdapter] Failed to check charging state:', e);
       return false;
     }
   }
@@ -1622,14 +1639,14 @@ export class GnomeShellAdapter implements SystemAdapter {
             if (deviceSignalB) currentDevice.disconnect(deviceSignalB);
           }
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error disconnecting battery listeners',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to battery changes:',
         e
       );
@@ -1663,7 +1680,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               resolve(false);
             }
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get power saver state async:',
               e
             );
@@ -1671,7 +1688,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to get power saver state:',
           e
         );
@@ -1704,11 +1721,11 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (e) {
-          console.error('[GnomeShellAdapter] Error unsubscribe power saver', e);
+          debugLog('[GnomeShellAdapter] Error unsubscribe power saver', e);
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to power saver changes:',
         e
       );
@@ -1736,7 +1753,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       try {
         settings.disconnect(signalId);
       } catch (e) {
-        console.error('[GnomeShellAdapter] Error disconnecting dark mode', e);
+        debugLog('[GnomeShellAdapter] Error disconnecting dark mode', e);
       }
     };
   }
@@ -1767,7 +1784,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               resolve(false);
             }
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get airplane mode async:',
               e
             );
@@ -1776,7 +1793,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         });
       });
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to get airplane mode:', e);
+      debugLog('[GnomeShellAdapter] Failed to get airplane mode:', e);
       return false;
     }
   }
@@ -1799,7 +1816,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               resolve(false);
             }
           } catch (e) {
-            console.error(
+            debugLog(
               '[GnomeShellAdapter] Failed to get headphones state async:',
               e
             );
@@ -1807,7 +1824,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        console.error('[GnomeShellAdapter] Failed to get headphones state:', e);
+        debugLog('[GnomeShellAdapter] Failed to get headphones state:', e);
         resolve(false);
       }
     });
@@ -1835,14 +1852,14 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.session.signal_unsubscribe(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error unsubscribe airplane mode',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to airplane mode:',
         e
       );
@@ -1893,14 +1910,14 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           appSystem.disconnect(signalId);
         } catch (e) {
-          console.error(
+          debugLog(
             '[GnomeShellAdapter] Error disconnecting app listener',
             e
           );
         }
       };
     } catch (e) {
-      console.error(
+      debugLog(
         '[GnomeShellAdapter] Failed to subscribe to app changes:',
         e
       );
@@ -1938,7 +1955,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             try {
               callback();
             } catch (e) {
-              console.error(
+              debugLog(
                 '[GnomeShellAdapter] Error in clipboard callback:',
                 e
               );
@@ -1977,7 +1994,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         );
       } catch (e) {
-        console.error(
+        debugLog(
           '[GnomeShellAdapter] Failed to get clipboard content:',
           e
         );
@@ -1991,7 +2008,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const clipboard = St.Clipboard.get_default();
       clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
     } catch (e) {
-      console.error('[GnomeShellAdapter] Failed to set clipboard text:', e);
+      debugLog('[GnomeShellAdapter] Failed to set clipboard text:', e);
     }
   }
 
@@ -2019,7 +2036,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       try {
         this.notificationSource.destroy();
       } catch (e) {
-        console.error('Error destroying notification source', e);
+        debugLog('Error destroying notification source', e);
       }
       this.notificationSource = null;
     }

@@ -50,7 +50,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
             const [objects] = result.deep_unpack();
             callback(objects);
           } catch (e) {
-            console.error('Failed to fetch bluetooth objects:', e);
+            debugLog('Failed to fetch bluetooth objects:', e);
             callback({});
           }
         }
@@ -83,7 +83,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
           return GLib.SOURCE_REMOVE;
         });
       } catch (e) {
-        console.error(`Failed to toggle bluetooth ${on ? 'on' : 'off'}:`, e);
+        debugLog(`Failed to toggle bluetooth ${on ? 'on' : 'off'}:`, e);
         callback();
       }
     };

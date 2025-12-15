@@ -84,7 +84,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
         availableNetworks.sort();
       }
     } catch (e) {
-      console.error('Failed to load wifi networks:', e);
+      debugLog('Failed to load wifi networks:', e);
     }
 
     if (availableNetworks.length === 0) {

@@ -50,7 +50,7 @@ function getLogStream() {
     logStream = file.append_to(Gio.FileCreateFlags.NONE, null);
     return logStream;
   } catch (e) {
-    console.error('[GnomeRoutines] Failed to create log stream:', e);
+    debugLog('[GnomeRoutines] Failed to create log stream:', e);
     return null;
   }
 }
@@ -75,7 +75,7 @@ export default function debugLog(message: string, ...args: any[]) {
   const fullMessage = `${timestamp} ${message} ${argsStr}`;
 
   // Console output
-  console.log(fullMessage);
+  debugLog(fullMessage);
 
   // File output
   if (EXTENSION_DEFAULTS.log.saveToFile) {
@@ -86,7 +86,7 @@ export default function debugLog(message: string, ...args: any[]) {
         stream.flush(null); // Ensure write
       }
     } catch (e) {
-      console.error('Failed to write to log file:', e);
+      debugLog('Failed to write to log file:', e);
     }
   }
 }
@@ -107,7 +107,7 @@ export function closeLog() {
     try {
       logStream.close(null);
     } catch (e) {
-      console.error('Failed to close log stream:', e);
+      debugLog('Failed to close log stream:', e);
     }
     logStream = null;
   }

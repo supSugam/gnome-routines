@@ -37,7 +37,7 @@ export const exportRoutinesUI = (
         );
         debugLog('Export successful');
       } catch (e) {
-        console.error('Export failed', e);
+        debugLog('Export failed', e);
       }
     }
     picker.destroy();

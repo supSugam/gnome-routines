@@ -264,10 +264,7 @@ export class BluetoothDeviceAction extends BaseAction {
         try {
           await this.adapter.connectBluetoothDevice(this.config.deviceId);
         } catch (e) {
-          console.error(
-            `[BluetoothDeviceAction] Connection attempt failed:`,
-            e
-          );
+          debugLog(`[BluetoothDeviceAction] Connection attempt failed:`, e);
         }
 
         // Check if we should wait for next attempt
@@ -293,7 +290,7 @@ export class BluetoothDeviceAction extends BaseAction {
       );
       this.adapter
         .disconnectBluetoothDevice(this.config.deviceId)
-        .catch((e) => console.error(e));
+        .catch((e) => debugLog(e));
     }
   }
 
@@ -310,13 +307,13 @@ export class BluetoothDeviceAction extends BaseAction {
       // Revert of connect is disconnect
       this.adapter
         .disconnectBluetoothDevice(this.config.deviceId)
-        .catch((e) => console.error(e));
+        .catch((e) => debugLog(e));
     } else {
       // Revert of disconnect is connect
       // Should we use loop here? Usually revert is "fire and forget" or simple attempt
       this.adapter
         .connectBluetoothDevice(this.config.deviceId)
-        .catch((e) => console.error(e));
+        .catch((e) => debugLog(e));
     }
   }
 }

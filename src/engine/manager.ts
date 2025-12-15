@@ -91,7 +91,7 @@ export class RoutineManager implements RoutineManagerInterface {
           `[RoutineManager] Routine hydrated and added: ${routine.name}`
         );
       } else {
-        console.error(`[RoutineManager] Failed to hydrate routine: ${r.name}`);
+        debugLog(`[RoutineManager] Failed to hydrate routine: ${r.name}`);
       }
     });
 
@@ -219,7 +219,7 @@ export class RoutineManager implements RoutineManagerInterface {
         actions,
       };
     } catch (e) {
-      console.error(
+      debugLog(
         `[RoutineManager] Failed to hydrate routine ${rawRoutine.id}:`,
         e
       );
@@ -233,7 +233,7 @@ export class RoutineManager implements RoutineManagerInterface {
       // Validate
       const validation = RoutineValidator.validate(routine);
       if (!validation.valid) {
-        console.error(
+        debugLog(
           `[RoutineManager] Validation Failed for ${routine.name}: ${validation.error}`
         );
         // We still add it so user can see it's broken in UI (if UI supports it)
@@ -299,7 +299,7 @@ export class RoutineManager implements RoutineManagerInterface {
     this._evaluationCount++;
     if (this._evaluationCount > 100) {
       if (this._evaluationCount === 101) {
-        console.error(
+        debugLog(
           '[RoutineManager] CRITICAL: Excessive routine evaluations detected (>100/min). Pausing evaluations for safety.'
         );
         this.adapter.showNotification(
@@ -484,7 +484,7 @@ export class RoutineManager implements RoutineManagerInterface {
         try {
           trigger.activate();
         } catch (e) {
-          console.error(
+          debugLog(
             `[RoutineManager] Failed to activate trigger ${trigger.id}:`,
             e
           );
@@ -553,7 +553,7 @@ export class RoutineManager implements RoutineManagerInterface {
           `[GR-DEBUG] [RoutineManager] Action ${action.id} completed successfully.`
         );
       } catch (e) {
-        console.error(
+        debugLog(
           `[GR-DEBUG] Failed to execute action ${action.id} in routine ${routine.name}:`,
           e
         );
@@ -607,7 +607,7 @@ export class RoutineManager implements RoutineManagerInterface {
             try {
               await customAction.execute();
             } catch (e) {
-              console.error(
+              debugLog(
                 `[RoutineManager] Failed to execute custom deactivation for ${action.id}:`,
                 e
               );
@@ -622,7 +622,7 @@ export class RoutineManager implements RoutineManagerInterface {
         try {
           await action.revert();
         } catch (e) {
-          console.error(
+          debugLog(
             `Failed to revert action ${action.id} in routine ${routine.name}:`,
             e
           );
@@ -643,7 +643,7 @@ export class RoutineManager implements RoutineManagerInterface {
           routine.isActive = false;
         }
       } catch (e) {
-        console.error('Error destroying routine', e);
+        debugLog('Error destroying routine', e);
       }
     });
     this.routines.clear();

@@ -48,7 +48,7 @@ export class ImportExportManager {
 
       return JSON.stringify(exportData, null, 2);
     } catch (e) {
-      console.error('[ImportExport] Export failed:', e);
+      debugLog('[ImportExport] Export failed:', e);
       throw e;
     }
   }
@@ -81,7 +81,7 @@ export class ImportExportManager {
         } as unknown as Routine; 
       });
     } catch (e) {
-      console.error('[ImportExport] Import failed:', e);
+      debugLog('[ImportExport] Import failed:', e);
       throw new Error('Failed to import routines: Invalid format');
     }
   }

@@ -103,10 +103,7 @@ export class ClipboardTrigger extends BaseTrigger {
         const regex = new RegExp(this.config.regex);
         return regex.test(content.content);
       } catch (e) {
-        console.error(
-          `[ClipboardTrigger] Invalid regex: ${this.config.regex}`,
-          e
-        );
+        debugLog(`[ClipboardTrigger] Invalid regex: ${this.config.regex}`, e);
         return false;
       }
     }

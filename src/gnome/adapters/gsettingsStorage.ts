@@ -24,7 +24,7 @@ export class GSettingsStorageAdapter implements StorageAdapter {
       debugLog(`[GSettingsStorageAdapter] Parsed ${parsed.length} routines`);
       return parsed;
     } catch (e) {
-      console.error('Failed to parse routines from GSettings:', e);
+      debugLog('Failed to parse routines from GSettings:', e);
       return [];
     }
   }

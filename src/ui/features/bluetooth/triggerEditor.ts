@@ -81,7 +81,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
         availableDevices.sort();
       }
     } catch (e) {
-      console.error('Failed to load bluetooth devices:', e);
+      debugLog('Failed to load bluetooth devices:', e);
     }
 
     const selectedDevices = new Set<string>(this.config.deviceIds || []);

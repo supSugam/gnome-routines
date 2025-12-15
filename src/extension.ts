@@ -37,7 +37,7 @@ export default class GnomeRoutinesExt extends Extension {
       );
       debugLog('[GnomeRoutines] Quick Settings Toggle added');
     } catch (e) {
-      console.error('[GnomeRoutines] Failed to create Quick Settings:', e);
+      debugLog('[GnomeRoutines] Failed to create Quick Settings:', e);
     }
 
     // Load routines and update Quick Settings state after load completes
@@ -50,7 +50,7 @@ export default class GnomeRoutinesExt extends Extension {
         }
       })
       .catch((e: any) => {
-        console.error('[GnomeRoutines] Error during load:', e);
+        debugLog('[GnomeRoutines] Error during load:', e);
       });
 
     // Watch for settings changes
@@ -68,7 +68,7 @@ export default class GnomeRoutinesExt extends Extension {
             }
           })
           .catch((err) => {
-            console.error('[GnomeRoutines] Failed to reload routines:', err);
+            debugLog('[GnomeRoutines] Failed to reload routines:', err);
           });
       }
     });

@@ -22,7 +22,7 @@ export class StateManager {
         });
       }
     } catch (e) {
-      console.error('[StateManager] Failed to load states:', e);
+      debugLog('[StateManager] Failed to load states:', e);
     }
   }
 
@@ -37,7 +37,7 @@ export class StateManager {
       });
       this.settings.set_string('routine-states', JSON.stringify(obj));
     } catch (e) {
-      console.error('[StateManager] Failed to save states:', e);
+      debugLog('[StateManager] Failed to save states:', e);
     }
   }
 

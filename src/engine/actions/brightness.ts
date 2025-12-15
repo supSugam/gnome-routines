@@ -20,7 +20,7 @@ export class BrightnessAction extends BaseAction {
       this.adapter.setBrightness(this.config.level);
       debugLog(`[BrightnessAction] Brightness set successfully`);
     } catch (e) {
-      console.error(`[BrightnessAction] Failed to execute:`, e);
+      debugLog(`[BrightnessAction] Failed to execute:`, e);
     }
   }
 
@@ -33,7 +33,7 @@ export class BrightnessAction extends BaseAction {
         this.adapter.setBrightness(this.previousBrightness);
         debugLog(`[BrightnessAction] Brightness reverted successfully`);
       } catch (e) {
-        console.error(`[BrightnessAction] Failed to revert:`, e);
+        debugLog(`[BrightnessAction] Failed to revert:`, e);
       }
     }
   }

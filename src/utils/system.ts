@@ -35,7 +35,7 @@ export function getSystemType(): SystemType {
       cachedType = SystemType.PC;
     }
   } catch (e) {
-    console.error('[SystemUtils] Failed to detect system type via UPower:', e);
+    debugLog('[SystemUtils] Failed to detect system type via UPower:', e);
     // Fallback to LAPTOP to show all options just in case
     cachedType = SystemType.LAPTOP; 
   }

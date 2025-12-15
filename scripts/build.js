@@ -5,19 +5,19 @@ const path = require('path');
 const isWatch = process.argv.includes('--watch');
 
 async function build() {
-  console.log('Cleaning dist...');
+  debugLog('Cleaning dist...');
   if (fs.existsSync('dist')) {
     fs.rmSync('dist', { recursive: true, force: true });
   }
 
-  console.log('Compiling with tsc...');
+  debugLog('Compiling with tsc...');
   try {
     execSync('npx tsc -p tsconfig.build.json' + (isWatch ? ' --watch' : ''), {
       stdio: 'inherit',
     });
   } catch (e) {
     if (!isWatch) {
-      console.error('TypeScript compilation failed.');
+      debugLog('TypeScript compilation failed.');
       process.exit(1);
     }
   }
@@ -28,7 +28,7 @@ async function build() {
 }
 
 function postBuild() {
-  console.log('Copying assets...');
+  debugLog('Copying assets...');
 
   // Copy metadata.json
   if (fs.existsSync('metadata.json')) {
@@ -58,9 +58,9 @@ function postBuild() {
 
       try {
         execSync(`glib-compile-schemas ${schemasDir}`);
-        console.log('Schemas compiled.');
+        debugLog('Schemas compiled.');
       } catch (e) {
-        console.warn(
+        debugLog(
           'Failed to compile schemas (glib-compile-schemas might be missing):',
           e.message
         );
@@ -68,10 +68,10 @@ function postBuild() {
     }
   }
 
-  console.log('Build complete.');
+  debugLog('Build complete.');
 }
 
 build().catch((e) => {
-  console.error(e);
+  debugLog(e);
   process.exit(1);
 });

@@ -26,7 +26,7 @@ export class KeyboardBrightnessAction extends BaseAction {
         `[KeyboardBrightnessAction] Keyboard brightness set successfully`
       );
     } catch (e) {
-      console.error(`[KeyboardBrightnessAction] Failed to execute:`, e);
+      debugLog(`[KeyboardBrightnessAction] Failed to execute:`, e);
     }
   }
 
@@ -41,7 +41,7 @@ export class KeyboardBrightnessAction extends BaseAction {
           `[KeyboardBrightnessAction] Keyboard brightness reverted successfully`
         );
       } catch (e) {
-        console.error(`[KeyboardBrightnessAction] Failed to revert:`, e);
+        debugLog(`[KeyboardBrightnessAction] Failed to revert:`, e);
       }
     }
   }

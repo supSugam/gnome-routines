@@ -90,7 +90,7 @@ export class VolumeAction extends BaseAction {
       // Start loop
       checkLoop();
     } catch (e) {
-      console.error(`[VolumeAction] Failed to execute:`, e);
+      debugLog(`[VolumeAction] Failed to execute:`, e);
       this.isEnforcing = false;
     }
   }
@@ -104,7 +104,7 @@ export class VolumeAction extends BaseAction {
         await this.adapter.setVolume(this.previousVolume);
         debugLog(`[VolumeAction] Volume reverted successfully`);
       } catch (e) {
-        console.error(`[VolumeAction] Failed to revert:`, e);
+        debugLog(`[VolumeAction] Failed to revert:`, e);
       }
       this.previousVolume = null;
     }

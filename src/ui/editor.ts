@@ -119,7 +119,7 @@ export class RoutineEditor {
         debugLog('[Editor] onSave completed');
         this.window.close();
       } catch (e) {
-        console.error('[Editor] Save failed', e);
+        debugLog('[Editor] Save failed', e);
       }
     });
     headerBar.pack_end(saveBtn);

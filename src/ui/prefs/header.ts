@@ -81,7 +81,7 @@ export class PreferencesHeader {
       });
       editor.show(this.parentWindow);
     } catch (e) {
-      console.error('Failed to open Routine Editor:', e);
+      debugLog('Failed to open Routine Editor:', e);
     }
   }
 
@@ -146,7 +146,7 @@ export class PreferencesHeader {
             debugLog(`Imported ${newRoutines.length} routines`);
           }
         } catch (e) {
-          console.error('Import failed', e);
+          debugLog('Import failed', e);
         }
       }
       picker.destroy();

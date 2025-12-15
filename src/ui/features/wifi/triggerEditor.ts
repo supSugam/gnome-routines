@@ -95,7 +95,7 @@ export class WifiTriggerEditor extends BaseEditor {
         availableNetworks.sort();
       }
     } catch (e) {
-      console.error('Failed to load wifi networks in prefs:', e);
+      debugLog('Failed to load wifi networks in prefs:', e);
     }
 
     // Use a copy to avoid mutation reference issues if accidentally passed by ref logic elsewhere

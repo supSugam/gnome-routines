@@ -54,7 +54,7 @@ export class RoutinesPage {
     try {
       routines = JSON.parse(routinesJson || '[]');
     } catch (e) {
-      console.error('Failed to parse routines', e);
+      debugLog('Failed to parse routines', e);
     }
 
     this.listGroup = this.list.createGroup(routines, this.currentSearchTerm);

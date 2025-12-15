@@ -47,7 +47,7 @@ export class SafetyPage {
         }
       }
     } catch (e) {
-      console.error('[Editor] Failed to load routine state:', e);
+      debugLog('[Editor] Failed to load routine state:', e);
     }
 
     if (!state) {

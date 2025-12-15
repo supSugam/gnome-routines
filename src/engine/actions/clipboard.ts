@@ -127,7 +127,7 @@ export class ClipboardAction extends BaseAction {
               debugLog(`[ClipboardAction] Text replacement applied.`);
             }
           } catch (e) {
-            console.error(`[ClipboardAction] Replace regex error:`, e);
+            debugLog(`[ClipboardAction] Replace regex error:`, e);
           }
         }
 
