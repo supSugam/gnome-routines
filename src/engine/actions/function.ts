@@ -4,6 +4,7 @@ import {
   ActionType,
   OpenLinkActionConfig,
   OpenAppActionConfig,
+  ScreenshotActionConfig,
 } from '../types.js';
 import debugLog from '../../utils/log.js';
 
@@ -26,12 +27,17 @@ export class OpenLinkAction extends BaseAction {
 }
 
 export class ScreenshotAction extends BaseAction {
-  constructor(id: string, config: {}, adapter: SystemAdapter) {
+  constructor(
+    id: string,
+    config: ScreenshotActionConfig,
+    adapter: SystemAdapter
+  ) {
     super(id, ActionType.TAKE_SCREENSHOT, config, adapter);
   }
 
   async execute(): Promise<void> {
-    this.adapter.takeScreenshot();
+    const config = this.config as ScreenshotActionConfig;
+    this.adapter.takeScreenshot(config.directory);
   }
 
   async revert(): Promise<void> {

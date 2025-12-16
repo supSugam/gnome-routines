@@ -75,7 +75,7 @@ export default function debugLog(message: string, ...args: any[]) {
   const fullMessage = `${timestamp} ${message} ${argsStr}`;
 
   // Console output
-  debugLog(fullMessage);
+  console.log(fullMessage);
 
   // File output
   if (EXTENSION_DEFAULTS.log.saveToFile) {

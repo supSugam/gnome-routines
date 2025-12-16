@@ -255,18 +255,82 @@ export class GnomeShellAdapter implements SystemAdapter {
     return this.nmClient;
   }
 
-  showNotification(title: string, body: string): void {
-    this.notificationSource = new MessageTray.Source(
-      'Gnome Routines',
-      'view-list-bullet-symbolic'
-    );
-    Main.messageTray.add(this.notificationSource);
-    const notification = new MessageTray.Notification(
-      this.notificationSource,
-      title,
-      body
-    );
-    this.notificationSource.notify(notification);
+  showNotification(config: any): void {
+    debugLog('[GnomeShellAdapter] showNotification called with:', config);
+    try {
+      const { title, message, urgency, iconName } = config;
+
+      // Map urgency to byte value: 0=low, 1=normal, 2=critical
+      let urgencyLevel = 1;
+      if (urgency === 'low') urgencyLevel = 0;
+      if (urgency === 'critical') urgencyLevel = 2;
+
+      // Hints: a{sv}
+      // Note: Gio.DBusProxy wrapper typically expects a JS object for a{sv},
+      // where values are Variants.
+      const hints = {
+        urgency: new GLib.Variant('y', urgencyLevel),
+      };
+
+      const NotificationProxy = Gio.DBusProxy.makeProxyWrapper(`
+        <node>
+          <interface name="org.freedesktop.Notifications">
+            <method name="Notify">
+              <arg type="s" name="app_name" direction="in"/>
+              <arg type="u" name="replaces_id" direction="in"/>
+              <arg type="s" name="app_icon" direction="in"/>
+              <arg type="s" name="summary" direction="in"/>
+              <arg type="s" name="body" direction="in"/>
+              <arg type="as" name="actions" direction="in"/>
+              <arg type="a{sv}" name="hints" direction="in"/>
+              <arg type="i" name="expire_timeout" direction="in"/>
+              <arg type="u" name="id" direction="out"/>
+            </method>
+          </interface>
+        </node>
+      `);
+
+      const proxy = new NotificationProxy(
+        Gio.DBus.session,
+        'org.freedesktop.Notifications',
+        '/org/freedesktop/Notifications'
+      );
+
+      // App Name: 'Gnome Routines'
+      // Replaces ID: 0 (new notification)
+      // Icon: iconName or default
+      // Actions: []
+      // Hints: urgency
+      // Timeout: -1 (server default)
+      proxy.NotifyRemote(
+        'Gnome Routines',
+        0,
+        iconName || 'view-list-bullet-symbolic',
+        title,
+        message || '',
+        [], // actions: as
+        hints,
+        -1,
+        (result: any, error: any) => {
+          if (error) {
+            debugLog(
+              '[GnomeShellAdapter] Failed to send notification via DBus:',
+              error,
+              error && error.message ? error.message : ''
+            );
+          } else {
+            debugLog('[GnomeShellAdapter] Notification sent via DBus success.');
+          }
+        }
+      );
+    } catch (e: any) {
+      debugLog(
+        '[GnomeShellAdapter] Error constructing notification DBus call:',
+        e,
+        e.toString ? e.toString() : ''
+      );
+      if (e.stack) debugLog(e.stack);
+    }
   }
 
   setDND(enabled: boolean): void {
@@ -301,10 +365,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       try {
         settings.disconnect(signalId);
       } catch (e) {
-        debugLog(
-          '[GnomeShellAdapter] Failed to disconnect DND listener',
-          e
-        );
+        debugLog('[GnomeShellAdapter] Failed to disconnect DND listener', e);
       }
     };
   }
@@ -380,10 +441,7 @@ export class GnomeShellAdapter implements SystemAdapter {
               proc.wait_check_finish(res);
               debugLog(`[GnomeShellAdapter] Volume set command executed`);
             } catch (e) {
-              debugLog(
-                '[GnomeShellAdapter] Failed to set volume (async):',
-                e
-              );
+              debugLog('[GnomeShellAdapter] Failed to set volume (async):', e);
             }
             resolve();
           });
@@ -419,10 +477,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             }
             resolve(50);
           } catch (e) {
-            debugLog(
-              '[GnomeShellAdapter] Failed to get volume (async):',
-              e
-            );
+            debugLog('[GnomeShellAdapter] Failed to get volume (async):', e);
             resolve(50);
           }
         });
@@ -706,17 +761,11 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           client.disconnect(signalId);
         } catch (e) {
-          debugLog(
-            '[GnomeShellAdapter] Error disconnecting wifi listener',
-            e
-          );
+          debugLog('[GnomeShellAdapter] Error disconnecting wifi listener', e);
         }
       };
     } catch (e) {
-      debugLog(
-        '[GnomeShellAdapter] Failed to subscribe to Wifi changes:',
-        e
-      );
+      debugLog('[GnomeShellAdapter] Failed to subscribe to Wifi changes:', e);
       return () => {};
     }
   }
@@ -765,10 +814,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       }
       return ssids.sort();
     } catch (e) {
-      debugLog(
-        '[GnomeShellAdapter] Failed to get saved Wifi networks:',
-        e
-      );
+      debugLog('[GnomeShellAdapter] Failed to get saved Wifi networks:', e);
       return [];
     }
   }
@@ -834,10 +880,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         connectProc.init(null);
         resolve();
       } catch (e) {
-        debugLog(
-          '[GnomeShellAdapter] Failed to connect bluetooth device:',
-          e
-        );
+        debugLog('[GnomeShellAdapter] Failed to connect bluetooth device:', e);
         resolve();
       }
     });
@@ -868,10 +911,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             proc.communicate_utf8_finish(res);
             resolve();
           } catch (e) {
-            debugLog(
-              '[GnomeShellAdapter] Failed to disconnect BT async:',
-              e
-            );
+            debugLog('[GnomeShellAdapter] Failed to disconnect BT async:', e);
             resolve();
           }
         });
@@ -886,10 +926,23 @@ export class GnomeShellAdapter implements SystemAdapter {
   }
 
   setAirplaneMode(enabled: boolean): void {
+    debugLog(`[GnomeShellAdapter] Setting Airplane Mode to: ${enabled}`);
     try {
-      // rfkill block all / unblock all
-      const cmd = enabled ? 'rfkill block all' : 'rfkill unblock all';
-      GLib.spawn_command_line_async(cmd);
+      const RfkillProxy = Gio.DBusProxy.makeProxyWrapper(`
+        <node>
+          <interface name="org.gnome.SettingsDaemon.Rfkill">
+            <property name="AirplaneMode" type="b" access="readwrite"/>
+          </interface>
+        </node>
+      `);
+
+      const proxy = new RfkillProxy(
+        Gio.DBus.session,
+        'org.gnome.SettingsDaemon.Rfkill',
+        '/org/gnome/SettingsDaemon/Rfkill'
+      );
+
+      proxy.AirplaneMode = enabled;
     } catch (e) {
       debugLog('[GnomeShellAdapter] Failed to set airplane mode:', e);
     }
@@ -1043,10 +1096,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        debugLog(
-          '[GnomeShellAdapter] Failed to initiate get refresh rate:',
-          e
-        );
+        debugLog('[GnomeShellAdapter] Failed to initiate get refresh rate:', e);
         resolve(60);
       }
     });
@@ -1125,12 +1175,100 @@ export class GnomeShellAdapter implements SystemAdapter {
     }
   }
 
-  takeScreenshot(): void {
-    debugLog('[GnomeShellAdapter] Taking screenshot');
+  takeScreenshot(directory?: string): void {
+    debugLog(
+      `[GnomeShellAdapter] Taking screenshot. Target dir: ${
+        directory || 'Default'
+      }`
+    );
+
     try {
-      GLib.spawn_command_line_async('gnome-screenshot');
+      // 1. Determine Directory
+      let targetDir = directory;
+      if (!targetDir) {
+        const picturesDir = GLib.get_user_special_dir(
+          GLib.UserDirectory.DIRECTORY_PICTURES
+        );
+        if (picturesDir) {
+          targetDir = `${picturesDir}/Screenshots`;
+        } else {
+          targetDir = `${GLib.get_home_dir()}/Pictures/Screenshots`;
+        }
+      }
+
+      // 2. Generate Filename (Prepare ahead)
+      const now = GLib.DateTime.new_now_local();
+      const timestamp = now.format('%Y-%m-%d %H-%M-%S');
+      const filename = `Screenshot from ${timestamp}.png`;
+      const fullPath = `${targetDir}/${filename}`;
+
+      // 3. Ensure Directory Exists (Non-blocking)
+      // Use spawn_command_line_async for fire-and-forget mkdir
+      // This is safe because mkdir -p is idempotent and extremely fast
+      GLib.spawn_command_line_async(`mkdir -p "${targetDir}"`);
+
+      // Give mkdir a tiny moment to complete, then take screenshot
+      // Using GLib.timeout_add to avoid race condition while staying non-blocking
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
+        this._takeScreenshotDBus(fullPath, filename);
+        return GLib.SOURCE_REMOVE;
+      });
     } catch (e) {
-      debugLog('[GnomeShellAdapter] Failed to take screenshot:', e);
+      debugLog('[GnomeShellAdapter] Failed to initiate screenshot:', e);
+    }
+  }
+
+  private _takeScreenshotDBus(fullPath: string, filename: string): void {
+    try {
+      const ScreenshotProxy = Gio.DBusProxy.makeProxyWrapper(`
+            <node>
+            <interface name="org.gnome.Shell.Screenshot">
+                <method name="Screenshot">
+                <arg type="b" name="include_cursor" direction="in"/>
+                <arg type="b" name="flash" direction="in"/>
+                <arg type="s" name="filename" direction="in"/>
+                <arg type="b" name="success" direction="out"/>
+                <arg type="s" name="filename_used" direction="out"/>
+                </method>
+            </interface>
+            </node>
+        `);
+
+      const proxy = new ScreenshotProxy(
+        Gio.DBus.session,
+        'org.gnome.Shell.Screenshot',
+        '/org/gnome/Shell/Screenshot'
+      );
+
+      proxy.ScreenshotRemote(
+        false,
+        true,
+        fullPath,
+        (result: any, error: any) => {
+          if (error) {
+            debugLog(
+              '[GnomeShellAdapter] Failed to take screenshot (DBus):',
+              error
+            );
+          } else {
+            if (result && result[0] === true) {
+              debugLog(`[GnomeShellAdapter] Screenshot saved to: ${result[1]}`);
+              this.showNotification({
+                title: 'Screenshot Saved',
+                message: `Saved to ${filename}`,
+                urgency: 'low',
+                iconName: 'camera-photo-symbolic',
+              });
+            } else {
+              debugLog(
+                '[GnomeShellAdapter] Screenshot failed (DBus returned false)'
+              );
+            }
+          }
+        }
+      );
+    } catch (e) {
+      debugLog('[GnomeShellAdapter] Error calling Screenshot DBus:', e);
     }
   }
 
@@ -1388,10 +1526,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (e) {
-          debugLog(
-            '[GnomeShellAdapter] Error unsubscribe bluetooth power',
-            e
-          );
+          debugLog('[GnomeShellAdapter] Error unsubscribe bluetooth power', e);
         }
       };
     } catch (e) {
@@ -1518,10 +1653,7 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (e) {
-          debugLog(
-            '[GnomeShellAdapter] Error unsubscribe bluetooth device',
-            e
-          );
+          debugLog('[GnomeShellAdapter] Error unsubscribe bluetooth device', e);
         }
       };
     } catch (e) {
@@ -1553,9 +1685,7 @@ export class GnomeShellAdapter implements SystemAdapter {
       const device = client.get_display_device();
 
       if (!device) {
-        debugLog(
-          '[GnomeShellAdapter] No display device found in isCharging'
-        );
+        debugLog('[GnomeShellAdapter] No display device found in isCharging');
         return false;
       }
 
@@ -1688,10 +1818,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         });
       } catch (e) {
-        debugLog(
-          '[GnomeShellAdapter] Failed to get power saver state:',
-          e
-        );
+        debugLog('[GnomeShellAdapter] Failed to get power saver state:', e);
         resolve(false);
       }
     });
@@ -1762,36 +1889,21 @@ export class GnomeShellAdapter implements SystemAdapter {
   // Airplane Mode
   async getAirplaneModeState(): Promise<boolean> {
     try {
-      // Check rfkill
-      // If ALL wireless devices are Soft blocked: yes, then airplane mode is effectively on
-      // But usually there is a master switch.
-      // Let's check if we can find any "Soft blocked: no"
-      // If ANY is unblocked, Airplane mode is OFF.
-      // If ALL are blocked, Airplane mode is ON.
+      const RfkillProxy = Gio.DBusProxy.makeProxyWrapper(`
+        <node>
+          <interface name="org.gnome.SettingsDaemon.Rfkill">
+            <property name="AirplaneMode" type="b" access="readwrite"/>
+          </interface>
+        </node>
+      `);
 
-      return new Promise((resolve) => {
-        const proc = new Gio.Subprocess({
-          argv: ['rfkill', 'list'],
-          flags: Gio.SubprocessFlags.STDOUT_PIPE,
-        });
-        proc.init(null);
-        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
-          try {
-            const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
-            if (ok && stdout) {
-              resolve(!stdout.includes('Soft blocked: no'));
-            } else {
-              resolve(false);
-            }
-          } catch (e) {
-            debugLog(
-              '[GnomeShellAdapter] Failed to get airplane mode async:',
-              e
-            );
-            resolve(false);
-          }
-        });
-      });
+      const proxy = new RfkillProxy(
+        Gio.DBus.session,
+        'org.gnome.SettingsDaemon.Rfkill',
+        '/org/gnome/SettingsDaemon/Rfkill'
+      );
+
+      return proxy.AirplaneMode;
     } catch (e) {
       debugLog('[GnomeShellAdapter] Failed to get airplane mode:', e);
       return false;
@@ -1852,17 +1964,11 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           Gio.DBus.session.signal_unsubscribe(signalId);
         } catch (e) {
-          debugLog(
-            '[GnomeShellAdapter] Error unsubscribe airplane mode',
-            e
-          );
+          debugLog('[GnomeShellAdapter] Error unsubscribe airplane mode', e);
         }
       };
     } catch (e) {
-      debugLog(
-        '[GnomeShellAdapter] Failed to subscribe to airplane mode:',
-        e
-      );
+      debugLog('[GnomeShellAdapter] Failed to subscribe to airplane mode:', e);
       return () => {};
     }
   }
@@ -1910,17 +2016,11 @@ export class GnomeShellAdapter implements SystemAdapter {
         try {
           appSystem.disconnect(signalId);
         } catch (e) {
-          debugLog(
-            '[GnomeShellAdapter] Error disconnecting app listener',
-            e
-          );
+          debugLog('[GnomeShellAdapter] Error disconnecting app listener', e);
         }
       };
     } catch (e) {
-      debugLog(
-        '[GnomeShellAdapter] Failed to subscribe to app changes:',
-        e
-      );
+      debugLog('[GnomeShellAdapter] Failed to subscribe to app changes:', e);
       return () => {};
     }
   }
@@ -1955,10 +2055,7 @@ export class GnomeShellAdapter implements SystemAdapter {
             try {
               callback();
             } catch (e) {
-              debugLog(
-                '[GnomeShellAdapter] Error in clipboard callback:',
-                e
-              );
+              debugLog('[GnomeShellAdapter] Error in clipboard callback:', e);
             }
           }
         );
@@ -1994,10 +2091,7 @@ export class GnomeShellAdapter implements SystemAdapter {
           }
         );
       } catch (e) {
-        debugLog(
-          '[GnomeShellAdapter] Failed to get clipboard content:',
-          e
-        );
+        debugLog('[GnomeShellAdapter] Failed to get clipboard content:', e);
         resolve({ type: 'other' });
       }
     });

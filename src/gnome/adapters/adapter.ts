@@ -1,6 +1,6 @@
 export interface SystemAdapter {
   // Notification
-  showNotification(title: string, body: string): void;
+  showNotification(config: any): void;
 
   // Settings
   setDND(enabled: boolean): void;
@@ -99,7 +99,7 @@ export interface SystemAdapter {
 
   // New Actions - Functions
   openLink(url: string): void;
-  takeScreenshot(): void;
+  takeScreenshot(directory?: string): void;
   executeCommand(command: string): void;
   openApp(appIds: string[]): void;
   // New Actions - Keyboard

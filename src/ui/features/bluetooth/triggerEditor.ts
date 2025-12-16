@@ -9,6 +9,7 @@ import {
   ConnectionState,
   BluetoothTriggerConfig,
 } from '../../../engine/types.js';
+import debugLog from '../../../utils/log.js';
 
 export class BluetoothTriggerEditor extends BaseEditor {
   private get btConfig(): BluetoothTriggerConfig {

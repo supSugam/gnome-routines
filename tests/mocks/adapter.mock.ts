@@ -54,8 +54,12 @@ export class MockSystemAdapter implements SystemAdapter {
   }
 
   // Notification
-  showNotification(title: string, body: string): void {
-    this.notifications.push({ title, body });
+  // Notification
+  showNotification(config: any): void {
+    this.notifications.push({
+      title: config.title,
+      body: config.message || '',
+    });
   }
 
   // Settings
@@ -243,7 +247,7 @@ export class MockSystemAdapter implements SystemAdapter {
 
   // New Actions - Functions
   openLink(url: string): void {}
-  takeScreenshot(): void {}
+  takeScreenshot(directory?: string): void {}
   openApp(appIds: string[]): void {}
   executeCommand(command: string): void {}
 

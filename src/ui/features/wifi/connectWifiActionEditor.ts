@@ -5,6 +5,7 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import NM from 'gi://NM';
 import { BaseEditor } from '../../components/baseEditor.js';
+import debugLog from '../../../utils/log.js';
 import { RETRY_DEFAULTS } from '../../../engine/constants.js';
 
 export class ConnectWifiActionEditor extends BaseEditor {

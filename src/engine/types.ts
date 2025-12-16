@@ -155,9 +155,17 @@ export interface OpenAppActionConfig {
   appIds: string[];
 }
 
+export enum NotificationUrgency {
+  LOW = 'low',
+  NORMAL = 'normal',
+  CRITICAL = 'critical',
+}
+
 export interface NotificationActionConfig {
   title: string;
   message: string;
+  urgency: NotificationUrgency;
+  iconName?: string;
 }
 
 export interface VolumeActionConfig {
@@ -254,6 +262,10 @@ export interface ClipboardActionConfig {
 
 export interface ExecuteCommandActionConfig {
   command: string;
+}
+
+export interface ScreenshotActionConfig {
+  directory: string;
 }
 
 export type ActionConfig =

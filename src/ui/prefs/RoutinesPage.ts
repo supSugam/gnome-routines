@@ -2,6 +2,9 @@
 import Adw from 'gi://Adw';
 import { PreferencesHeader } from './header.js';
 import { RoutineList } from './routineList.js';
+import { RoutineEditor } from '../editor.js';
+import { UI_STRINGS } from '../utils/constants.js';
+import debugLog from '../../utils/log.js';
 
 export class RoutinesPage {
   public widget: any;

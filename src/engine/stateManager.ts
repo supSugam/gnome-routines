@@ -1,3 +1,5 @@
+import debugLog from '../utils/log.js';
+
 export class StateManager {
   private settings: any;
   private states: Map<string, Map<string, any>>;

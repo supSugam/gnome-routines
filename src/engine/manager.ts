@@ -302,10 +302,11 @@ export class RoutineManager implements RoutineManagerInterface {
         debugLog(
           '[RoutineManager] CRITICAL: Excessive routine evaluations detected (>100/min). Pausing evaluations for safety.'
         );
-        this.adapter.showNotification(
-          'Gnome Routines Error',
-          'Excessive activity detected. Routines paused for safety.'
-        );
+        this.adapter.showNotification({
+          title: 'Gnome Routines Error',
+          message: 'Excessive activity detected. Routines paused for safety.',
+          urgency: 'critical',
+        });
       }
       return;
     }

@@ -7,6 +7,9 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
+import { BluetoothDeviceActionConfig } from '../../../engine/types.js';
+import { UI_STRINGS } from '../../utils/constants.js';
+import debugLog from '../../../utils/log.js';
 import { ActionOperation } from '../../../engine/types.js';
 
 export class DisconnectBluetoothActionEditor extends BaseEditor {

@@ -28,3 +28,12 @@ echo "  - X11: Press Alt+F2, type 'r', and press Enter."
 echo "  - Wayland: Log out and log back in."
 echo "Then enable the extension: gnome-extensions enable $EXTENSION_ID"
 echo "----------------------------------------------------------------"
+
+# if x11, keypress alt+f2, r, enter 
+[ "$XDG_SESSION_TYPE" = "x11" ] || exit 0
+
+xdotool key Alt+F2
+sleep 0.2
+xdotool type r
+sleep 0.1
+xdotool key Return

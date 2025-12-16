@@ -25,6 +25,7 @@ import {
   ScreenshotAction,
   OpenAppAction,
 } from './actions/function.js';
+import { NotificationAction } from './actions/notification.js';
 import { ExecuteCommandAction } from './actions/command.js';
 import { SystemAdapter } from '../gnome/adapters/adapter.js';
 import { StateManager } from './stateManager.js';
@@ -160,6 +161,13 @@ export class ActionFactory {
         break;
       case ActionType.OPEN_APP:
         action = new OpenAppAction(
+          data.id,
+          data.config,
+          adapter
+        ) as unknown as Action;
+        break;
+      case ActionType.NOTIFICATION:
+        action = new NotificationAction(
           data.id,
           data.config,
           adapter

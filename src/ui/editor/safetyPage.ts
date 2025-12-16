@@ -3,6 +3,7 @@ import Adw from 'gi://Adw';
 // @ts-ignore
 import Gtk from 'gi://Gtk';
 import { UI_STRINGS } from '../utils/constants.js';
+import debugLog from '../../utils/log.js';
 import { RoutineHealth, RoutineState } from '../../engine/types.js';
 
 export class SafetyPage {

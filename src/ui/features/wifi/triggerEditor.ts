@@ -5,7 +5,13 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import NM from 'gi://NM';
 import { BaseEditor } from '../../components/baseEditor.js';
-import { ConnectionState, WifiTriggerConfig } from '../../../engine/types.js';
+import {
+  ConnectionState,
+  TriggerType,
+  WifiTriggerConfig,
+} from '../../../engine/types.js';
+import { UI_STRINGS } from '../../utils/constants.js';
+import debugLog from '../../../utils/log.js';
 
 export class WifiTriggerEditor extends BaseEditor {
   private get wifiConfig(): WifiTriggerConfig {
@@ -14,7 +20,8 @@ export class WifiTriggerEditor extends BaseEditor {
 
   render(group: any): void {
     // Initialize defaults if missing
-    if (!this.wifiConfig.state) this.wifiConfig.state = ConnectionState.CONNECTED;
+    if (!this.wifiConfig.state)
+      this.wifiConfig.state = ConnectionState.CONNECTED;
     if (!this.wifiConfig.ssids) this.wifiConfig.ssids = [];
 
     const wifiModel = new Gtk.StringList({
@@ -68,13 +75,13 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   private getNetworksSubtitle(): string {
-      if (!this.config.ssids || this.config.ssids.length === 0) {
-          return 'Leave empty for any network';
-      }
-      if (this.config.ssids.length === 1) {
-          return this.config.ssids[0];
-      }
-      return `${this.config.ssids.length} networks selected`;
+    if (!this.config.ssids || this.config.ssids.length === 0) {
+      return 'Leave empty for any network';
+    }
+    if (this.config.ssids.length === 1) {
+      return this.config.ssids[0];
+    }
+    return `${this.config.ssids.length} networks selected`;
   }
 
   private loadNetworks(row: any) {
@@ -131,8 +138,8 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   validate(): boolean | string {
-    if (!this.wifiConfig.state) return "Invalid state";
-    // If specific networks are selected but state is just "Enabled" (Turned On), 
+    if (!this.wifiConfig.state) return 'Invalid state';
+    // If specific networks are selected but state is just "Enabled" (Turned On),
     // we technically ignore them, but it's not "invalid".
     return true;
   }
