@@ -18,6 +18,8 @@ import NM from 'gi://NM';
 // @ts-ignore
 import UPower from 'gi://UPowerGlib';
 
+import { captureScreenshot } from './screenshotPortal.js';
+
 declare const global: any;
 
 export class GnomeShellAdapter implements SystemAdapter {
@@ -1177,98 +1179,83 @@ export class GnomeShellAdapter implements SystemAdapter {
 
   takeScreenshot(directory?: string): void {
     debugLog(
-      `[GnomeShellAdapter] Taking screenshot. Target dir: ${
+      `[GnomeShellAdapter] Taking screenshot (Internal API). Target dir: ${
         directory || 'Default'
       }`
     );
 
     try {
-      // 1. Determine Directory
+      // 1. Determine Target Directory
       let targetDir = directory;
       if (!targetDir) {
         const picturesDir = GLib.get_user_special_dir(
           GLib.UserDirectory.DIRECTORY_PICTURES
         );
-        if (picturesDir) {
-          targetDir = `${picturesDir}/Screenshots`;
-        } else {
-          targetDir = `${GLib.get_home_dir()}/Pictures/Screenshots`;
-        }
+        targetDir = picturesDir
+          ? `${picturesDir}/Screenshots`
+          : `${GLib.get_home_dir()}/Pictures/Screenshots`;
       }
 
-      // 2. Generate Filename (Prepare ahead)
+      // Ensure target directory exists (Async-ish safe check)
+      if (!GLib.file_test(targetDir, GLib.FileTest.IS_DIR)) {
+        GLib.mkdir_with_parents(targetDir, 0o755);
+      }
+
+      // 2. Prepare Filename
       const now = GLib.DateTime.new_now_local();
       const timestamp = now.format('%Y-%m-%d %H-%M-%S');
       const filename = `Screenshot from ${timestamp}.png`;
       const fullPath = `${targetDir}/${filename}`;
+      const file = Gio.File.new_for_path(fullPath);
 
-      // 3. Ensure Directory Exists (Non-blocking)
-      // Use spawn_command_line_async for fire-and-forget mkdir
-      // This is safe because mkdir -p is idempotent and extremely fast
-      GLib.spawn_command_line_async(`mkdir -p "${targetDir}"`);
+      // 3. Use Portal API via helper
+      // @ts-ignore
 
-      // Give mkdir a tiny moment to complete, then take screenshot
-      // Using GLib.timeout_add to avoid race condition while staying non-blocking
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
-        this._takeScreenshotDBus(fullPath, filename);
-        return GLib.SOURCE_REMOVE;
-      });
-    } catch (e) {
-      debugLog('[GnomeShellAdapter] Failed to initiate screenshot:', e);
-    }
-  }
+      captureScreenshot()
+        .then((uri: string) => {
+          if (!uri) return;
+          debugLog(`[GnomeShellAdapter] Portal screenshot success: ${uri}`);
 
-  private _takeScreenshotDBus(fullPath: string, filename: string): void {
-    try {
-      const ScreenshotProxy = Gio.DBusProxy.makeProxyWrapper(`
-            <node>
-            <interface name="org.gnome.Shell.Screenshot">
-                <method name="Screenshot">
-                <arg type="b" name="include_cursor" direction="in"/>
-                <arg type="b" name="flash" direction="in"/>
-                <arg type="s" name="filename" direction="in"/>
-                <arg type="b" name="success" direction="out"/>
-                <arg type="s" name="filename_used" direction="out"/>
-                </method>
-            </interface>
-            </node>
-        `);
+          // The portal usually saves to ~/Pictures or similar.
+          // We want it at 'fullPath'.
+          // Uri is file://...
+          try {
+            const srcFile = Gio.File.new_for_uri(uri);
+            const destFile = Gio.File.new_for_path(fullPath);
 
-      const proxy = new ScreenshotProxy(
-        Gio.DBus.session,
-        'org.gnome.Shell.Screenshot',
-        '/org/gnome/Shell/Screenshot'
-      );
+            // Move it to our target location
+            srcFile.move(destFile, Gio.FileCopyFlags.OVERWRITE, null, null);
 
-      proxy.ScreenshotRemote(
-        false,
-        true,
-        fullPath,
-        (result: any, error: any) => {
-          if (error) {
+            debugLog(`[GnomeShellAdapter] Moved screenshot to: ${fullPath}`);
+            this.showNotification({
+              title: 'Screenshot Saved',
+              message: `Saved to ${filename}`,
+              urgency: 'low',
+              iconName: 'camera-photo-symbolic',
+            });
+          } catch (moveErr) {
             debugLog(
-              '[GnomeShellAdapter] Failed to take screenshot (DBus):',
-              error
+              '[GnomeShellAdapter] Failed to move screenshot file:',
+              moveErr
             );
-          } else {
-            if (result && result[0] === true) {
-              debugLog(`[GnomeShellAdapter] Screenshot saved to: ${result[1]}`);
-              this.showNotification({
-                title: 'Screenshot Saved',
-                message: `Saved to ${filename}`,
-                urgency: 'low',
-                iconName: 'camera-photo-symbolic',
-              });
-            } else {
-              debugLog(
-                '[GnomeShellAdapter] Screenshot failed (DBus returned false)'
-              );
-            }
+            // Notification for at least the original file
+            this.showNotification({
+              title: 'Screenshot Saved',
+              message: `Saved (portal default location)`,
+              urgency: 'low',
+              iconName: 'camera-photo-symbolic',
+            });
           }
-        }
-      );
-    } catch (e) {
-      debugLog('[GnomeShellAdapter] Error calling Screenshot DBus:', e);
+        })
+        .catch((err: any) => {
+          debugLog('[GnomeShellAdapter] Portal screenshot failed:', err);
+          this.showNotification({
+            title: 'Screenshot Failed',
+            message: err.message || 'Capture Error',
+          });
+        });
+    } catch (e: any) {
+      debugLog('[GnomeShellAdapter] Failed to initiate screenshot:', e);
     }
   }
 
