@@ -3,6 +3,13 @@ import { TimeTrigger } from '../src/engine/triggers/time';
 // @ts-ignore
 import { mockState } from './mocks/gi.mock';
 
+// Mock debugLog to avoid console spam
+jest.mock('../src/utils/log', () => ({
+    __esModule: true,
+    default: jest.fn()
+}));
+
+
 describe('TimeTrigger', () => {
     let trigger: TimeTrigger;
 

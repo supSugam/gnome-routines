@@ -97,6 +97,19 @@ export class TimeTrigger extends BaseTrigger {
           this._lastState = true;
         }
       });
+    } else {
+      // Default: TriggerStrategy.EXISTING_STATE
+      // For time periods, we want to know immediately if we are INSIDE the period.
+      // If so, we should trigger.
+      this.check().then((isActive) => {
+        if (isActive) {
+          debugLog(
+            `[TimeTrigger] Initial state matched (inside period). Triggering immediately.`
+          );
+          this._lastState = true;
+          this.emit('triggered');
+        }
+      });
     }
 
     // Check every minute (60 seconds)
