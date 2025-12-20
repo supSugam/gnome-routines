@@ -3,7 +3,7 @@
 import Gio from 'gi://Gio';
 // @ts-ignore
 import GLib from 'gi://GLib';
-import debugLog from '../../utils/log.js';
+import debugLog from '../../../utils/log.js';
 
 const PortalInterface = `
 <node>
