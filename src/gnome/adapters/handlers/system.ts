@@ -66,22 +66,19 @@ export class SystemAdapter {
     }
 
     executeCommand(command: string): void {
-        debugLog(`[SystemAdapter] Executing command: ${command}`);
+        debugLog(`[SystemAdapter] Executing command (shell): ${command}`);
         try {
-            // We must parse the command string into argv
-            const [ok, argv] = GLib.shell_parse_argv(command);
-            if (!ok || !argv) {
-                debugLog('[SystemAdapter] Failed to parse command argv');
-                return;
-            }
+          // Run in a login shell to ensure user environment (PATH, aliases, etc.) is loaded
+          // similar to running in a terminal.
+          const argv = ['bash', '-l', '-c', command];
 
-            const proc = new Gio.Subprocess({
-                argv: argv,
-                flags: Gio.SubprocessFlags.NONE,
-            });
-            proc.init(null);
+          const proc = new Gio.Subprocess({
+            argv: argv,
+            flags: Gio.SubprocessFlags.NONE,
+          });
+          proc.init(null);
         } catch (e) {
-            debugLog('[SystemAdapter] Failed to spawn command:', e);
+          debugLog('[SystemAdapter] Failed to spawn command:', e);
         }
     }
 

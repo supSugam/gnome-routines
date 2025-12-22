@@ -34,9 +34,16 @@ export class IntervalTriggerEditor extends BaseEditor {
 
     // @ts-ignore
     intervalRow.connect('notify::value', () => {
-      this.config.interval = intervalRow.value;
+      let val = intervalRow.value;
+      if (val < 1) {
+        val = 1;
+        // Force update UI if it was somehow 0
+        intervalRow.value = 1;
+      }
+      this.config.interval = val;
       this.onChange();
     });
+
     group.add(intervalRow);
 
     // Unit Selector

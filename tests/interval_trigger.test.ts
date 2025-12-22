@@ -1,28 +1,27 @@
 import { IntervalTrigger } from '../src/engine/triggers/interval';
 import { SystemAdapter } from '../src/gnome/adapters/adapter';
 
-// Mock GLib
-const mockGLibImpl = {
-  timeout_add_seconds: jest.fn(),
-  source_remove: jest.fn(),
-  PRIORITY_DEFAULT: 0,
-  SOURCE_CONTINUE: true,
-};
-
+// Mock GLib inline to avoid hoisting issues
 jest.mock(
   'gi://GLib',
-  () => ({
-    __esModule: true,
-    default: mockGLibImpl,
-    ...mockGLibImpl,
-  }),
+  () => {
+    const mockImpl = {
+      timeout_add_seconds: jest.fn(),
+      source_remove: jest.fn(),
+      PRIORITY_DEFAULT: 0,
+      SOURCE_CONTINUE: true,
+    };
+    return {
+      __esModule: true,
+      default: mockImpl,
+      ...mockImpl,
+    };
+  },
   { virtual: true }
 );
 
-// Get the mock object using default if strictly needed, or just use the impl
-// Since we used virtual mock, require('gi://GLib') should return the object above.
-// If imported as default, it gets the 'default' property.
-import GLib from 'gi://GLib';
+// @ts-ignore
+const GLib = require('gi://GLib');
 
 describe('IntervalTrigger', () => {
   let trigger: IntervalTrigger;
@@ -41,6 +40,7 @@ describe('IntervalTrigger', () => {
     );
     trigger.activate();
 
+    // Access the mock directly via the required module
     expect(GLib.timeout_add_seconds).toHaveBeenCalledTimes(1);
     expect(GLib.timeout_add_seconds).toHaveBeenCalledWith(
       0,
@@ -67,7 +67,7 @@ describe('IntervalTrigger', () => {
   it('should enforce minimum 60s interval', () => {
     trigger = new IntervalTrigger(
       'test-id',
-      { interval: 0, unit: 'minutes' }, 
+      { interval: 0, unit: 'minutes' },
       mockAdapter
     );
     trigger.activate();
