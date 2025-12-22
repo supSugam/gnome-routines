@@ -11,7 +11,9 @@ export enum TriggerType {
   CLIPBOARD = 'clipboard',
   STARTUP = 'startup',
   DND = 'dnd',
+  INTERVAL = 'interval',
 }
+
 
 export enum SystemType {
   PC = 'pc',

@@ -99,27 +99,34 @@ export class TriggerManager {
     });
 
     // Add Button
-    const addTriggerBtn = new Gtk.Button({
-      label: UI_STRINGS.editor.if.addBtn,
-      margin_top: 10,
-    });
-    addTriggerBtn.add_css_class('pill');
-    // @ts-ignore
-    addTriggerBtn.connect('clicked', () => {
-      const hasTime = this.routine.triggers.some(
-        (tr: any) => tr.type === TriggerType.TIME
-      );
-      const defaultType = hasTime ? TriggerType.APP : TriggerType.TIME;
+    // Add Button (Only if no Interval trigger exists)
+    const hasInterval = this.routine.triggers.some(
+      (t: any) => t.type === TriggerType.INTERVAL
+    );
 
-      const newTrigger = {
-        id: GLib.uuid_string_random(),
-        type: defaultType,
-        config: {},
-      };
-      this.editTrigger(newTrigger, true, () => this.refresh());
-    });
-    this.group.add(addTriggerBtn);
-    this._children.push(addTriggerBtn);
+    if (!hasInterval) {
+      const addTriggerBtn = new Gtk.Button({
+        label: UI_STRINGS.editor.if.addBtn,
+        margin_top: 10,
+      });
+      addTriggerBtn.add_css_class('pill');
+      // @ts-ignore
+      addTriggerBtn.connect('clicked', () => {
+        const hasTime = this.routine.triggers.some(
+          (tr: any) => tr.type === TriggerType.TIME
+        );
+        const defaultType = hasTime ? TriggerType.APP : TriggerType.TIME;
+
+        const newTrigger = {
+          id: GLib.uuid_string_random(),
+          type: defaultType,
+          config: {},
+        };
+        this.editTrigger(newTrigger, true, () => this.refresh());
+      });
+      this.group.add(addTriggerBtn);
+      this._children.push(addTriggerBtn);
+    }
   }
 
   private _children: any[] = [];
@@ -159,7 +166,9 @@ export class TriggerManager {
     let triggerTypes = [
       { id: TriggerType.STARTUP, title: UI_STRINGS.triggers.startup },
       { id: TriggerType.TIME, title: UI_STRINGS.triggers.time },
+      { id: TriggerType.INTERVAL, title: UI_STRINGS.triggers.interval },
       { id: TriggerType.APP, title: UI_STRINGS.triggers.app },
+
       { id: TriggerType.WIFI, title: UI_STRINGS.triggers.wifi },
       { id: TriggerType.BLUETOOTH, title: UI_STRINGS.triggers.bluetooth },
       { id: TriggerType.BATTERY, title: UI_STRINGS.triggers.battery },
@@ -179,6 +188,16 @@ export class TriggerManager {
       triggerTypes = triggerTypes.filter(
         (t) => t.id !== TriggerType.BATTERY && t.id !== TriggerType.POWER_SAVER
       );
+    }
+
+    // Filter Interval Exclusivity
+    // If routine has other triggers, we cannot switch to/add Interval
+    // Unless this IS the interval trigger we are editing
+    const otherTriggers = this.routine.triggers.filter(
+      (t: any) => t !== trigger
+    );
+    if (otherTriggers.length > 0) {
+      triggerTypes = triggerTypes.filter((t) => t.id !== TriggerType.INTERVAL);
     }
 
     const typeModel = new Gtk.StringList({

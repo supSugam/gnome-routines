@@ -19,6 +19,7 @@ import { TriggerFactory } from './triggerFactory.js';
 import { ActionFactory } from './actionFactory.js';
 import { StateManager } from './stateManager.js';
 import { RoutineValidator } from './validator.js';
+import { EventEmitter } from './events.js';
 
 export class RoutineManager implements RoutineManagerInterface {
   private routines: Map<string, Routine> = new Map();
@@ -96,7 +97,9 @@ export class RoutineManager implements RoutineManagerInterface {
     });
 
     debugLog(`[RoutineManager] Total active routines: ${this.routines.size}`);
-    this.evaluate();
+    this.evaluate().catch((e) =>
+      debugLog('[RoutineManager] Error during initial evaluation:', e)
+    );
   }
 
   async reload() {
@@ -135,12 +138,21 @@ export class RoutineManager implements RoutineManagerInterface {
         }
 
         debugLog(`[RoutineManager] Routine ${id} updated (config changed)`);
-        this._removeRoutine(id); // Deactivates if active
+
+        // Save current isActive state if it might be relevant,
+        // but we WANT it to re-trigger, so we don't transfer isActive = true if it changed.
+        // Actually, _removeRoutine deactivates triggers and routine if active.
+        this._removeRoutine(id);
         this.routines.set(id, newRoutine);
+
+        // Ensure it's not marked active so evaluate() will trigger it
+        newRoutine.isActive = false;
       }
     }
 
-    this.evaluate();
+    this.evaluate().catch((e) =>
+      debugLog('[RoutineManager] Error during reload evaluation:', e)
+    );
   }
 
   private areRoutinesEqual(r1: Routine, r2: Routine): boolean {
@@ -256,13 +268,18 @@ export class RoutineManager implements RoutineManagerInterface {
 
       this.routines.set(routine.id, routine);
       this.save();
-      this.evaluate();
+      this.evaluate().catch((e) =>
+        debugLog('[RoutineManager] Error during addRoutine evaluation:', e)
+      );
     }
   }
 
   removeRoutine(id: string): void {
     if (this._removeRoutine(id)) {
       this.save();
+      this.evaluate().catch((e) =>
+        debugLog('[RoutineManager] Error during removeRoutine evaluation:', e)
+      );
     }
   }
 
@@ -289,92 +306,119 @@ export class RoutineManager implements RoutineManagerInterface {
   private _isFirstRun: boolean = true;
 
   async evaluate(forceActiveTriggers: Trigger[] = []): Promise<void> {
-    // Safety Circuit Breaker
-    const now = Date.now();
-    if (now - this._lastResetTime > 60000) {
-      this._evaluationCount = 0;
-      this._lastResetTime = now;
-    }
-
-    this._evaluationCount++;
-    if (this._evaluationCount > 100) {
-      if (this._evaluationCount === 101) {
-        debugLog(
-          '[RoutineManager] CRITICAL: Excessive routine evaluations detected (>100/min). Pausing evaluations for safety.'
-        );
-        this.adapter.showNotification({
-          title: 'Gnome Routines Error',
-          message: 'Excessive activity detected. Routines paused for safety.',
-          urgency: 'critical',
-        });
-      }
-      return;
-    }
-
-    for (const routine of this.routines.values()) {
-      // Ensure triggers are activated if routine is enabled
-      if (routine.enabled) {
-        this.activateTriggers(routine);
-      } else {
-        this.deactivateTriggers(routine);
+    try {
+      // Safety Circuit Breaker
+      const now = Date.now();
+      if (now - this._lastResetTime > 60000) {
+        this._evaluationCount = 0;
+        this._lastResetTime = now;
       }
 
-      if (!routine.enabled) {
-        if (routine.isActive) {
-          this.deactivateRoutine(routine);
-        }
-        continue;
-      }
-
-      const activeTriggers = await this.checkTriggers(
-        routine.triggers,
-        routine.matchType || 'all',
-        forceActiveTriggers
-      );
-      const shouldBeActive = activeTriggers.length > 0;
-
-      if (shouldBeActive && !routine.isActive) {
-        // STRATEGY CHECK
-        if (this._isFirstRun) {
-          const allIgnorable = activeTriggers.every(
-            (t) => t.strategy === TriggerStrategy.NEW_CHANGE_ONLY
+      this._evaluationCount++;
+      if (this._evaluationCount > 100) {
+        if (this._evaluationCount === 101) {
+          debugLog(
+            '[RoutineManager] CRITICAL: Excessive routine evaluations detected (>100/min). Pausing evaluations for safety.'
           );
+          this.adapter.showNotification({
+            title: 'Gnome Routines Error',
+            message: 'Excessive activity detected. Routines paused for safety.',
+            urgency: 'critical',
+          });
+        }
+        return;
+      }
 
-          if (allIgnorable) {
-            debugLog(
-              `[RoutineManager] Skipping activation for ${routine.name} on first run (Trigger Strategy).`
-            );
-            routine.isActive = true; // Mark active silently
-            // We should probably save this state change so next run knows it's active
-            this.save();
+      for (const routine of this.routines.values()) {
+        try {
+          // Ensure triggers are activated if routine is enabled
+          if (routine.enabled) {
+            this.activateTriggers(routine);
+          } else {
+            this.deactivateTriggers(routine);
+          }
+
+          if (!routine.enabled) {
+            if (routine.isActive) {
+              this.deactivateRoutine(routine);
+            }
             continue;
           }
-        }
 
-        // CONFLICT CHECK
-        const conflicts = this.checkConflicts(routine);
-        if (conflicts.length > 0) {
-          debugLog(
-            `[RoutineManager] Conflict detected for ${
-              routine.name
-            }: ${conflicts.join(', ')}`
+          const activeTriggers = await this.checkTriggers(
+            routine.triggers,
+            routine.matchType || 'all',
+            forceActiveTriggers
           );
-          this.updateHealth(routine.id, RoutineHealth.WARNING, {
-            type: ExecutionType.ACTIVATE,
-            status: ExecutionStatus.WARNING, // Use WARNING instead of FAILURE
-            message: `Conflict detected with: ${conflicts.join(', ')}`,
-          });
-          // Proceed anyway
-        }
+          const shouldBeActive = activeTriggers.length > 0;
 
-        debugLog(`[RoutineManager] Activating routine ${routine.name}`);
-        this.activateRoutine(routine); // This is async but we don't await in loop in original code
-      } else if (!shouldBeActive && routine.isActive) {
-        debugLog(`[RoutineManager] Deactivating routine ${routine.name}`);
-        this.deactivateRoutine(routine);
+          if (shouldBeActive && !routine.isActive) {
+            // STRATEGY CHECK
+            if (this._isFirstRun) {
+              const allIgnorable = activeTriggers.every(
+                (t) => t.strategy === TriggerStrategy.NEW_CHANGE_ONLY
+              );
+
+              if (allIgnorable) {
+                debugLog(
+                  `[RoutineManager] Skipping activation for ${routine.name} on first run (Trigger Strategy).`
+                );
+                routine.isActive = true; // Mark active silently
+                // We should probably save this state change so next run knows it's active
+                this.save();
+                continue;
+              }
+            }
+
+            // CONFLICT CHECK
+            const conflicts = this.checkConflicts(routine);
+            if (conflicts.length > 0) {
+              debugLog(
+                `[RoutineManager] Conflict detected for ${
+                  routine.name
+                }: ${conflicts.join(', ')}`
+              );
+              this.updateHealth(routine.id, RoutineHealth.WARNING, {
+                type: ExecutionType.ACTIVATE,
+                status: ExecutionStatus.WARNING, // Use WARNING instead of FAILURE
+                message: `Conflict detected with: ${conflicts.join(', ')}`,
+              });
+              // Proceed anyway
+            }
+
+            debugLog(`[RoutineManager] Activating routine ${routine.name}`);
+            this.activateRoutine(routine).catch((err) =>
+              debugLog(
+                `[RoutineManager] Error activating routine ${routine.name}:`,
+                err
+              )
+            );
+          } else if (!shouldBeActive && routine.isActive) {
+            debugLog(`[RoutineManager] Deactivating routine ${routine.name}`);
+            this.deactivateRoutine(routine).catch((err) =>
+              debugLog(
+                `[RoutineManager] Error deactivating routine ${routine.name}:`,
+                err
+              )
+            );
+          }
+        } catch (routineError) {
+          debugLog(
+            `[RoutineManager] Error evaluating routine ${routine.id} (${routine.name}):`,
+            routineError
+          );
+          this.updateHealth(routine.id, RoutineHealth.ERROR, {
+            type: ExecutionType.CHECK,
+            status: ExecutionStatus.FAILURE,
+            message: `Evaluation failed: ${String(routineError)}`,
+          });
+        }
       }
+    } catch (globalError) {
+      debugLog('[RoutineManager] Fatal error in evaluate():', globalError);
+    } finally {
+      this._isFirstRun = false;
     }
-    this._isFirstRun = false;
   }
 
   private checkConflicts(candidate: Routine): string[] {
@@ -427,58 +471,95 @@ export class RoutineManager implements RoutineManagerInterface {
         // Listen for changes
         if (trigger.on) {
           trigger.on('triggered', async () => {
-            debugLog(
-              `[GR-DEBUG] [RoutineManager] Trigger ${trigger.id} fired for routine "${routine.name}". Evaluating condition...`
-            );
+            try {
+              debugLog(
+                `[GR-DEBUG] [RoutineManager] Trigger ${trigger.id} fired for routine "${routine.name}". Evaluating condition...`
+              );
 
-            // Verify if the trigger condition is actually currently valid
-            const isValid = await trigger.check();
-            debugLog(
-              `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid}`
-            );
+              // Verify if the trigger condition is actually currently valid
+              const isValid = await trigger.check();
+              debugLog(
+                `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid}`
+              );
 
-            if (routine.isActive) {
-              if (isValid) {
-                const state = this.getRoutineHealth(routine.id);
-                const timeSinceLastRun = Date.now() - state.lastRun;
-                if (timeSinceLastRun > 10000) {
-                  // 10s debounce to prevent infinite loop
-                  debugLog(
-                    `[GR-DEBUG] [RoutineManager] Routine active & trigger valid & debounce passed (${timeSinceLastRun}ms). Re-executing actions.`
-                  );
-                  this.activateRoutine(routine);
+              if (routine.isActive) {
+                if (isValid) {
+                  const state = this.getRoutineHealth(routine.id);
+                  const timeSinceLastRun = Date.now() - state.lastRun;
+                  if (timeSinceLastRun > 10000) {
+                    // 10s debounce to prevent infinite loop
+                    debugLog(
+                      `[GR-DEBUG] [RoutineManager] Routine active & trigger valid & debounce passed (${timeSinceLastRun}ms). Re-executing actions.`
+                    );
+                    this.activateRoutine(routine).catch((err) =>
+                      debugLog(
+                        `[RoutineManager] Error re-executing routine ${routine.name}:`,
+                        err
+                      )
+                    );
+                  } else {
+                    debugLog(
+                      `[GR-DEBUG] [RoutineManager] Routine active & trigger valid but DEBOUNCED (${timeSinceLastRun}ms < 10000ms). Skipping re-execution.`
+                    );
+                  }
                 } else {
                   debugLog(
-                    `[GR-DEBUG] [RoutineManager] Routine active & trigger valid but DEBOUNCED (${timeSinceLastRun}ms < 10000ms). Skipping re-execution.`
+                    `[GR-DEBUG] [RoutineManager] Routine active but trigger invalid (e.g. disconnected). Re-evaluating manager state...`
+                  );
+                  this.evaluate().catch((err) =>
+                    debugLog(
+                      '[RoutineManager] Error during triggered evaluation (active/invalid):',
+                      err
+                    )
                   );
                 }
               } else {
-                debugLog(
-                  `[GR-DEBUG] [RoutineManager] Routine active but trigger invalid (e.g. disconnected). Re-evaluating manager state...`
-                );
-                this.evaluate();
+                if (isValid) {
+                  debugLog(
+                    `[GR-DEBUG] [RoutineManager] Routine inactive & trigger valid. Evaluating with forced trigger...`
+                  );
+                  this.evaluate([trigger]).catch((err) =>
+                    debugLog(
+                      '[RoutineManager] Error during triggered evaluation (inactive/valid):',
+                      err
+                    )
+                  );
+                } else {
+                  debugLog(
+                    `[GR-DEBUG] [RoutineManager] Routine inactive & trigger invalid. Evaluating normal flow...`
+                  );
+                  this.evaluate().catch((err) =>
+                    debugLog(
+                      '[RoutineManager] Error during triggered evaluation (inactive/invalid):',
+                      err
+                    )
+                  );
+                }
               }
-            } else {
-              if (isValid) {
-                debugLog(
-                  `[GR-DEBUG] [RoutineManager] Routine inactive & trigger valid. Evaluating with forced trigger...`
-                );
-                this.evaluate([trigger]);
-              } else {
-                debugLog(
-                  `[GR-DEBUG] [RoutineManager] Routine inactive & trigger invalid. Evaluating normal flow...`
-                );
-                this.evaluate();
-              }
+            } catch (triggeredError) {
+              debugLog(
+                `[RoutineManager] Error in trigger callback for ${trigger.id} on routine ${routine.name}:`,
+                triggeredError
+              );
             }
           });
           trigger.on('activate', () => {
             debugLog(`[RoutineManager] Trigger ${trigger.id} activated`);
-            this.evaluate();
+            this.evaluate().catch((err) =>
+              debugLog(
+                '[RoutineManager] Error during trigger activate signal:',
+                err
+              )
+            );
           });
           trigger.on('deactivate', () => {
             debugLog(`[RoutineManager] Trigger ${trigger.id} deactivated`);
-            this.evaluate();
+            this.evaluate().catch((err) =>
+              debugLog(
+                '[RoutineManager] Error during trigger deactivate signal:',
+                err
+              )
+            );
           });
         }
 

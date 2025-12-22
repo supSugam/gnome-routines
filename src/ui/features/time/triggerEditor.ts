@@ -81,35 +81,34 @@ export class TimeTriggerEditor extends BaseEditor {
       this.config.days = [0, 1, 2, 3, 4, 5, 6];
     }
 
-    const repeatRow = new Adw.ActionRow({
-      title: 'Repeat',
-      subtitle: this.getDaysSummary(this.config.days),
+    // Repeat Section Container
+    const repeatContainer = new Gtk.Box({
+      orientation: Gtk.Orientation.VERTICAL,
+      spacing: 12,
+      margin_top: 12,
+      margin_bottom: 12,
+      margin_start: 12,
+      margin_end: 12,
     });
-    group.add(repeatRow);
+
+    const repeatLabel = new Gtk.Label({
+      label: `Repeat: ${this.getDaysSummary(this.config.days)}`,
+      xalign: 0,
+    });
+    repeatLabel.add_css_class('heading'); // or 'title-4'
+    repeatContainer.append(repeatLabel);
+
+    const wrapperBox = new Gtk.Box({
+      orientation: Gtk.Orientation.HORIZONTAL,
+      spacing: 6,
+      halign: Gtk.Align.CENTER, // Center the buttons
+    });
 
     const daysBox = new Gtk.Box({
       orientation: Gtk.Orientation.HORIZONTAL,
-      spacing: 6,
       valign: Gtk.Align.CENTER,
     });
-
-    // Select All Button
-    const allBtn = new Gtk.Button({
-      icon_name: 'edit-select-all-symbolic',
-      tooltip_text: 'Toggle All',
-    });
-    allBtn.add_css_class('flat');
-
-    // @ts-ignore
-    allBtn.connect('clicked', () => {
-      if (this.config.days.length === 7) {
-        this.config.days = [];
-      } else {
-        this.config.days = [0, 1, 2, 3, 4, 5, 6];
-      }
-      updateButtons();
-    });
-    daysBox.append(allBtn);
+    daysBox.add_css_class('linked');
 
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const toggles: any[] = [];
@@ -119,7 +118,7 @@ export class TimeTriggerEditor extends BaseEditor {
         label: label,
         active: this.config.days.includes(index),
       });
-      btn.add_css_class('circular');
+      // btn.add_css_class('circular'); // Removed circular style for linked look
 
       // @ts-ignore
       btn.connect('toggled', () => {
@@ -132,7 +131,7 @@ export class TimeTriggerEditor extends BaseEditor {
         }
         this.config.days.sort((a: number, b: number) => a - b);
 
-        repeatRow.subtitle = this.getDaysSummary(this.config.days);
+        updateLabel();
         this.onChange();
       });
 
@@ -140,16 +139,64 @@ export class TimeTriggerEditor extends BaseEditor {
       daysBox.append(btn);
     });
 
+    wrapperBox.append(daysBox);
+
+    // Presets Menu
+    const menuBtn = new Gtk.MenuButton({
+      icon_name: 'view-more-symbolic',
+      tooltip_text: 'Presets',
+    });
+    menuBtn.add_css_class('flat');
+
+    const popover = new Gtk.Popover();
+    const menuBox = new Gtk.Box({
+      orientation: Gtk.Orientation.VERTICAL,
+      spacing: 6,
+      margin_top: 6,
+      margin_bottom: 6,
+      margin_start: 6,
+      margin_end: 6,
+    });
+
+    const presets = [
+      { label: 'Every Day', days: [0, 1, 2, 3, 4, 5, 6] },
+      { label: 'Weekdays', days: [1, 2, 3, 4, 5] },
+      { label: 'Weekends', days: [0, 6] },
+      { label: 'Never', days: [] },
+    ];
+
+    presets.forEach((preset) => {
+      const btn = new Gtk.Button({ label: preset.label });
+      btn.add_css_class('flat');
+      // @ts-ignore
+      btn.connect('clicked', () => {
+        this.config.days = [...preset.days];
+        updateButtons();
+        popover.popdown();
+      });
+      menuBox.append(btn);
+    });
+
+    popover.set_child(menuBox);
+    menuBtn.set_popover(popover);
+    wrapperBox.append(menuBtn);
+
+    const updateLabel = () => {
+      repeatLabel.label = `Repeat: ${this.getDaysSummary(this.config.days)}`;
+    };
+
     const updateButtons = () => {
       toggles.forEach((btn, index) => {
         btn.active = this.config.days.includes(index);
       });
-      repeatRow.subtitle = this.getDaysSummary(this.config.days);
+      updateLabel();
       this.onChange();
     };
 
-    repeatRow.add_suffix(daysBox);
+    repeatContainer.append(wrapperBox);
+    group.add(repeatContainer);
   }
+
 
   private getDaysSummary(days: number[]): string {
     if (!days || days.length === 0) return 'Never';

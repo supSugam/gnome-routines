@@ -9,6 +9,7 @@ import { ClipboardTrigger } from './triggers/clipboard.js';
 import { StartupTrigger } from './triggers/startup.js';
 import { DarkModeTrigger } from './triggers/darkMode.js';
 import { DndTrigger } from './triggers/dnd.js';
+import { IntervalTrigger } from './triggers/interval.js';
 import debugLog from '../utils/log.js';
 
 export class TriggerFactory {
@@ -37,6 +38,9 @@ export class TriggerFactory {
         return new ClipboardTrigger(data.id, data.config, adapter);
       case TriggerType.STARTUP:
         return new StartupTrigger(data.id, data.config, adapter);
+      case TriggerType.INTERVAL:
+        return new IntervalTrigger(data.id, data.config, adapter);
+
       default:
         debugLog(`Unknown trigger type: ${data.type}`);
         return null;

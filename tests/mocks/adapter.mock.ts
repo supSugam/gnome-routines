@@ -69,6 +69,10 @@ export class MockSystemAdapter implements SystemAdapter {
   getDND(): boolean {
     return this.dnd;
   }
+  onDndStateChanged(callback: (enabled: boolean) => void): () => void {
+    return () => {};
+  }
+
   setBrightness(percentage: number): void {
     this.brightness = percentage;
   }
@@ -126,7 +130,9 @@ export class MockSystemAdapter implements SystemAdapter {
   getActiveApp(): string | null {
     return null;
   }
-  onActiveAppChanged(callback: (appName: string) => void): void {}
+  onActiveAppChanged(callback: (appName: string) => void): () => void {
+    return () => {};
+  }
 
   // Startup State
   getStartupState(): { isStartup: boolean; timeSinceInit: number } {
@@ -134,9 +140,11 @@ export class MockSystemAdapter implements SystemAdapter {
   }
 
   // Network Tracking
-  onWifiStateChanged(callback: (isConnected: boolean) => void): void {
+  onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
     this.wifiStateCallback = callback;
+    return () => {};
   }
+
   getCurrentWifiSSID(): string | null {
     return this.connectedWifi;
   }
@@ -148,65 +156,85 @@ export class MockSystemAdapter implements SystemAdapter {
   getWifiPowerState(): boolean {
     return this.wifiState;
   }
-  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): void {
+  onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     // Often same as state changed for simplicity in mock
     this.wifiStateCallback = callback;
+    return () => {};
   }
 
   // Bluetooth Tracking
   async getBluetoothPowerState(): Promise<boolean> {
     return this.bluetoothState;
   }
-  onBluetoothPowerStateChanged(callback: (isEnabled: boolean) => void): void {
+  onBluetoothPowerStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void {
     this.bluetoothPowerCallback = callback;
+    return () => {};
   }
+
   async getConnectedBluetoothDevices(): Promise<
     { name: string; address: string }[]
   > {
     return [];
   }
-  onBluetoothDeviceStateChanged(callback: () => void): void {}
+  onBluetoothDeviceStateChanged(callback: () => void): () => void {
+    return () => {};
+  }
 
   // Power & Battery
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
-  ): void {
+  ): () => void {
     this.batteryCallback = callback;
+    return () => {};
   }
-  getPowerSaverState(): boolean {
+
+  async getPowerSaverState(): Promise<boolean> {
     return this.powerSaver;
   }
-  onPowerSaverStateChanged(callback: (isActive: boolean) => void): void {
+
+  onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void {
     this.powerSaverCallback = callback;
+    return () => {};
   }
 
   // System Settings
   getDarkModeState(): boolean {
     return this.darkMode;
   }
-  onDarkModeStateChanged(callback: (isDark: boolean) => void): void {
+  onDarkModeStateChanged(callback: (isDark: boolean) => void): () => void {
     this.darkModeCallback = callback;
+    return () => {};
   }
-  getAirplaneModeState(): boolean {
+
+  async getAirplaneModeState(): Promise<boolean> {
     return this.airplaneMode;
   }
-  onAirplaneModeStateChanged(callback: (isEnabled: boolean) => void): void {
+
+  onAirplaneModeStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void {
     this.airplaneCallback = callback;
+    return () => {};
   }
 
   // Audio
-  getWiredHeadphonesState(): boolean {
+  async getWiredHeadphonesState(): Promise<boolean> {
     return this.wiredHeadphones;
   }
+
   onWiredHeadphonesStateChanged(
     callback: (isConnected: boolean) => void
-  ): void {
+  ): () => void {
     this.headphonesCallback = callback;
+    return () => {};
   }
 
   // New Actions - Connections
   async connectBluetoothDevice(id: string): Promise<void> {}
-  disconnectBluetoothDevice(id: string): void {}
+  async disconnectBluetoothDevice(id: string): Promise<void> {}
+
   setAirplaneMode(enabled: boolean): void {
     this.airplaneMode = enabled;
   }
@@ -229,11 +257,11 @@ export class MockSystemAdapter implements SystemAdapter {
     return 60;
   }
   setScreenOrientation(orientation: 'portrait' | 'landscape'): void {}
-  setRefreshRate(rate: number): void {}
-  getRefreshRate(): number {
+  async setRefreshRate(rate: number): Promise<void> {}
+  async getRefreshRate(): Promise<number> {
     return 60;
   }
-  getAvailableRefreshRates(): number[] {
+  async getAvailableRefreshRates(): Promise<number[]> {
     return [60, 144];
   }
 
@@ -241,7 +269,7 @@ export class MockSystemAdapter implements SystemAdapter {
   setPowerSaver(enabled: boolean): void {
     this.powerSaver = enabled;
   }
-  getPowerSaver(): boolean {
+  async getPowerSaver(): Promise<boolean> {
     return this.powerSaver;
   }
 
@@ -266,7 +294,8 @@ export class MockSystemAdapter implements SystemAdapter {
   }
   setClipboardText(text: string): void {}
   clearClipboard(): void {}
-  onClipboardChanged(callback: () => void): void {
+  onClipboardChanged(callback: () => void): () => void {
     this.clipboardCallback = callback;
+    return () => {};
   }
 }

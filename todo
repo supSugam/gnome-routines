@@ -1,2 +1,3 @@
 fix airplane mode trigger issue, at system.ts
 delay time period keyboard brightness  
+time period keyboard brightness trigger the action in revert (when the routine ends) when the condition meets on extension init

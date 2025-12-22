@@ -59,7 +59,9 @@ export const UI_STRINGS = {
   },
   triggers: {
     time: 'Time',
+    interval: 'Repeat Interval',
     app: 'App Opened',
+
     wifi: 'Wifi Status',
     bluetooth: 'Bluetooth Status',
     battery: 'Battery Level/Status',
