@@ -6,41 +6,46 @@ import { BaseEditor } from '../../components/baseEditor.js';
 
 export class IntervalTriggerEditor extends BaseEditor {
   render(group: any): void {
-    // Defaults
-    if (!this.config.interval) this.config.interval = 30; // Default 30 mins
+    // Defaults - ensure we always have valid values
+    if (!this.config.interval || this.config.interval < 1) {
+      this.config.interval = 30; // Default 30 mins
+    }
     if (!this.config.unit) this.config.unit = 'minutes';
 
-    // Interval Input
+    // Interval Input with strict bounds
+    const adjustment = new Gtk.Adjustment({
+      value: Math.max(1, this.config.interval),
+      lower: 0, // Allow 0 so we can validate against it (user sees error instead of auto-fix)
+      upper: 1000,
+      step_increment: 1,
+    });
+
+    // Adjustment clamping logic removed to allow user to type "0" or negative
+    // and see the validation error instead of auto-correcting.
+
     const intervalRow = new Adw.SpinRow({
       title: 'Interval',
       subtitle: 'How often to repeat this routine',
-      adjustment: new Gtk.Adjustment({
-        value: this.config.interval,
-        lower: 1,
-        upper: 24, // Assuming hours? Or 60 mins? Dynamic depending on unit would be nice.
-        step_increment: 1,
-      }),
+      adjustment: adjustment,
+      numeric: true, // Only allow numeric input
+      climb_rate: 1,
     });
-    
+
     // We update adjustment based on unit
     const updateAdjustment = () => {
       if (this.config.unit === 'hours') {
-        intervalRow.adjustment.upper = 168; // 1 week max
+        adjustment.upper = 168; // 1 week max
       } else {
-        intervalRow.adjustment.upper = 120; // 120 mins max
+        adjustment.upper = 120; // 120 mins max
       }
+      // We don't force value down here anymore, validation will catch it if out of bounds
     };
+
     updateAdjustment();
 
     // @ts-ignore
     intervalRow.connect('notify::value', () => {
-      let val = intervalRow.value;
-      if (val < 1) {
-        val = 1;
-        // Force update UI if it was somehow 0
-        intervalRow.value = 1;
-      }
-      this.config.interval = val;
+      this.config.interval = intervalRow.value;
       this.onChange();
     });
 
@@ -72,9 +77,16 @@ export class IntervalTriggerEditor extends BaseEditor {
   }
 
   validate(): boolean | string {
-    if (!this.config.interval || this.config.interval <= 0) {
-      return 'Interval must be greater than 0';
+    // Strict validation - no auto-correction
+    // This ensures the user sees the error and cannot proceed if the UI shows an invalid value
+    if (
+      !this.config.interval ||
+      isNaN(this.config.interval) ||
+      this.config.interval < 1
+    ) {
+      return 'Interval must be at least 1 minute';
     }
+
     return true;
   }
 }
