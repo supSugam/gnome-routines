@@ -9,37 +9,45 @@ const UPOWER_DISPLAY_DEVICE = '/org/freedesktop/UPower/devices/DisplayDevice';
 
 export class PowerAdapter {
   setBluetooth(enabled: boolean): void {
-    // This seems misplaced - belongs in BluetoothAdapter
+    // Stub
   }
 
   setPowerSaver(enabled: boolean): void {
-    // Legacy method - forward to setPowerProfile
     this.setPowerProfile(enabled ? 'power-saver' : 'balanced');
   }
 
   setPowerProfile(profile: string): void {
     debugLog(`[PowerAdapter] Setting power profile to: ${profile}`);
     try {
-      const proc = new Gio.Subprocess({
-        argv: ['powerprofilesctl', 'set', profile],
-        flags: Gio.SubprocessFlags.NONE,
-      });
-      proc.init(null);
-      proc.wait_check_async(null, (proc: any, res: any) => {
-        try {
-          proc.wait_check_finish(res);
-          debugLog(`[PowerAdapter] Power profile set to ${profile}`);
-        } catch (e) {
-          debugLog('[PowerAdapter] Failed to set power profile (async):', e);
+      Gio.DBus.system.call(
+        'net.hadess.PowerProfiles',
+        '/net/hadess/PowerProfiles',
+        'org.freedesktop.DBus.Properties',
+        'Set',
+        new GLib.Variant('(ssv)', [
+          'net.hadess.PowerProfiles',
+          'ActiveProfile',
+          GLib.Variant.new_string(profile),
+        ]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
+          try {
+            connection.call_finish(res);
+            debugLog(`[PowerAdapter] Power profile set to ${profile}`);
+          } catch (e) {
+            debugLog('[PowerAdapter] Failed to set power profile via DBus:', e);
+          }
         }
-      });
+      );
     } catch (e) {
       debugLog('[PowerAdapter] Failed to initiate set power profile:', e);
     }
   }
 
   getPowerSaver(): boolean {
-    // Legacy method - returns true if profile is power-saver
     return this.getPowerProfile() === 'power-saver';
   }
 
@@ -83,40 +91,25 @@ export class PowerAdapter {
           params: any
         ) => {
           try {
-            const unpacked = params.deep_unpack();
-            const interfaceName = unpacked[0];
-            const changedProps = unpacked[1];
-
+            const [interfaceName, changedProps] = params.deep_unpack();
             if (
               interfaceName === 'net.hadess.PowerProfiles' &&
               changedProps.ActiveProfile !== undefined
             ) {
               const newProfile = changedProps.ActiveProfile.get_string()[0];
-              debugLog(
-                `[PowerAdapter] Power profile changed to: ${newProfile}`
-              );
+              debugLog(`[PowerAdapter] Power profile changed: ${newProfile}`);
               callback(newProfile);
             }
-          } catch (err) {
-            debugLog(
-              `[PowerAdapter] Error parsing power profile signal: ${err}`
-            );
-          }
+          } catch (e) {}
         }
       );
 
       return () => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {
-          debugLog('[PowerAdapter] Error unsubscribing power profile:', e);
-        }
+        } catch (e) {}
       };
     } catch (e) {
-      debugLog(
-        '[PowerAdapter] Failed to subscribe to power profile changes:',
-        e
-      );
       return () => {};
     }
   }
@@ -160,7 +153,6 @@ export class PowerAdapter {
       );
       const variant = result.get_child_value(0);
       const state = variant.get_variant().get_uint32();
-      // UPower states: 0=Unknown, 1=Charging, 2=Discharging, 3=Empty, 4=FullyCharged, 5=PendingCharge, 6=PendingDischarge
       return state === 1 || state === 4; // Charging or FullyCharged
     } catch (e) {
       debugLog('[PowerAdapter] Failed to get charging state:', e);
@@ -194,34 +186,25 @@ export class PowerAdapter {
             const changedProps = unpacked[1];
 
             if (interfaceName === 'org.freedesktop.UPower.Device') {
-              // Check if relevant props changed
               if (
                 changedProps.Percentage !== undefined ||
                 changedProps.State !== undefined
               ) {
                 const level = this.getBatteryLevel();
                 const charging = this.isCharging();
-                debugLog(
-                  `[PowerAdapter] Battery state changed: ${level}%, charging: ${charging}`
-                );
                 callback(level, charging);
               }
             }
-          } catch (err) {
-            debugLog(`[PowerAdapter] Error parsing UPower signal: ${err}`);
-          }
+          } catch (err) {}
         }
       );
 
       return () => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {
-          debugLog('[PowerAdapter] Error unsubscribing battery state:', e);
-        }
+        } catch (e) {}
       };
     } catch (e) {
-      debugLog('[PowerAdapter] Failed to subscribe to battery changes:', e);
       return () => {};
     }
   }

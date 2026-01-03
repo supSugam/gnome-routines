@@ -79,8 +79,10 @@ export class WifiAction extends BaseAction {
       );
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
-
       while (!this.isDestroyed) {
+        const elapsedSinceStart = Date.now() - startTime;
+        const isFinalAttempt = elapsedSinceStart >= timeoutMs;
+
         // Attempt
         const currentSSID = this.adapter.getCurrentWifiSSID();
         if (currentSSID === this.config.ssid) {
@@ -91,7 +93,7 @@ export class WifiAction extends BaseAction {
         }
 
         debugLog(
-          '[WifiAction] Attempting connection to ' + this.config.ssid + '...'
+          `[WifiAction] Attempting connection to ${this.config.ssid}... ${isFinalAttempt ? '(Final Attempt)' : ''}`
         );
         this.adapter.connectToWifi(this.config.ssid);
 
@@ -195,6 +197,9 @@ export class BluetoothAction extends BaseAction {
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
       while (!this.isDestroyed) {
+        const elapsedSinceStart = Date.now() - startTime;
+        const isFinalAttempt = elapsedSinceStart >= timeoutMs;
+
         // Check if connected
         const connectedDevices =
           await this.adapter.getConnectedBluetoothDevices();
@@ -215,9 +220,7 @@ export class BluetoothAction extends BaseAction {
         }
 
         debugLog(
-          '[BluetoothAction] Attempting connection to ' +
-            (this.config.deviceName || this.config.deviceId) +
-            '...'
+          `[BluetoothAction] Attempting connection to ${this.config.deviceName || this.config.deviceId}... ${isFinalAttempt ? '(Final Attempt)' : ''}`
         );
         await this.adapter.connectBluetoothDevice(this.config.deviceId);
 
@@ -311,10 +314,8 @@ export class BluetoothDeviceAction extends BaseAction {
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
       while (!this.isDestroyed) {
-        // Attempt connection
-        // Note: We don't check already connected first because user might want to force reconnect
-        // But for efficiency we should probably check?
-        // Let's stick to connect() -> verify pattern
+        const elapsedSinceStart = Date.now() - startTime;
+        const isFinalAttempt = elapsedSinceStart >= timeoutMs;
 
         // Check verification first?
         const connectedDevices =
@@ -335,9 +336,7 @@ export class BluetoothDeviceAction extends BaseAction {
         }
 
         debugLog(
-          `[BluetoothDeviceAction] Attempting connection to ${
-            this.config.deviceName || this.config.deviceId
-          }...`
+          `[BluetoothDeviceAction] Attempting connection to ${this.config.deviceName || this.config.deviceId}... ${isFinalAttempt ? '(Final Attempt)' : ''}`
         );
         try {
           await this.adapter.connectBluetoothDevice(this.config.deviceId);
@@ -417,4 +416,3 @@ export class AirplaneModeAction extends BaseAction {
     this.adapter.setAirplaneMode(!this.config.enabled);
   }
 }
-

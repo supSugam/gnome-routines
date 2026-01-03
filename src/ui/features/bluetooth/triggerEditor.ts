@@ -10,8 +10,11 @@ import {
   BluetoothTriggerConfig,
 } from '../../../engine/types.js';
 import debugLog from '../../../utils/log.js';
+import { BluetoothAdapter } from '../../../gnome/adapters/handlers/bluetooth.js';
 
 export class BluetoothTriggerEditor extends BaseEditor {
+  private _adapter = new BluetoothAdapter();
+
   private get btConfig(): BluetoothTriggerConfig {
     return this.config as BluetoothTriggerConfig;
   }
@@ -63,23 +66,11 @@ export class BluetoothTriggerEditor extends BaseEditor {
     this.loadDevices(btDevicesRow);
   }
 
-  private loadDevices(row: any) {
-    let availableDevices: string[] = [];
+  private async loadDevices(row: any) {
+    let availableDevices: { name: string; address: string }[] = [];
     try {
-      // Use bluetoothctl devices to list known devices
-      const [success, stdout] = GLib.spawn_command_line_sync(
-        '/usr/bin/bluetoothctl devices'
-      );
-      if (success && stdout) {
-        const output = new TextDecoder().decode(stdout);
-        output.split('\n').forEach((line) => {
-          const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-          if (match) {
-            availableDevices.push(match[2]);
-          }
-        });
-        availableDevices.sort();
-      }
+      availableDevices = await this._adapter.getKnownDevices();
+      availableDevices.sort((a, b) => a.name.localeCompare(b.name));
     } catch (e) {
       debugLog('Failed to load bluetooth devices:', e);
     }
@@ -92,16 +83,20 @@ export class BluetoothTriggerEditor extends BaseEditor {
       });
       row.add_row(noDevRow);
     } else {
-      availableDevices.forEach((name) => {
-        const devRow = new Adw.ActionRow({ title: name });
+      availableDevices.forEach((dev) => {
+        const devRow = new Adw.ActionRow({ title: dev.name });
+        // Use name as identifier to maintain compatibility with legacy data
+        const identifier = dev.name;
+
         const check = new Gtk.CheckButton({
-          active: selectedDevices.has(name),
+          active: selectedDevices.has(identifier),
           valign: Gtk.Align.CENTER,
         });
+
         // @ts-ignore
         check.connect('toggled', () => {
-          if (check.active) selectedDevices.add(name);
-          else selectedDevices.delete(name);
+          if (check.active) selectedDevices.add(identifier);
+          else selectedDevices.delete(identifier);
 
           this.config.deviceIds = Array.from(selectedDevices);
           this.onChange();

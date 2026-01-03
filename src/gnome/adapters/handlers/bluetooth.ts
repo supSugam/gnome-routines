@@ -5,190 +5,221 @@ import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
 
 export class BluetoothAdapter {
-  setBluetooth(enabled: boolean): Promise<void> {
-    debugLog(`[BluetoothAdapter] Setting Bluetooth to: ${enabled}`);
-    return new Promise((resolve) => {
-      try {
-        // Use bluetoothctl (BlueZ control) - most reliable method
-        const command = enabled
-          ? ['bluetoothctl', 'power', 'on']
-          : ['bluetoothctl', 'power', 'off'];
+  private _adapterPath: string | null = null;
 
-        const proc = new Gio.Subprocess({
-          argv: command,
-          flags: Gio.SubprocessFlags.NONE,
-        });
-        proc.init(null);
-        proc.wait_check_async(null, (proc: any, res: any) => {
-          try {
-            proc.wait_check_finish(res);
-            debugLog(
-              `[BluetoothAdapter] Bluetooth ${
-                enabled ? 'enabled' : 'disabled'
-              } via bluetoothctl`
-            );
-          } catch (e) {
-            debugLog(
-              `[BluetoothAdapter] bluetoothctl failed, trying rfkill: ${e}`
-            );
-            // Fallback to rfkill
-            const rfkillCommand = enabled
-              ? 'rfkill unblock bluetooth'
-              : 'rfkill block bluetooth';
-            GLib.spawn_command_line_async(rfkillCommand);
-          }
-
-          resolve();
-        });
-      } catch (e) {
-        debugLog('[BluetoothAdapter] Failed to set Bluetooth:', e);
-        // Try rfkill as last resort
-        try {
-          const rfkillCommand = enabled
-            ? 'rfkill unblock bluetooth'
-            : 'rfkill block bluetooth';
-          GLib.spawn_command_line_async(rfkillCommand);
-        } catch (err) {
-          debugLog('[BluetoothAdapter] rfkill fallback failed:', err);
-        }
-
-        resolve();
-      }
+  constructor() {
+    this._findAdapterPath().then((path) => {
+      if (path) this._adapterPath = path;
     });
   }
 
-  async getBluetooth(): Promise<boolean> {
-    try {
-      const proxy = new Gio.DBusProxy({
-        g_connection: Gio.DBus.system,
-        g_name: 'org.bluez',
-        g_object_path: '/org/bluez/hci0',
-        g_interface_name: 'org.bluez.Adapter1',
-      });
+  private async _findAdapterPath(): Promise<string | null> {
+    if (this._adapterPath) return this._adapterPath;
 
-      // Try DBus property read first
-      const result = proxy.get_cached_property('Powered');
-      if (result) {
-        return result.get_boolean();
-      }
+    let path = '/org/bluez/hci0';
 
-      // Fallback to bluetoothctl if DBus fails or not cached
-      return new Promise((resolve) => {
-        const proc = new Gio.Subprocess({
-          argv: ['bluetoothctl', 'show'],
-          flags: Gio.SubprocessFlags.STDOUT_PIPE,
-        });
-        proc.init(null);
-
-        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+    return new Promise((resolve) => {
+      Gio.DBus.system.call(
+        'org.bluez',
+        '/',
+        'org.freedesktop.DBus.ObjectManager',
+        'GetManagedObjects',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
           try {
-            const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
-            if (ok && stdout) {
-              const match = stdout.match(/Powered:\s*(yes|no)/i);
-              if (match) {
-                resolve(match[1].toLowerCase() === 'yes');
+            const result = connection.call_finish(res);
+            const [objects] = result.deep_unpack();
+            for (const objectPath in objects) {
+              if ('org.bluez.Adapter1' in objects[objectPath]) {
+                resolve(objectPath);
                 return;
               }
             }
-
-            resolve(false);
+            resolve(path);
           } catch (e) {
-            debugLog(
-              '[BluetoothAdapter] Failed to get Bluetooth state (async):',
-              e
-            );
-            resolve(false);
+            resolve(path);
           }
-        });
-      });
+        }
+      );
+    });
+  }
+
+  async setBluetooth(enabled: boolean): Promise<void> {
+    debugLog(`[BluetoothAdapter] Setting Bluetooth to: ${enabled}`);
+    const path = await this._findAdapterPath();
+    if (!path) return;
+
+    try {
+      const current = await this.getBluetooth();
+      if (current === enabled) return;
+
+      Gio.DBus.system.call(
+        'org.bluez',
+        path,
+        'org.freedesktop.DBus.Properties',
+        'Set',
+        new GLib.Variant('(ssv)', [
+          'org.bluez.Adapter1',
+          'Powered',
+          GLib.Variant.new_boolean(enabled),
+        ]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
+          try {
+            connection.call_finish(res);
+            debugLog(`[BluetoothAdapter] Bluetooth set to ${enabled}`);
+          } catch (e) {
+            debugLog('[BluetoothAdapter] Failed to set Bluetooth property:', e);
+          }
+        }
+      );
     } catch (e) {
-      debugLog('[BluetoothAdapter] Failed to get Bluetooth power:', e);
+      debugLog('[BluetoothAdapter] Failed to initiate set Bluetooth:', e);
+    }
+  }
+
+  async getBluetooth(): Promise<boolean> {
+    const path = await this._findAdapterPath();
+    if (!path) return false;
+
+    try {
+      const result = await new Promise<any>((resolve, reject) => {
+        Gio.DBus.system.call(
+          'org.bluez',
+          path,
+          'org.freedesktop.DBus.Properties',
+          'Get',
+          new GLib.Variant('(ss)', ['org.bluez.Adapter1', 'Powered']),
+          null,
+          Gio.DBusCallFlags.NONE,
+          -1,
+          null,
+          (conn: any, res: any) => {
+            try {
+              const ret = conn.call_finish(res);
+              resolve(ret);
+            } catch (e) {
+              reject(e);
+            }
+          }
+        );
+      });
+
+      const child = result.get_child_value(0);
+      return child.get_variant().get_boolean();
+    } catch (e) {
+      debugLog('[BluetoothAdapter] Failed to get Bluetooth state:', e);
       return false;
     }
   }
 
-  connectBluetoothDevice(id: string): Promise<void> {
+  private async _getDevicePath(address: string): Promise<string | null> {
+    if (!address) return null;
+
     return new Promise((resolve) => {
-      try {
-        let mac = id;
-        if (!id.includes(':')) {
-          // Resolve name to MAC if needed (Simplified implementation for now)
-          // In a full implementation, we'd list devices and find the MAC
-          const proc = new Gio.Subprocess({
-            argv: ['bluetoothctl', 'devices'],
-            flags: Gio.SubprocessFlags.STDOUT_PIPE,
-          });
-          proc.init(null);
-          proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
-            try {
-              const [ok, stdout, stderr] = proc.communicate_utf8_finish(res);
-              if (ok && stdout) {
-                const lines = stdout.split('\n');
-                for (const line of lines) {
-                  if (line.includes(id)) {
-                    const match = line.match(/^Device\s+([0-9A-F:]+)\s+(.+)$/i);
-                    if (match && match[2] === id) {
-                      mac = match[1];
-                      break;
-                    }
-                  }
+      Gio.DBus.system.call(
+        'org.bluez',
+        '/',
+        'org.freedesktop.DBus.ObjectManager',
+        'GetManagedObjects',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (connection: any, res: any) => {
+          try {
+            const result = connection.call_finish(res);
+            const [objects] = result.deep_unpack();
+
+            const unpack = (val: any) =>
+              val instanceof GLib.Variant ? val.deep_unpack() : val;
+
+            for (const objectPath in objects) {
+              const ifaces = objects[objectPath];
+              if ('org.bluez.Device1' in ifaces) {
+                const props = ifaces['org.bluez.Device1'];
+                const addr = unpack(props.Address);
+                if (addr === address) {
+                  resolve(objectPath);
+                  return;
                 }
               }
-            } catch (e) {
-              debugLog(
-                '[BluetoothAdapter] Failed to resolve bluetooth device (async):',
-                e
-              );
             }
-
-            const connectProc = new Gio.Subprocess({
-              argv: ['bluetoothctl', 'connect', mac],
-              flags: Gio.SubprocessFlags.NONE,
-            });
-            connectProc.init(null);
-            resolve();
-          });
-          return;
+            resolve(null);
+          } catch (e) {
+            resolve(null);
+          }
         }
+      );
+    });
+  }
 
-        const connectProc = new Gio.Subprocess({
-          argv: ['bluetoothctl', 'connect', mac],
-          flags: Gio.SubprocessFlags.NONE,
-        });
-        connectProc.init(null);
-        resolve();
-      } catch (e) {
-        debugLog('[BluetoothAdapter] Failed to connect bluetooth device:', e);
-        resolve();
-      }
+  async connectBluetoothDevice(id: string): Promise<void> {
+    debugLog(`[BluetoothAdapter] Connecting to ${id}`);
+    const path = await this._getDevicePath(id);
+    if (!path) {
+      debugLog(`[BluetoothAdapter] Device ${id} not found`);
+      return;
+    }
+
+    return new Promise((resolve) => {
+      Gio.DBus.system.call(
+        'org.bluez',
+        path,
+        'org.bluez.Device1',
+        'Connect',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (conn: any, res: any) => {
+          try {
+            conn.call_finish(res);
+            debugLog(`[BluetoothAdapter] Connected to ${id}`);
+          } catch (e) {
+            debugLog(`[BluetoothAdapter] Failed to connect to ${id}:`, e);
+          }
+          resolve();
+        }
+      );
     });
   }
 
   async disconnectBluetoothDevice(id: string): Promise<void> {
+    debugLog(`[BluetoothAdapter] Disconnecting from ${id}`);
+    const path = await this._getDevicePath(id);
+    if (!path) return;
+
     return new Promise((resolve) => {
-      try {
-        let mac = id;
-        const proc = new Gio.Subprocess({
-          argv: ['bluetoothctl', 'disconnect', mac],
-          flags: Gio.SubprocessFlags.STDOUT_PIPE,
-        });
-        proc.init(null);
-        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+      Gio.DBus.system.call(
+        'org.bluez',
+        path,
+        'org.bluez.Device1',
+        'Disconnect',
+        null,
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null,
+        (conn: any, res: any) => {
           try {
-            proc.communicate_utf8_finish(res);
-            resolve();
+            conn.call_finish(res);
+            debugLog(`[BluetoothAdapter] Disconnected from ${id}`);
           } catch (e) {
-            debugLog('[BluetoothAdapter] Failed to disconnect BT async:', e);
-            resolve();
+            debugLog(`[BluetoothAdapter] Failed to disconnect ${id}:`, e);
           }
-        });
-      } catch (e) {
-        debugLog(
-          '[BluetoothAdapter] Failed to disconnect bluetooth device:',
-          e
-        );
-        resolve();
-      }
+          resolve();
+        }
+      );
     });
   }
 
@@ -196,11 +227,10 @@ export class BluetoothAdapter {
     callback: (isEnabled: boolean) => void
   ): () => void {
     try {
-      debugLog(
-        '[BluetoothAdapter] Subscribing to system DBus signal: org.freedesktop.DBus.Properties.PropertiesChanged'
-      );
+      debugLog('[BluetoothAdapter] Subscribing to Bluetooth power changes');
+
       const signalId = Gio.DBus.system.signal_subscribe(
-        null,
+        'org.bluez',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -215,32 +245,23 @@ export class BluetoothAdapter {
           params: any
         ) => {
           try {
-            const unpacked = params.deep_unpack();
-            const interfaceName = unpacked[0];
-            const changedProps = unpacked[1];
-
+            const [interfaceName, changedProps] = params.deep_unpack();
             if (
               interfaceName === 'org.bluez.Adapter1' &&
               changedProps.Powered !== undefined
             ) {
               const newState = changedProps.Powered.get_boolean();
-              debugLog(
-                `[BluetoothAdapter] Bluetooth Powered state changed to: ${newState}`
-              );
+              debugLog(`[BluetoothAdapter] Bluetooth Powered: ${newState}`);
               callback(newState);
             }
-          } catch (err) {
-            debugLog(`[BluetoothAdapter] Error parsing DBus signal: ${err}`);
-          }
+          } catch (e) {}
         }
       );
 
       return () => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {
-          debugLog('[BluetoothAdapter] Error unsubscribe bluetooth power', e);
-        }
+        } catch (e) {}
       };
     } catch (e) {
       debugLog('[BluetoothAdapter] Failed to subscribe to Bluetooth power:', e);
@@ -250,11 +271,9 @@ export class BluetoothAdapter {
 
   onBluetoothDeviceStateChanged(callback: () => void): () => void {
     try {
-      debugLog(
-        '[BluetoothAdapter] Subscribing to Bluetooth device connection changes'
-      );
+      debugLog('[BluetoothAdapter] Subscribing to Bluetooth device changes');
       const signalId = Gio.DBus.system.signal_subscribe(
-        null,
+        'org.bluez',
         'org.freedesktop.DBus.Properties',
         'PropertiesChanged',
         null,
@@ -269,38 +288,24 @@ export class BluetoothAdapter {
           params: any
         ) => {
           try {
-            const unpacked = params.deep_unpack();
-            const interfaceName = unpacked[0];
-            const changedProps = unpacked[1];
-
-            // Watch for Device1 Connected property changes
+            const [interfaceName, changedProps] = params.deep_unpack();
             if (
               interfaceName === 'org.bluez.Device1' &&
               changedProps.Connected !== undefined
             ) {
-              const connected = changedProps.Connected.get_boolean();
-              debugLog(
-                `[BluetoothAdapter] Device connection changed on ${path}: ${connected}`
-              );
+              debugLog(`[BluetoothAdapter] Device connection changed`);
               callback();
             }
-          } catch (err) {
-            debugLog(
-              `[BluetoothAdapter] Error parsing device DBus signal: ${err}`
-            );
-          }
+          } catch (e) {}
         }
       );
 
       return () => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {
-          debugLog('[BluetoothAdapter] Error unsubscribe device state', e);
-        }
+        } catch (e) {}
       };
     } catch (e) {
-      debugLog('[BluetoothAdapter] Failed to subscribe to device state:', e);
       return () => {};
     }
   }
@@ -344,7 +349,9 @@ export class BluetoothAdapter {
 
                   if (connected) {
                     const name =
-                      unpackVariant(deviceProps.Name) || 'Unknown Device';
+                      unpackVariant(deviceProps.Name) ||
+                      unpackVariant(deviceProps.Alias) ||
+                      'Unknown Device';
                     const address = unpackVariant(deviceProps.Address);
                     devices.push({ name, address });
                   }
@@ -360,6 +367,69 @@ export class BluetoothAdapter {
         );
       } catch (e) {
         debugLog('[BluetoothAdapter] Failed to get connected devices:', e);
+        resolve([]);
+      }
+    });
+  }
+
+  async getKnownDevices(): Promise<{ name: string; address: string }[]> {
+    return new Promise((resolve) => {
+      try {
+        Gio.DBus.system.call(
+          'org.bluez',
+          '/',
+          'org.freedesktop.DBus.ObjectManager',
+          'GetManagedObjects',
+          null,
+          null,
+          Gio.DBusCallFlags.NONE,
+          -1,
+          null,
+          (connection: any, res: any) => {
+            try {
+              const result = connection.call_finish(res);
+              if (!result) {
+                resolve([]);
+                return;
+              }
+
+              const [objects] = result.deep_unpack();
+              const devices: { name: string; address: string }[] = [];
+
+              const unpackVariant = (val: any): any => {
+                if (val instanceof GLib.Variant) {
+                  return val.deep_unpack();
+                }
+                return val;
+              };
+
+              for (const objectPath in objects) {
+                const interfaces = objects[objectPath];
+                if ('org.bluez.Device1' in interfaces) {
+                  const deviceProps = interfaces['org.bluez.Device1'];
+                  const paired = unpackVariant(deviceProps.Paired);
+                  const trusted = unpackVariant(deviceProps.Trusted);
+
+                  if (paired || trusted) {
+                    const name =
+                      unpackVariant(deviceProps.Name) ||
+                      unpackVariant(deviceProps.Alias) ||
+                      'Unknown Device';
+                    const address = unpackVariant(deviceProps.Address);
+                    devices.push({ name, address });
+                  }
+                }
+              }
+
+              resolve(devices);
+            } catch (e) {
+              debugLog('[BluetoothAdapter] Error parsing managed objects:', e);
+              resolve([]);
+            }
+          }
+        );
+      } catch (e) {
+        debugLog('[BluetoothAdapter] Failed to get known devices:', e);
         resolve([]);
       }
     });

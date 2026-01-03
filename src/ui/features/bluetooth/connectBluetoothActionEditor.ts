@@ -10,8 +10,11 @@ import { BaseEditor } from '../../components/baseEditor.js';
 import { RETRY_DEFAULTS } from '../../../engine/constants.js';
 import { ActionOperation } from '../../../engine/types.js';
 import debugLog from '../../../utils/log.js';
+import { BluetoothAdapter } from '../../../gnome/adapters/handlers/bluetooth.js';
 
 export class ConnectBluetoothActionEditor extends BaseEditor {
+  private _adapter = new BluetoothAdapter();
+
   render(group: any): void {
     const row = new Adw.ExpanderRow({
       title: 'Select Device',
@@ -71,145 +74,54 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     group.add(intervalRow);
   }
 
-  private loadDevices(row: any) {
+  private async loadDevices(row: any) {
     const loadingRow = new Adw.ActionRow({
       title: 'Checking Bluetooth status...',
     });
     row.add_row(loadingRow);
 
-    const unpack = (val: any) => {
-      if (val instanceof GLib.Variant) return val.deep_unpack();
-      return val;
-    };
+    const isPowered = await this._adapter.getBluetooth();
 
-    const fetchObjects = (callback: (objects: any) => void) => {
-      Gio.DBus.system.call(
-        'org.bluez',
-        '/',
-        'org.freedesktop.DBus.ObjectManager',
-        'GetManagedObjects',
-        null,
-        null,
-        Gio.DBusCallFlags.NONE,
-        -1,
-        null,
-        (connection: any, res: any) => {
-          try {
-            const result = connection.call_finish(res);
-            const [objects] = result.deep_unpack();
-            callback(objects);
-          } catch (e) {
-            debugLog('Failed to fetch bluetooth objects:', e);
-            callback({});
-          }
-        }
-      );
-    };
+    const updateList = async () => {
+      const devices = await this._adapter.getKnownDevices();
 
-    const togglePower = (on: boolean, callback: () => void) => {
-      let cmd = '';
-      if (on) {
-        // Unblock RFKill first, then power on
-        cmd =
-          '/usr/sbin/rfkill unblock bluetooth && /usr/bin/bluetoothctl power on';
-      } else {
-        cmd = '/usr/bin/bluetoothctl power off';
-      }
-
-      try {
-        const [, pid] = GLib.spawn_async(
-          null,
-          ['/bin/sh', '-c', cmd],
-          null,
-          GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
-          null
-        );
-
-        // Allow some time for the command to effect change
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-          GLib.spawn_close_pid(pid);
-          callback();
-          return GLib.SOURCE_REMOVE;
-        });
-      } catch (e) {
-        debugLog(`Failed to toggle bluetooth ${on ? 'on' : 'off'}:`, e);
-        callback();
-      }
-    };
-
-    fetchObjects((objects) => {
-      let adapterPath = null;
-      let isPowered = false;
-
-      for (const path in objects) {
-        if ('org.bluez.Adapter1' in objects[path]) {
-          adapterPath = path;
-          const props = objects[path]['org.bluez.Adapter1'];
-          if (props['Powered']) {
-            isPowered = unpack(props['Powered']);
-          }
-          break;
-        }
-      }
-
-      // Fallback if no adapter found (e.g. if BlueZ is acting up or interface missing when off)
-      if (!adapterPath) {
-        adapterPath = '/org/bluez/hci0';
-      }
-
-      // If we found the adapter but it's OFF, trigger auto-toggle.
-      // We trust isPowered from the object scan. If we didn't find the object, isPowered is false,
-      // so we will try to turn on the fallback path.
-      if (isPowered) {
+      // Remove loading row if present
+      if (loadingRow.get_parent()) {
         row.remove(loadingRow);
-        this.renderDeviceList(row, objects, isPowered);
-      } else {
-        loadingRow.title = 'Turning on Bluetooth to fetch known devices...';
-        // Use CLI to force power on, as it handles default controller automatically
-        togglePower(true, () => {
-          // Wait for discovery to be useful (2.5s)
-          GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2500, () => {
-            fetchObjects((newObjects) => {
-              // Turn it back off
-              togglePower(false, () => {
-                row.remove(loadingRow);
-                this.renderDeviceList(row, newObjects, true);
-              });
-            });
-            return GLib.SOURCE_REMOVE;
-          });
-        });
       }
-    });
+
+      this.renderDeviceList(row, devices, true);
+    };
+
+    if (isPowered) {
+      await updateList();
+    } else {
+      loadingRow.title = 'Turning on Bluetooth to fetch known devices...';
+      await this._adapter.setBluetooth(true);
+
+      // Give it a moment to initialize
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const devices = await this._adapter.getKnownDevices();
+
+      // Turn off
+      await this._adapter.setBluetooth(false);
+
+      if (loadingRow.get_parent()) {
+        row.remove(loadingRow);
+      }
+      this.renderDeviceList(row, devices, true);
+    }
   }
 
-  private renderDeviceList(row: any, objects: any, isPowered: boolean) {
-    const devices: { alias: string; address: string }[] = [];
+  private renderDeviceList(
+    row: any,
+    devices: { name: string; address: string }[],
+    isPowered: boolean
+  ) {
     const checkboxes: Map<string, any> = new Map();
 
-    const unpack = (val: any) => {
-      if (val instanceof GLib.Variant) return val.deep_unpack();
-      return val;
-    };
-
-    for (const objectPath in objects) {
-      const interfaces = objects[objectPath];
-      if ('org.bluez.Device1' in interfaces) {
-        const props = interfaces['org.bluez.Device1'];
-        const paired = props['Paired'] ? unpack(props['Paired']) : false;
-        const trusted = props['Trusted'] ? unpack(props['Trusted']) : false;
-
-        if (paired || trusted) {
-          const name = props['Name'] ? unpack(props['Name']) : null;
-          const alias = props['Alias'] ? unpack(props['Alias']) : null;
-          const address = props['Address'] ? unpack(props['Address']) : null;
-          const display = alias || name || address || 'Unknown Device';
-          devices.push({ alias: display, address: address });
-        }
-      }
-    }
-
-    devices.sort((a, b) => a.alias.localeCompare(b.alias));
+    devices.sort((a, b) => a.name.localeCompare(b.name));
 
     if (devices.length === 0) {
       const title = isPowered
@@ -220,7 +132,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     } else {
       devices.forEach((dev) => {
         const devRow = new Adw.ActionRow({
-          title: `${dev.alias} (${dev.address})`,
+          title: `${dev.name} (${dev.address})`,
         });
         const check = new Gtk.CheckButton({
           active: this.config.deviceId === dev.address,
@@ -240,9 +152,9 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
             }
 
             this.config.deviceId = dev.address;
-            this.config.deviceName = dev.alias;
+            this.config.deviceName = dev.name;
             this.config.action = ActionOperation.CONNECT;
-            row.subtitle = dev.alias;
+            row.subtitle = dev.name;
           } else {
             // If we are unchecking the CURRENTLY selected device, clear it
             if (this.config.deviceId === dev.address) {
