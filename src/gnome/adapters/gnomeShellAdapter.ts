@@ -195,14 +195,12 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }
 
   getAirplaneModeState(): Promise<boolean> {
-    // Assume false or check
-    return Promise.resolve(false);
+    return Promise.resolve(this._network.getAirplaneModeState());
   }
   onAirplaneModeStateChanged(
     callback: (isEnabled: boolean) => void
   ): () => void {
-    // Stub
-    return () => {};
+    return this._network.onAirplaneModeStateChanged(callback);
   }
   onDndStateChanged(callback: (enabled: boolean) => void): () => void {
     return this._system.onDndStateChanged(callback);

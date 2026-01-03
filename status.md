@@ -25,7 +25,13 @@
  8. Dark Mode
  - Works
 
- 9. 
+ 9. DND
+ - Works
+
+ 10. Airplane Mode
+ - Works
+
+ 
 
 
  [Actions]

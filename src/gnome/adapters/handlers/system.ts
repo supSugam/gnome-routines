@@ -50,16 +50,27 @@ export class SystemAdapter {
   }
 
   onDndStateChanged(callback: (isEnabled: boolean) => void): () => void {
+    debugLog('[SystemAdapter] Subscribing to DND state changes');
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.notifications',
     });
-    const id = settings.connect('changed::show-banners', () => {
-      const dnd = !settings.get_boolean('show-banners');
+
+    // Store settings reference in closure to prevent GC
+    const settingsRef = settings;
+
+    const id = settingsRef.connect('changed::show-banners', () => {
+      const dnd = !settingsRef.get_boolean('show-banners');
       debugLog(`[SystemAdapter] DND state changed: ${dnd}`);
       callback(dnd);
     });
+
     return () => {
-      settings.disconnect(id);
+      try {
+        settingsRef.disconnect(id);
+        debugLog('[SystemAdapter] DND listener disconnected');
+      } catch (e) {
+        debugLog('[SystemAdapter] Error disconnecting DND listener:', e);
+      }
     };
   }
 

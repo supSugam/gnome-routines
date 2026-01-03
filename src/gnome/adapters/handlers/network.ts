@@ -267,4 +267,54 @@ export class NetworkAdapter {
       }
     }
   }
+
+  getAirplaneModeState(): boolean {
+    const client = this._ensureClient();
+    if (!client) {
+      debugLog('[NetworkAdapter] No client for airplane mode check');
+      return false;
+    }
+    // In GNOME, airplane mode = WiFi disabled (quick settings toggle)
+    const isAirplane = !client.wireless_enabled;
+    debugLog(
+      `[NetworkAdapter] Airplane mode check: wifi_enabled=${client.wireless_enabled}, result=${isAirplane}`
+    );
+    return isAirplane;
+  }
+
+  onAirplaneModeStateChanged(
+    callback: (isEnabled: boolean) => void
+  ): () => void {
+    const client = this._ensureClient();
+    if (!client) {
+      debugLog('[NetworkAdapter] No client for airplane mode listener');
+      return () => {};
+    }
+
+    debugLog('[NetworkAdapter] Subscribing to airplane mode changes');
+
+    // Listen for wireless state changes (GNOME airplane mode)
+    const checkAirplaneMode = () => {
+      const isAirplane = !client.wireless_enabled;
+      debugLog(`[NetworkAdapter] Airplane mode changed: ${isAirplane}`);
+      callback(isAirplane);
+    };
+
+    const wirelessId = client.connect(
+      'notify::wireless-enabled',
+      checkAirplaneMode
+    );
+
+    return () => {
+      try {
+        client.disconnect(wirelessId);
+        debugLog('[NetworkAdapter] Airplane mode listener disconnected');
+      } catch (e) {
+        debugLog(
+          '[NetworkAdapter] Error disconnecting airplane mode listeners:',
+          e
+        );
+      }
+    };
+  }
 }

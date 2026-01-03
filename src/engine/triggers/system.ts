@@ -112,12 +112,10 @@ export class SystemTrigger extends BaseTrigger {
           debugLog(
             `[SystemTrigger] Condition met (TRUE). Emitting 'triggered'.`
           );
+          this.emit('triggered');
         } else {
-          debugLog(
-            `[SystemTrigger] Condition lost (FALSE). Emitting 'triggered'.`
-          );
+          debugLog(`[SystemTrigger] Condition lost (FALSE). Not emitting.`);
         }
-        this.emit('triggered');
       }
     };
 
