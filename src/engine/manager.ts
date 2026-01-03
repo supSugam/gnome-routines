@@ -105,6 +105,9 @@ export class RoutineManager implements RoutineManagerInterface {
 
   async reload() {
     debugLog('[RoutineManager] Reloading routines from settings...');
+    // Reset first run flag so that NEW_CHANGE_ONLY strategies are respected (suppressed)
+    // for any newly added or modified routines that happen to match immediately.
+    this._isFirstRun = true;
     const rawRoutines = await this.storage.loadRoutines();
     const newRoutineMap = new Map<string, Routine>();
 

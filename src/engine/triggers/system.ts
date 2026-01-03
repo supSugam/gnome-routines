@@ -10,6 +10,9 @@ export class SystemTrigger extends BaseTrigger {
   constructor(id: string, config: SystemTriggerConfig, adapter: SystemAdapter) {
     super(id, config.type, config);
     this.adapter = adapter;
+    debugLog(
+      `[SystemTrigger] Constructed ${id} type=${config.type} strategy=${this.strategy}`
+    );
   }
 
   async check(): Promise<boolean> {
@@ -55,6 +58,16 @@ export class SystemTrigger extends BaseTrigger {
     // Initialize state
     // Initialize state
     this.check().then((initialState) => {
+      debugLog(
+        `[SystemTrigger] Initial check result: ${initialState}. Strategy: ${
+          this.strategy
+        } (${
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY
+            ? 'NEW_CHANGE_ONLY'
+            : 'OTHER'
+        })`
+      );
+
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
@@ -69,9 +82,14 @@ export class SystemTrigger extends BaseTrigger {
           );
           this._lastMatch = initialState;
           if (initialState) {
+            debugLog(`[SystemTrigger] Emitting triggered from InitialCheck`);
             this.emit('triggered');
           }
         }
+      } else {
+        debugLog(
+          `[SystemTrigger] Initial check complete but _lastMatch already set (Race lost): ${this._lastMatch}`
+        );
       }
     });
 
@@ -85,15 +103,19 @@ export class SystemTrigger extends BaseTrigger {
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+        // CRITICAL: For NEW_CHANGE_ONLY, we MUST baseline to this first value
+        // and NEVER emit, regardless of whether it matches or not.
+        // We are only interested in subsequent *changes*.
         if (shouldIgnoreInitial) {
           debugLog(
-            `[SystemTrigger] ${this.type} Initial Race: ${isMatch} (Ignored)`
+            `[SystemTrigger] ${this.type} Initial Callback: ${isMatch} (Ignored by Strategy)`
           );
           this._lastMatch = isMatch;
           return;
         } else {
           debugLog(
-            `[SystemTrigger] ${this.type} Initial Race: ${isMatch} (Checking immediate)`
+            `[SystemTrigger] ${this.type} Initial Callback: ${isMatch} (Checking immediate)`
           );
           this._lastMatch = isMatch;
           if (isMatch) {

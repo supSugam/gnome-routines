@@ -236,9 +236,8 @@ export class AudioAdapter {
       this.getWiredHeadphonesState().then((state) => {
         lastState = state;
         debugLog(`[AudioAdapter] Initial headphones state: ${state}`);
+        readLine();
       });
-
-      readLine();
     } catch (e) {
       debugLog('[AudioAdapter] Failed to subscribe to headphone changes:', e);
     }
