@@ -31,10 +31,26 @@
  10. Airplane Mode
  - Works
 
+ 11. Wired Headphones
+ - Works
+
+ 12. Clipboard
+ - Text: Works
+ - Image: Works, no deep comparison so it will trigger even if the new image is the same
+ - Regex: Not tested
+
+ 13. Wallpaper Change
+ - Works
  
 
 
  [Actions]
 
  1. Show Notification
+ - Works
+
+ 2. Run Command
+ - Works
+
+ 3. Open URL
  - Works

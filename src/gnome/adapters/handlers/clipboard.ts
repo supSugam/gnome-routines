@@ -3,6 +3,9 @@ import St from 'gi://St';
 // @ts-ignore
 import GLib from 'gi://GLib';
 // @ts-ignore
+// @ts-ignore
+import Meta from 'gi://Meta';
+// @ts-ignore
 import Shell from 'gi://Shell';
 import debugLog from '../../../utils/log.js';
 
@@ -41,11 +44,55 @@ export class ClipboardAdapter {
     }
 
     onClipboardChanged(callback: () => void): () => void {
-        // St.Clipboard doesn't easily expose 'changed' signal in all versions
-        // But we can try meta_display_get_selection?
-        // Or polling?
-        // Original implementation likely used a decent method.
-        // Let's use a polling fallback or return empty disposal if no signal found.
-        return () => {};
+        try {
+          const display = Shell.Global.get().get_display();
+          const selection = display.get_selection();
+
+          // Connect to 'owner-changed' signal
+          const signalId = selection.connect(
+            'owner-changed',
+            (_: any, selectionType: any, _selectionSource: any) => {
+              if (selectionType === Meta.SelectionType.SELECTION_CLIPBOARD) {
+                debugLog('[ClipboardAdapter] Clipboard owner changed (Event).');
+                callback();
+              }
+            }
+          );
+
+          debugLog(
+            '[ClipboardAdapter] Connected to clipboard owner-changed signal.'
+          );
+
+          return () => {
+            try {
+              if (signalId) {
+                selection.disconnect(signalId);
+                debugLog(
+                  '[ClipboardAdapter] Disconnected from clipboard signal.'
+                );
+              }
+            } catch (e) {
+              debugLog('[ClipboardAdapter] Error disconnecting signal:', e);
+            }
+          };
+        } catch (e) {
+          debugLog(
+            '[ClipboardAdapter] Failed to connect to clipboard signal. Falling back to polling.',
+            e
+          );
+
+          // Fallback to polling if signal fails
+          let lastContent: string | undefined;
+          const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
+            this.getClipboardContent().then((res) => {
+              if (res.content !== lastContent) {
+                lastContent = res.content;
+                callback();
+              }
+            });
+            return true;
+          });
+          return () => GLib.source_remove(id);
+        }
     }
 }

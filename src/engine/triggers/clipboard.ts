@@ -17,34 +17,79 @@ export class ClipboardTrigger extends BaseTrigger {
     this.adapter = adapter;
   }
 
+  private _lastContent: string | undefined;
   private _hasTriggered: boolean = false;
   private debounceId: number | null = null;
   public _isActivated: boolean = false;
   private cleanup: (() => void) | null = null;
 
   activate(): void {
-
-
     debugLog(
       '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'
     );
+
+    // Initialize basline
+    this.adapter.getClipboardContent().then((res) => {
+      this._lastContent = res.content;
+    });
+
     this.cleanup = this.adapter.onClipboardChanged(() => {
       debugLog(
-        '[ClipboardTrigger] Adapter reported change. Scheduling debounce...'
+        '[ClipboardTrigger] Adapter reported change (Event). Waiting for sync...'
       );
-      if (this.debounceId) {
-        debugLog('[ClipboardTrigger] Clearing previous debounce.');
-        GLib.source_remove(this.debounceId);
-        this.debounceId = null;
-      }
 
-      this.debounceId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-        this.debounceId = null;
-        debugLog(
-          `[ClipboardTrigger] Clipboard content changed (debounced). Checking match...`
-        );
-        // We need to verify if it matches the config before setting the flag
-        this.verifyMatch().then((isMatch) => {
+      // We must wait a brief moment for the clipboard content to actually populate
+      // in the St.Clipboard API after the ownership change signal.
+      // This is NOT polling; it is a single synchronization delay.
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
+        this.adapter.getClipboardContent().then((res) => {
+          const currentContent = res.content;
+
+          // Only deduplicate text content.
+          // For images/other, we don't have the bytes to compare, so we assume it's new.
+          // This prevents the issue where copying two different images results in both being 'undefined' and ignored.
+          const isSame =
+            res.type === 'text' && currentContent === this._lastContent;
+
+          debugLog(
+            `[ClipboardTrigger] Content fetched. Type: ${res.type}, Length: ${
+              res.content?.length ?? 0
+            }`
+          );
+
+          if (isSame) {
+            debugLog(
+              '[ClipboardTrigger] Content identical to last trigger. Ignoring.'
+            );
+            return;
+          }
+
+          this._lastContent = currentContent;
+
+          // Logic for config match
+          let isMatch = false;
+          const contentType = this.config.contentType || 'any';
+          debugLog(
+            `[ClipboardTrigger] Checking match. Config: ${contentType}, Regex: ${this.config.regex}, ResType: ${res.type}`
+          );
+
+          if (contentType === 'any') isMatch = true;
+          else if (contentType === 'text') isMatch = res.type === 'text';
+          else if (contentType === 'image')
+            isMatch = res.type === 'image' || res.type === 'other';
+          else if (
+            this.config.contentType === 'regex' &&
+            this.config.regex &&
+            res.type === 'text' &&
+            res.content
+          ) {
+            try {
+              isMatch = new RegExp(this.config.regex).test(res.content);
+            } catch (e) {
+              isMatch = false;
+            }
+          }
+
           if (isMatch) {
             debugLog(
               `[ClipboardTrigger] Match confirmed. Setting trigger flag.`
@@ -55,7 +100,7 @@ export class ClipboardTrigger extends BaseTrigger {
             debugLog('[ClipboardTrigger] Match failed.');
           }
         });
-        return false;
+        return false; // Single execution
       });
     });
     this._isActivated = true;
@@ -74,41 +119,6 @@ export class ClipboardTrigger extends BaseTrigger {
       this.debounceId = null;
     }
     this._isActivated = false;
-  }
-
-  private async verifyMatch(): Promise<boolean> {
-    const content = await this.adapter.getClipboardContent();
-
-    const contentType = this.config.contentType || 'any';
-
-    if (contentType === 'any') {
-      return true;
-    }
-
-    if (contentType === 'text') {
-      return content.type === 'text';
-    }
-
-    if (contentType === 'image') {
-      return content.type === 'image' || content.type === 'other';
-    }
-
-    if (
-      contentType === 'regex' &&
-      this.config.regex &&
-      content.type === 'text' &&
-      content.content
-    ) {
-      try {
-        const regex = new RegExp(this.config.regex);
-        return regex.test(content.content);
-      } catch (e) {
-        debugLog(`[ClipboardTrigger] Invalid regex: ${this.config.regex}`, e);
-        return false;
-      }
-    }
-
-    return false;
   }
 
   async check(): Promise<boolean> {
