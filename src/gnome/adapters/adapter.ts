@@ -14,6 +14,7 @@ export interface SystemAdapter {
   getBluetoothAudioSinkName(): string | null;
   setWallpaper(uri: string): void;
   getWallpaper(): string;
+  onWallpaperChanged(callback: (newUri: string) => void): () => void;
   setBluetooth(enabled: boolean): Promise<void>;
   getBluetooth(): Promise<boolean>;
 
@@ -95,6 +96,7 @@ export interface SystemAdapter {
 
   // New Actions - Power
   setPowerSaver(enabled: boolean): void;
+  setPowerProfile(profile: string): void;
   getPowerSaver(): Promise<boolean>;
 
   // New Actions - Functions

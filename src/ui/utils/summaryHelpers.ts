@@ -69,7 +69,12 @@ export const getTriggerSummary = (trigger: Trigger): string => {
     else if (config.state === ConnectionState.ENABLED) state = 'turned on';
     else if (config.state === ConnectionState.DISABLED) state = 'turned off';
 
-    if (ssids.length > 0) {
+    // Only show SSIDs for connection states, not power states
+    const isPowerState =
+      config.state === ConnectionState.ENABLED ||
+      config.state === ConnectionState.DISABLED;
+
+    if (!isPowerState && ssids.length > 0) {
       if (ssids.length === 1) return `When Wifi is ${state} (${ssids[0]})`;
       return `When Wifi is ${state} (${ssids.length} networks)`;
     }
@@ -105,7 +110,13 @@ export const getTriggerSummary = (trigger: Trigger): string => {
 
   if (trigger.type === TriggerType.POWER_SAVER) {
     const config = trigger.config as any;
-    return `When Battery Saver is ${formatState(config.state).toLowerCase()}`;
+    const profileName =
+      config.profile === 'power-saver'
+        ? 'Power Saver'
+        : config.profile === 'performance'
+        ? 'Performance'
+        : 'Balanced';
+    return `When profile is ${profileName}`;
   }
 
   if (trigger.type === TriggerType.DARK_MODE) {
@@ -201,7 +212,17 @@ export const getActionSummary = (action: Action): string => {
     return config.enabled ? 'Enable Night Light' : 'Disable Night Light';
   }
   if (action.type === ActionType.POWER_SAVER) {
-    const config = action.config as BinaryStateActionConfig;
+    const config = action.config as any;
+    if (config.profile) {
+      const profileName =
+        config.profile === 'power-saver'
+          ? 'Power Saver'
+          : config.profile === 'performance'
+          ? 'Performance'
+          : 'Balanced';
+      return `Set power profile to ${profileName}`;
+    }
+    // Legacy format
     return config.enabled ? 'Enable Power Saver' : 'Disable Power Saver';
   }
   if (action.type === ActionType.SCREEN_TIMEOUT) {

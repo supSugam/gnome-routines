@@ -20,6 +20,7 @@ import { ActionFactory } from './actionFactory.js';
 import { StateManager } from './stateManager.js';
 import { RoutineValidator } from './validator.js';
 import { EventEmitter } from './events.js';
+import { TRIGGER_METADATA } from './triggerMetadata.js';
 
 export class RoutineManager implements RoutineManagerInterface {
   private routines: Map<string, Routine> = new Map();
@@ -208,7 +209,14 @@ export class RoutineManager implements RoutineManagerInterface {
   private _hydrate(rawRoutine: any): Routine | null {
     try {
       const triggers = rawRoutine.triggers
-        .map((t: any) => TriggerFactory.create(t, this.adapter))
+        .map((t: any) =>
+          TriggerFactory.create(
+            t,
+            this.adapter,
+            this.stateManager,
+            rawRoutine.id
+          )
+        )
         .filter((t: any) => t !== null) as Trigger[];
 
       debugLog(
@@ -476,18 +484,25 @@ export class RoutineManager implements RoutineManagerInterface {
                 `[GR-DEBUG] [RoutineManager] Trigger ${trigger.id} fired for routine "${routine.name}". Evaluating condition...`
               );
 
-              // Verify if the trigger condition is actually currently valid
-              const isValid = await trigger.check();
+              // Get trigger metadata to check if it's purely event-based
+              const metadata =
+                TRIGGER_METADATA[trigger.type as keyof typeof TRIGGER_METADATA];
+              const isEventBasedOnly =
+                metadata?.defaultStrategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
+              // For event-based triggers (like wallpaper), the 'triggered' event IS the condition
+              // Don't call check() as it returns false for these triggers
+              const isValid = isEventBasedOnly ? true : await trigger.check();
               debugLog(
-                `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid}`
+                `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid} (eventBased: ${isEventBasedOnly})`
               );
 
-              if (routine.isActive) {
+              if (routine.isActive || isEventBasedOnly) {
                 if (isValid) {
                   const state = this.getRoutineHealth(routine.id);
                   const timeSinceLastRun = Date.now() - state.lastRun;
-                  if (timeSinceLastRun > 10000) {
-                    // 10s debounce to prevent infinite loop
+                  if (timeSinceLastRun > 3000) {
+                    // 3s debounce to prevent rapid re-execution
                     debugLog(
                       `[GR-DEBUG] [RoutineManager] Routine active & trigger valid & debounce passed (${timeSinceLastRun}ms). Re-executing actions.`
                     );
@@ -499,7 +514,7 @@ export class RoutineManager implements RoutineManagerInterface {
                     );
                   } else {
                     debugLog(
-                      `[GR-DEBUG] [RoutineManager] Routine active & trigger valid but DEBOUNCED (${timeSinceLastRun}ms < 10000ms). Skipping re-execution.`
+                      `[GR-DEBUG] [RoutineManager] Routine active & trigger valid but DEBOUNCED (${timeSinceLastRun}ms < 3000ms). Skipping re-execution.`
                     );
                   }
                 } else {

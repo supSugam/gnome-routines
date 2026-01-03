@@ -71,6 +71,8 @@ export const UI_STRINGS = {
     headphones: 'Wired Headphones',
     clipboard: 'Clipboard Change',
     startup: 'Startup / Login',
+    dnd: 'Do Not Disturb',
+    wallpaper: 'Wallpaper Change',
   },
   actions: {
     openApp: 'Open App',

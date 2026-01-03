@@ -53,4 +53,7 @@ export const TRIGGER_METADATA: Record<TriggerType, TriggerMetadata> = {
 
   // Interval - Event Based
   [TriggerType.INTERVAL]: { defaultStrategy: TriggerStrategy.NEW_CHANGE_ONLY },
+
+  // Wallpaper - Event Based (fires on change only)
+  [TriggerType.WALLPAPER]: { defaultStrategy: TriggerStrategy.NEW_CHANGE_ONLY },
 };

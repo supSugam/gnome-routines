@@ -72,7 +72,7 @@ export default function debugLog(message: string, ...args: any[]) {
   const argsStr = args
     .map((a: any) => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
     .join(' ');
-  const fullMessage = `${timestamp} ${message} ${argsStr}`;
+  const fullMessage = `GR-DEBUG -- ${timestamp} ${message} ${argsStr}`;
 
   // Console output
   console.log(fullMessage);

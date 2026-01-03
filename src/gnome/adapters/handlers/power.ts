@@ -4,58 +4,169 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
 
+const UPOWER_SERVICE = 'org.freedesktop.UPower';
+const UPOWER_DISPLAY_DEVICE = '/org/freedesktop/UPower/devices/DisplayDevice';
+
 export class PowerAdapter {
-    setPowerSaver(enabled: boolean): void {
-        const mode = enabled ? 'power-saver' : 'balanced';
-        debugLog(`[PowerAdapter] Setting power profile to: ${mode}`);
+  setBluetooth(enabled: boolean): void {
+    // This seems misplaced - belongs in BluetoothAdapter
+  }
+
+  setPowerSaver(enabled: boolean): void {
+    // Legacy method - forward to setPowerProfile
+    this.setPowerProfile(enabled ? 'power-saver' : 'balanced');
+  }
+
+  setPowerProfile(profile: string): void {
+    debugLog(`[PowerAdapter] Setting power profile to: ${profile}`);
+    try {
+      const proc = new Gio.Subprocess({
+        argv: ['powerprofilesctl', 'set', profile],
+        flags: Gio.SubprocessFlags.NONE,
+      });
+      proc.init(null);
+      proc.wait_check_async(null, (proc: any, res: any) => {
         try {
-            // Use powerprofilesctl
-            const proc = new Gio.Subprocess({
-                argv: ['powerprofilesctl', 'set', mode],
-                flags: Gio.SubprocessFlags.NONE,
-            });
-            proc.init(null);
-            proc.wait_check_async(null, (proc: any, res: any) => {
-                try {
-                    proc.wait_check_finish(res);
-                    debugLog(`[PowerAdapter] Power profile set to ${mode}`);
-                } catch (e) {
-                    debugLog('[PowerAdapter] Failed to set power profile (async):', e);
-                }
-            });
+          proc.wait_check_finish(res);
+          debugLog(`[PowerAdapter] Power profile set to ${profile}`);
         } catch (e) {
-            debugLog('[PowerAdapter] Failed to initiate set power profile:', e);
+          debugLog('[PowerAdapter] Failed to set power profile (async):', e);
         }
+      });
+    } catch (e) {
+      debugLog('[PowerAdapter] Failed to initiate set power profile:', e);
     }
+  }
 
-    getPowerSaver(): boolean {
-        // Since we can't easily sync-read stdout without blocking, we rely on cached assumptions or async checks
-        // For sync-api compatibility, this might be tricky.
-        // However, the original code used sync spawn_command_line_sync which is bad.
-        // Let's use a cached property approach or try to read a file if possible?
-        // No easy file for power-profiles-daemon.
-        
-        // Let's use DBus sync call (it's internal network, usually fast, though technically blocking)
+  getPowerSaver(): boolean {
+    // Legacy method - returns true if profile is power-saver
+    return this.getPowerProfile() === 'power-saver';
+  }
+
+  getPowerProfile(): string {
+    try {
+      const result = Gio.DBus.system.call_sync(
+        'net.hadess.PowerProfiles',
+        '/net/hadess/PowerProfiles',
+        'org.freedesktop.DBus.Properties',
+        'Get',
+        new GLib.Variant('(ss)', ['net.hadess.PowerProfiles', 'ActiveProfile']),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null
+      );
+      const variant = result.get_child_value(0);
+      return variant.get_variant().get_string()[0];
+    } catch (e) {
+      debugLog('[PowerAdapter] Failed to get power profile sync via DBus', e);
+      return 'balanced'; // Default
+    }
+  }
+
+  getBatteryLevel(): number {
+    try {
+      const result = Gio.DBus.system.call_sync(
+        UPOWER_SERVICE,
+        UPOWER_DISPLAY_DEVICE,
+        'org.freedesktop.DBus.Properties',
+        'Get',
+        new GLib.Variant('(ss)', [
+          'org.freedesktop.UPower.Device',
+          'Percentage',
+        ]),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null
+      );
+      const variant = result.get_child_value(0);
+      return variant.get_variant().get_double();
+    } catch (e) {
+      debugLog('[PowerAdapter] Failed to get battery level:', e);
+      return 100; // Default to full if unknown
+    }
+  }
+
+  isCharging(): boolean {
+    try {
+      const result = Gio.DBus.system.call_sync(
+        UPOWER_SERVICE,
+        UPOWER_DISPLAY_DEVICE,
+        'org.freedesktop.DBus.Properties',
+        'Get',
+        new GLib.Variant('(ss)', ['org.freedesktop.UPower.Device', 'State']),
+        null,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        null
+      );
+      const variant = result.get_child_value(0);
+      const state = variant.get_variant().get_uint32();
+      // UPower states: 0=Unknown, 1=Charging, 2=Discharging, 3=Empty, 4=FullyCharged, 5=PendingCharge, 6=PendingDischarge
+      return state === 1 || state === 4; // Charging or FullyCharged
+    } catch (e) {
+      debugLog('[PowerAdapter] Failed to get charging state:', e);
+      return true; // Default to charging if unknown
+    }
+  }
+
+  onBatteryStateChanged(
+    callback: (level: number, isCharging: boolean) => void
+  ): () => void {
+    try {
+      debugLog('[PowerAdapter] Subscribing to UPower battery changes');
+      const signalId = Gio.DBus.system.signal_subscribe(
+        UPOWER_SERVICE,
+        'org.freedesktop.DBus.Properties',
+        'PropertiesChanged',
+        UPOWER_DISPLAY_DEVICE,
+        null,
+        0,
+        (
+          connection: any,
+          sender: any,
+          path: any,
+          iface: any,
+          signal: any,
+          params: any
+        ) => {
+          try {
+            const unpacked = params.deep_unpack();
+            const interfaceName = unpacked[0];
+            const changedProps = unpacked[1];
+
+            if (interfaceName === 'org.freedesktop.UPower.Device') {
+              // Check if relevant props changed
+              if (
+                changedProps.Percentage !== undefined ||
+                changedProps.State !== undefined
+              ) {
+                const level = this.getBatteryLevel();
+                const charging = this.isCharging();
+                debugLog(
+                  `[PowerAdapter] Battery state changed: ${level}%, charging: ${charging}`
+                );
+                callback(level, charging);
+              }
+            }
+          } catch (err) {
+            debugLog(`[PowerAdapter] Error parsing UPower signal: ${err}`);
+          }
+        }
+      );
+
+      return () => {
         try {
-             // org.freedesktop.UPower.PowerProfiles ? No, it's net.hadess.PowerProfiles
-             const result = Gio.DBus.system.call_sync(
-                 'net.hadess.PowerProfiles',
-                 '/net/hadess/PowerProfiles',
-                 'org.freedesktop.DBus.Properties',
-                 'Get',
-                 new GLib.Variant('(ss)', ['net.hadess.PowerProfiles', 'ActiveProfile']),
-                 null,
-                 Gio.DBusCallFlags.NONE,
-                 -1,
-                 null
-             );
-             const variant = result.get_child_value(0);
-             const activeProfile = variant.get_variant().get_string()[0];
-             return activeProfile === 'power-saver';
-
-        } catch(e) {
-            debugLog('[PowerAdapter] Failed to get power profile sync via DBus, trying UPower fallback or default', e);
-            return false;
+          Gio.DBus.system.signal_unsubscribe(signalId);
+        } catch (e) {
+          debugLog('[PowerAdapter] Error unsubscribing battery state:', e);
         }
+      };
+    } catch (e) {
+      debugLog('[PowerAdapter] Failed to subscribe to battery changes:', e);
+      return () => {};
     }
+  }
 }
+

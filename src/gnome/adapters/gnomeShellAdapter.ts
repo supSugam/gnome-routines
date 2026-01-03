@@ -78,6 +78,9 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getWallpaper(): string {
     return this._display.getWallpaper();
   }
+  onWallpaperChanged(callback: (newUri: string) => void): () => void {
+    return this._display.onWallpaperChanged(callback);
+  }
   setBluetooth(enabled: boolean): Promise<void> {
     return this._bluetooth.setBluetooth(enabled);
   }
@@ -102,10 +105,10 @@ export class GnomeShellAdapter implements ISystemAdapter {
     return this._network.getWifiState();
   }
   getBatteryLevel(): number {
-    return 100; // Stub: UPower logic not yet migrated
+    return this._power.getBatteryLevel();
   }
   isCharging(): boolean {
-    return true; // Stub
+    return this._power.isCharging();
   }
 
   // --- App Tracking ---
@@ -140,7 +143,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
 
   // --- Wifi Power ---
   getWifiPowerState(): boolean {
-    return this._network.getWifiState();
+    return this._network.getWifiPowerState();
   }
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     return this._network.onWifiPowerStateChanged(callback);
@@ -159,8 +162,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
     return this._bluetooth.getConnectedBluetoothDevices();
   }
   onBluetoothDeviceStateChanged(callback: () => void): () => void {
-    // Stub
-    return () => {};
+    return this._bluetooth.onBluetoothDeviceStateChanged(callback);
   }
 
   // --- Power & Battery ---
@@ -171,8 +173,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
   ): () => void {
-    // Stub
-    return () => {};
+    return this._power.onBatteryStateChanged(callback);
   }
 
   getPowerSaverState(): Promise<boolean> {
@@ -264,6 +265,9 @@ export class GnomeShellAdapter implements ISystemAdapter {
   // --- New Actions - Power ---
   setPowerSaver(enabled: boolean): void {
     this._power.setPowerSaver(enabled);
+  }
+  setPowerProfile(profile: string): void {
+    this._power.setPowerProfile(profile);
   }
   getPowerSaver(): Promise<boolean> {
     return Promise.resolve(this._power.getPowerSaver());

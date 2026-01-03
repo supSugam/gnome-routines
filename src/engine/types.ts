@@ -12,8 +12,8 @@ export enum TriggerType {
   STARTUP = 'startup',
   DND = 'dnd',
   INTERVAL = 'interval',
+  WALLPAPER = 'wallpaper',
 }
-
 
 export enum SystemType {
   PC = 'pc',
@@ -90,6 +90,12 @@ export enum BatteryStatus {
 export enum LevelComparison {
   ABOVE = 'above',
   BELOW = 'below',
+}
+
+export enum PowerProfile {
+  PERFORMANCE = 'performance',
+  BALANCED = 'balanced',
+  POWER_SAVER = 'power-saver',
 }
 
 export interface BatteryTriggerConfig {

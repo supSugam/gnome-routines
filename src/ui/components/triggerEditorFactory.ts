@@ -13,6 +13,7 @@ import { HeadphonesTriggerEditor } from '../features/audio/headphonesTriggerEdit
 import { StartupTriggerEditor } from '../features/system/startupTriggerEditor.js';
 import { DndTriggerEditor } from '../features/system/dndTriggerEditor.js';
 import { IntervalTriggerEditor } from '../features/interval/triggerEditor.js';
+import { WallpaperTriggerEditor } from '../features/wallpaper/triggerEditor.js';
 import debugLog from '../../utils/log.js';
 
 export class TriggerEditorFactory {
@@ -48,6 +49,8 @@ export class TriggerEditorFactory {
         return new DndTriggerEditor(config, onChange);
       case TriggerType.INTERVAL:
         return new IntervalTriggerEditor(config, onChange);
+      case TriggerType.WALLPAPER:
+        return new WallpaperTriggerEditor(config, onChange);
 
       default:
         debugLog(`No editor found for trigger type: ${type}`);
