@@ -140,7 +140,7 @@ export class ScreenOrientationAction extends BaseAction {
     );
     // Screen orientation is complex and doesn't have a reliable getter
     // Skip state persistence for now
-    this.adapter.setScreenOrientation(this.config.orientation);
+    await this.adapter.setScreenOrientation(this.config.orientation);
   }
 
   async revert(): Promise<void> {

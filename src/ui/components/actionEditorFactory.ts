@@ -17,6 +17,7 @@ import { NightLightActionEditor } from '../features/display/nightLightActionEdit
 import { PowerSaverActionEditor } from '../features/power/powerSaverActionEditor.js';
 import { ScreenTimeoutActionEditor } from '../features/display/screenTimeoutActionEditor.js';
 import { ScreenOrientationActionEditor } from '../features/display/screenOrientationActionEditor.js';
+import { RefreshRateActionEditor } from '../features/display/refreshRateActionEditor.js';
 import { ScreenshotActionEditor } from '../features/system/screenshotActionEditor.js';
 import { NotificationActionEditor } from '../features/system/notificationActionEditor.js';
 import { ClipboardActionEditor } from '../features/clipboard/clipboardActionEditor.js';
@@ -65,6 +66,8 @@ export class ActionEditorFactory {
         return new ScreenTimeoutActionEditor(config, onChange);
       case ActionType.SCREEN_ORIENTATION:
         return new ScreenOrientationActionEditor(config, onChange);
+      case ActionType.REFRESH_RATE:
+        return new RefreshRateActionEditor(config, onChange);
       case ActionType.TAKE_SCREENSHOT:
         return new ScreenshotActionEditor(config, onChange);
       case ActionType.NOTIFICATION:

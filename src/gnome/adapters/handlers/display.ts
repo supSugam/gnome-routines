@@ -202,14 +202,110 @@ export class DisplayAdapter {
     return settings.get_uint('idle-delay');
   }
 
-  setScreenOrientation(orientation: 'portrait' | 'landscape'): void {
-    try {
-      const cmd =
-        orientation === 'portrait' ? 'xrandr -o left' : 'xrandr -o normal';
-      GLib.spawn_command_line_async(cmd);
-    } catch (e) {
-      debugLog('[DisplayAdapter] Failed to set orientation:', e);
+  async setScreenOrientation(
+    orientation:
+      | 'portrait'
+      | 'landscape'
+      | 'normal'
+      | 'left'
+      | 'right'
+      | 'upside-down'
+  ): Promise<void> {
+    debugLog(`[DisplayAdapter] Setting orientation to: ${orientation}`);
+
+    // Map to xrandr rotation values
+    let rotation = 'normal';
+    switch (orientation) {
+      case 'normal':
+      case 'landscape':
+        rotation = 'normal';
+        break;
+      case 'right':
+        rotation = 'right';
+        break;
+      case 'left':
+      case 'portrait':
+        rotation = 'left';
+        break;
+      case 'upside-down':
+        rotation = 'inverted';
+        break;
+      default:
+        rotation = 'normal';
     }
+
+    return new Promise((resolve) => {
+      try {
+        // Check session type
+        const sessionType = GLib.getenv('XDG_SESSION_TYPE') || 'x11';
+        // Simple check: if not wayland, assume x11/xorg
+        if (sessionType === 'wayland') {
+          debugLog(
+            '[DisplayAdapter] Screen orientation via xrandr is NOT supported on Wayland. Disabled to prevent freezes.'
+          );
+          resolve();
+          return;
+        }
+
+        // Get connected display
+        const proc = new Gio.Subprocess({
+          argv: ['xrandr', '--current'],
+          flags: Gio.SubprocessFlags.STDOUT_PIPE,
+        });
+        proc.init(null);
+
+        proc.communicate_utf8_async(null, null, (proc: any, res: any) => {
+          try {
+            const [ok, stdout] = proc.communicate_utf8_finish(res);
+            if (ok && stdout) {
+              // stdout is already a string when using communicate_utf8_finish
+              const output = stdout;
+              const lines = output.split('\n');
+              let primaryDisplay = '';
+              let firstConnected = '';
+
+              // Parse xrandr output to find connected monitors
+              for (const line of lines) {
+                if (line.includes(' connected')) {
+                  const parts = line.split(' ');
+                  const name = parts[0];
+                  if (!firstConnected) firstConnected = name;
+                  if (line.includes(' primary')) {
+                    primaryDisplay = name;
+                    break; // Found primary, stop
+                  }
+                }
+              }
+
+              const targetDisplay = primaryDisplay || firstConnected;
+
+              if (targetDisplay) {
+                const cmd = `xrandr --output ${targetDisplay} --rotate ${rotation}`;
+                debugLog(`[DisplayAdapter] Executing: ${cmd}`);
+                GLib.spawn_command_line_async(cmd);
+              } else {
+                debugLog(
+                  '[DisplayAdapter] No connected display found to rotate.'
+                );
+              }
+            } else {
+              debugLog(
+                '[DisplayAdapter] xrandr returned empty output or failed.'
+              );
+            }
+          } catch (e: any) {
+            debugLog(
+              '[DisplayAdapter] Failed to parse xrandr output:',
+              e.message || e
+            );
+          }
+          resolve();
+        });
+      } catch (e: any) {
+        debugLog('[DisplayAdapter] Failed to execute xrandr:', e.message || e);
+        resolve();
+      }
+    });
   }
 
   async setRefreshRate(rate: number): Promise<void> {
@@ -226,7 +322,7 @@ export class DisplayAdapter {
           try {
             const [ok, stdout] = proc.communicate_utf8_finish(res);
             if (ok && stdout) {
-              const output = new TextDecoder().decode(stdout);
+              const output = stdout;
               const lines = output.split('\n');
               let displayName = '';
               let currentResolution = '';

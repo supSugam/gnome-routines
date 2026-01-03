@@ -52,5 +52,52 @@
  2. Run Command
  - Works
 
- 3. Open URL
+ 3. App Opened
+ - Works
+
+ 4. Turn Wifi On/Off
+ - Works
+
+ 5. Turn Bluetooth On/Off
+ - Works
+
+ 6. Turn DND On/Off
+ - Works
+
+7. Airplane Mode
+ - Works
+
+8. Set Volume
+ - Works
+
+9. Set Brightness
+ - Works
+
+10. Set Keyboard Brightness
+ - Works
+
+11. Set Wallpaper
+ - Works
+
+12. Set Dark Mode
+ - Works
+
+ 13. Set Night Light
+ - Works
+
+ 14. Set Screen Orientation
+ - Works
+
+ 15. Take Screenshot
+ - Works
+
+ 16. Open Link
+ - Works
+ 
+ 17. Manage Clipboard
+ - Text: Works
+ - Image: Works, no deep comparison so it will trigger even if the new image is the same
+ - Regex: Not tested
+
+ 18. Change Refresh Rate
  - Works

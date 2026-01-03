@@ -97,6 +97,7 @@ export const UI_STRINGS = {
     clearClipboard: 'Manage Clipboard',
     openLink: 'Open Link',
     executeCommand: 'Execute Command',
+    refreshRate: 'Change Refresh Rate',
   },
   clipboard: {
     operation: 'Operation',

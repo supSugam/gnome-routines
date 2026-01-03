@@ -246,41 +246,51 @@ export class ActionManager {
     let currentType = action.type;
 
     let actionTypes = [
-  { id: ActionType.OPEN_APP, title: UI_STRINGS.actions.openApp },
-  { id: ActionType.WIFI, title: UI_STRINGS.actions.wifi },
-  { id: ActionType.CONNECT_WIFI, title: UI_STRINGS.actions.connectWifi },
-  { id: ActionType.BLUETOOTH, title: UI_STRINGS.actions.bluetooth },
-  {
-    id: ActionType.CONNECT_BLUETOOTH,
-    title: UI_STRINGS.actions.connectBluetooth,
-  },
-  {
-    id: ActionType.DISCONNECT_BLUETOOTH,
-    title: UI_STRINGS.actions.disconnectBluetooth,
-  },
-  { id: ActionType.DND, title: UI_STRINGS.actions.dnd },
-  { id: ActionType.AIRPLANE_MODE, title: UI_STRINGS.actions.airplaneMode },
-  { id: ActionType.VOLUME, title: UI_STRINGS.actions.volume },
-  { id: ActionType.BRIGHTNESS, title: UI_STRINGS.actions.brightness },
-  {
-    id: ActionType.KEYBOARD_BRIGHTNESS,
-    title: UI_STRINGS.actions.keyboardBrightness,
-  },
-  { id: ActionType.WALLPAPER, title: UI_STRINGS.actions.wallpaper },
-  { id: ActionType.DARK_MODE, title: UI_STRINGS.actions.darkMode },
-  { id: ActionType.NIGHT_LIGHT, title: UI_STRINGS.actions.nightLight },
-  { id: ActionType.POWER_SAVER, title: UI_STRINGS.actions.powerSaver },
-  { id: ActionType.SCREEN_TIMEOUT, title: UI_STRINGS.actions.screenTimeout },
-  {
-    id: ActionType.SCREEN_ORIENTATION,
-    title: UI_STRINGS.actions.screenOrientation,
-  },
-  { id: ActionType.TAKE_SCREENSHOT, title: UI_STRINGS.actions.takeScreenshot },
-  { id: ActionType.NOTIFICATION, title: UI_STRINGS.actions.notification },
-  { id: ActionType.CLIPBOARD, title: UI_STRINGS.actions.clearClipboard },
-  { id: ActionType.OPEN_LINK, title: UI_STRINGS.actions.openLink },
-  { id: ActionType.EXECUTE_COMMAND, title: UI_STRINGS.actions.executeCommand },
-];
+      { id: ActionType.OPEN_APP, title: UI_STRINGS.actions.openApp },
+      { id: ActionType.WIFI, title: UI_STRINGS.actions.wifi },
+      { id: ActionType.CONNECT_WIFI, title: UI_STRINGS.actions.connectWifi },
+      { id: ActionType.BLUETOOTH, title: UI_STRINGS.actions.bluetooth },
+      {
+        id: ActionType.CONNECT_BLUETOOTH,
+        title: UI_STRINGS.actions.connectBluetooth,
+      },
+      {
+        id: ActionType.DISCONNECT_BLUETOOTH,
+        title: UI_STRINGS.actions.disconnectBluetooth,
+      },
+      { id: ActionType.DND, title: UI_STRINGS.actions.dnd },
+      { id: ActionType.AIRPLANE_MODE, title: UI_STRINGS.actions.airplaneMode },
+      { id: ActionType.VOLUME, title: UI_STRINGS.actions.volume },
+      { id: ActionType.BRIGHTNESS, title: UI_STRINGS.actions.brightness },
+      {
+        id: ActionType.KEYBOARD_BRIGHTNESS,
+        title: UI_STRINGS.actions.keyboardBrightness,
+      },
+      { id: ActionType.WALLPAPER, title: UI_STRINGS.actions.wallpaper },
+      { id: ActionType.DARK_MODE, title: UI_STRINGS.actions.darkMode },
+      { id: ActionType.NIGHT_LIGHT, title: UI_STRINGS.actions.nightLight },
+      { id: ActionType.POWER_SAVER, title: UI_STRINGS.actions.powerSaver },
+      {
+        id: ActionType.SCREEN_TIMEOUT,
+        title: UI_STRINGS.actions.screenTimeout,
+      },
+      {
+        id: ActionType.SCREEN_ORIENTATION,
+        title: UI_STRINGS.actions.screenOrientation,
+      },
+      {
+        id: ActionType.TAKE_SCREENSHOT,
+        title: UI_STRINGS.actions.takeScreenshot,
+      },
+      { id: ActionType.NOTIFICATION, title: UI_STRINGS.actions.notification },
+      { id: ActionType.CLIPBOARD, title: UI_STRINGS.actions.clearClipboard },
+      { id: ActionType.OPEN_LINK, title: UI_STRINGS.actions.openLink },
+      {
+        id: ActionType.EXECUTE_COMMAND,
+        title: UI_STRINGS.actions.executeCommand,
+      },
+      { id: ActionType.REFRESH_RATE, title: UI_STRINGS.actions.refreshRate },
+    ];
 
     if (getSystemType() === SystemType.PC) {
       actionTypes = actionTypes.filter((t) => t.id !== ActionType.POWER_SAVER);
