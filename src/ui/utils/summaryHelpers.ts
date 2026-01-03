@@ -132,9 +132,9 @@ export const getTriggerSummary = (trigger: Trigger): string => {
   if (trigger.type === TriggerType.HEADPHONES) {
     const config = trigger.config as any;
     const state =
-      config.state === true || config.state === 'plugged'
-        ? 'plugged in'
-        : 'unplugged';
+      config.state === 'connected' || config.state === 'on'
+        ? 'connected'
+        : 'disconnected';
     return `When headphones are ${state}`;
   }
 

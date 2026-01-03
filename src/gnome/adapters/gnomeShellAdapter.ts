@@ -208,13 +208,12 @@ export class GnomeShellAdapter implements ISystemAdapter {
 
   // --- Audio ---
   getWiredHeadphonesState(): Promise<boolean> {
-    return Promise.resolve(false); // Stub
+    return this._audio.getWiredHeadphonesState();
   }
   onWiredHeadphonesStateChanged(
     callback: (isConnected: boolean) => void
   ): () => void {
-    // Stub
-    return () => {};
+    return this._audio.onWiredHeadphonesStateChanged(callback);
   }
 
   // --- New Actions - Connections ---
