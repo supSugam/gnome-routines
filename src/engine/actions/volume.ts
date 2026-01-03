@@ -9,9 +9,18 @@ import { ActionType, VolumeActionConfig } from '../types.js';
 export class VolumeAction extends BaseAction {
   private previousVolume: number | null = null;
   private isEnforcing: boolean = false;
+  private timeoutId: number | null = null;
 
   constructor(id: string, config: VolumeActionConfig, adapter: SystemAdapter) {
     super(id, ActionType.VOLUME, config, adapter);
+  }
+
+  destroy(): void {
+    this.isEnforcing = false;
+    if (this.timeoutId) {
+      GLib.source_remove(this.timeoutId);
+      this.timeoutId = null;
+    }
   }
 
   async execute(): Promise<void> {
@@ -81,7 +90,8 @@ export class VolumeAction extends BaseAction {
         }
 
         // Schedule next check
-        GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+        this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+          this.timeoutId = null;
           checkLoop();
           return GLib.SOURCE_REMOVE;
         });
@@ -96,7 +106,7 @@ export class VolumeAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
-    this.isEnforcing = false; // Stop enforcement loop
+    this.destroy(); // Stop enforcement loop and clear timeout
 
     if (this.previousVolume !== null) {
       debugLog(`[VolumeAction] Reverting volume to: ${this.previousVolume}%`);

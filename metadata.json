@@ -1,6 +1,6 @@
 {
   "name": "Gnome Routines",
-  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more.",
+  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more. This extension interacts with the clipboard.",
   "uuid": "gnome-routines@supSugam.com",
   "shell-version": ["46", "47"],
   "url": "https://github.com/supSugam/gnome-routines",

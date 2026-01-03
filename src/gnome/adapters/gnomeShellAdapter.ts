@@ -365,6 +365,24 @@ export class GnomeShellAdapter implements ISystemAdapter {
 
   // --- Cleanup ---
   destroy(): void {
-    // Stub
+    // Clean up handlers if they have destroy methods
+    // Currently handlers are stateless or return cleanup functions on subscription
+    // But we clear references to allow GC
+    // @ts-ignore
+    this._audio = null;
+    // @ts-ignore
+    this._bluetooth = null;
+    // @ts-ignore
+    this._display = null;
+    // @ts-ignore
+    this._network = null;
+    // @ts-ignore
+    this._power = null;
+    // @ts-ignore
+    this._system = null;
+    // @ts-ignore
+    this._startup = null;
+    // @ts-ignore
+    this._clipboard = null;
   }
 }

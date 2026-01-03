@@ -22,4 +22,6 @@ export abstract class BaseAction implements Action {
 
   abstract execute(): Promise<void> | void;
   abstract revert?(): Promise<void> | void;
+
+  destroy(): void {}
 }

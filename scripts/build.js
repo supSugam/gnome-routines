@@ -56,15 +56,7 @@ function postBuild() {
         path.join(schemasDir, schemaFile)
       );
 
-      try {
-        execSync(`glib-compile-schemas ${schemasDir}`);
-        console.log('Schemas compiled.');
-      } catch (e) {
-        console.log(
-          'Failed to compile schemas (glib-compile-schemas might be missing):',
-          e.message
-        );
-      }
+
     }
   }
 

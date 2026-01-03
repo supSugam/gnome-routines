@@ -12,17 +12,13 @@ import {
 } from '../types.js';
 import { RETRY_DEFAULTS } from '../constants.js';
 
-const delay = (ms: number) =>
-  new Promise((resolve) => {
-    GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
-      resolve(null);
-      return GLib.SOURCE_REMOVE;
-    });
-  });
 
 export class WifiAction extends BaseAction {
   private initialState: boolean | null = null;
   private initialSsid: string | null = null;
+  private timeoutId: number | null = null;
+  private cancelResolve: (() => void) | null = null;
+  private isDestroyed: boolean = false;
 
   constructor(
     id: string,
@@ -32,7 +28,32 @@ export class WifiAction extends BaseAction {
     super(id, ActionType.WIFI, config, adapter);
   }
 
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.cancelResolve = resolve;
+      this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+        this.timeoutId = null;
+        this.cancelResolve = null;
+        resolve();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+  }
+
+  destroy(): void {
+    this.isDestroyed = true;
+    if (this.timeoutId) {
+      GLib.source_remove(this.timeoutId);
+      this.timeoutId = null;
+    }
+    if (this.cancelResolve) {
+      this.cancelResolve();
+      this.cancelResolve = null;
+    }
+  }
+
   async execute(): Promise<void> {
+    this.isDestroyed = false; // Reset on new execution
     // Capture state if not already captured
     if (this.initialState === null) {
       this.initialState = this.adapter.getWifiState();
@@ -59,7 +80,7 @@ export class WifiAction extends BaseAction {
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
 
-      while (true) {
+      while (!this.isDestroyed) {
         // Attempt
         const currentSSID = this.adapter.getCurrentWifiSSID();
         if (currentSSID === this.config.ssid) {
@@ -82,14 +103,17 @@ export class WifiAction extends BaseAction {
         const remaining = timeoutMs - elapsed;
         const waitTime = Math.min(intervalMs, remaining);
 
-        await delay(waitTime);
+        await this.wait(waitTime);
       }
 
-      debugLog('[WifiAction] Timed out connecting to ' + this.config.ssid);
+      if (!this.isDestroyed) {
+        debugLog('[WifiAction] Timed out connecting to ' + this.config.ssid);
+      }
     }
   }
 
   async revert(): Promise<void> {
+    this.destroy(); // Cancel any ongoing loop
     if (this.initialState !== null) {
       debugLog(
         `[WifiAction] Reverting state. Enabled: ${this.initialState}, SSID: ${this.initialSsid}`
@@ -112,13 +136,9 @@ export class WifiAction extends BaseAction {
 
 export class BluetoothAction extends BaseAction {
   private initialState: boolean | null = null;
-  // Bluetooth is complex, capturing "connected device" is hard because multiple can be connected.
-  // We'll capture enabled state.
-  // If user wants to restore connection, we might need to capture list of connected devices?
-  // User said: "if on then connected to previously connected network if available" (referring to Wifi).
-  // For Bluetooth, let's try to restore enabled state. Reconnecting to specific devices might be tricky without knowing which one was "primary".
-  // But we can try to capture connected devices and reconnect them?
-  // Let's stick to enabled state for now, as Bluetooth auto-connect usually handles known devices.
+  private timeoutId: number | null = null;
+  private cancelResolve: (() => void) | null = null;
+  private isDestroyed: boolean = false;
 
   constructor(
     id: string,
@@ -128,7 +148,32 @@ export class BluetoothAction extends BaseAction {
     super(id, ActionType.BLUETOOTH, config, adapter);
   }
 
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.cancelResolve = resolve;
+      this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+        this.timeoutId = null;
+        this.cancelResolve = null;
+        resolve();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+  }
+
+  destroy(): void {
+    this.isDestroyed = true;
+    if (this.timeoutId) {
+      GLib.source_remove(this.timeoutId);
+      this.timeoutId = null;
+    }
+    if (this.cancelResolve) {
+      this.cancelResolve();
+      this.cancelResolve = null;
+    }
+  }
+
   async execute(): Promise<void> {
+    this.isDestroyed = false;
     if (this.initialState === null) {
       this.initialState = await this.adapter.getBluetooth();
     }
@@ -149,7 +194,7 @@ export class BluetoothAction extends BaseAction {
       );
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
-      while (true) {
+      while (!this.isDestroyed) {
         // Check if connected
         const connectedDevices =
           await this.adapter.getConnectedBluetoothDevices();
@@ -184,17 +229,20 @@ export class BluetoothAction extends BaseAction {
         const remaining = timeoutMs - elapsed;
         const waitTime = Math.min(intervalMs, remaining);
 
-        await delay(waitTime);
+        await this.wait(waitTime);
       }
 
-      debugLog(
-        '[BluetoothAction] Timed out connecting to ' +
-          (this.config.deviceName || this.config.deviceId)
-      );
+      if (!this.isDestroyed) {
+        debugLog(
+          '[BluetoothAction] Timed out connecting to ' +
+            (this.config.deviceName || this.config.deviceId)
+        );
+      }
     }
   }
 
   async revert(): Promise<void> {
+    this.destroy();
     if (this.initialState !== null) {
       await this.adapter.setBluetooth(this.initialState);
       this.initialState = null;
@@ -205,6 +253,10 @@ export class BluetoothAction extends BaseAction {
 }
 
 export class BluetoothDeviceAction extends BaseAction {
+  private timeoutId: number | null = null;
+  private cancelResolve: (() => void) | null = null;
+  private isDestroyed: boolean = false;
+
   constructor(
     id: string,
     config: BluetoothDeviceActionConfig,
@@ -218,7 +270,32 @@ export class BluetoothDeviceAction extends BaseAction {
     super(id, type, config, adapter);
   }
 
+  private wait(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      this.cancelResolve = resolve;
+      this.timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+        this.timeoutId = null;
+        this.cancelResolve = null;
+        resolve();
+        return GLib.SOURCE_REMOVE;
+      });
+    });
+  }
+
+  destroy(): void {
+    this.isDestroyed = true;
+    if (this.timeoutId) {
+      GLib.source_remove(this.timeoutId);
+      this.timeoutId = null;
+    }
+    if (this.cancelResolve) {
+      this.cancelResolve();
+      this.cancelResolve = null;
+    }
+  }
+
   async execute(): Promise<void> {
+    this.isDestroyed = false;
     if (this.config.action === ActionOperation.CONNECT) {
       const timeoutMs =
         (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT) * 1000;
@@ -233,7 +310,7 @@ export class BluetoothDeviceAction extends BaseAction {
       );
 
       // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
-      while (true) {
+      while (!this.isDestroyed) {
         // Attempt connection
         // Note: We don't check already connected first because user might want to force reconnect
         // But for efficiency we should probably check?
@@ -276,14 +353,16 @@ export class BluetoothDeviceAction extends BaseAction {
         const remaining = timeoutMs - elapsed;
         const waitTime = Math.min(intervalMs, remaining);
 
-        await delay(waitTime);
+        await this.wait(waitTime);
       }
 
-      debugLog(
-        `[BluetoothDeviceAction] Failed to connect to ${
-          this.config.deviceName || this.config.deviceId
-        } after timeout`
-      );
+      if (!this.isDestroyed) {
+        debugLog(
+          `[BluetoothDeviceAction] Failed to connect to ${
+            this.config.deviceName || this.config.deviceId
+          } after timeout`
+        );
+      }
     } else {
       debugLog(
         `[BluetoothDeviceAction] Disconnecting from ${
@@ -297,6 +376,7 @@ export class BluetoothDeviceAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
+    this.destroy(); // stop loops
     const isPowered = await this.adapter.getBluetoothPowerState();
     if (!isPowered) {
       debugLog(
@@ -337,3 +417,4 @@ export class AirplaneModeAction extends BaseAction {
     this.adapter.setAirplaneMode(!this.config.enabled);
   }
 }
+

@@ -312,6 +312,7 @@ export interface Action {
   onDeactivate?: OnDeactivateConfig;
   execute(): Promise<void> | void;
   revert?(): Promise<void> | void;
+  destroy?(): void;
 }
 
 export enum RoutineMatchType {
