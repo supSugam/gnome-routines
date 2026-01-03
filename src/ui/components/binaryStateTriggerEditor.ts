@@ -29,7 +29,8 @@ export abstract class BinaryStateTriggerEditor extends BaseEditor {
 
     // @ts-ignore
     row.connect('notify::selected', () => {
-      this.config.state = row.selected === 0 ? this.getTrueValue() : this.getFalseValue();
+      this.config.state =
+        row.selected === 0 ? this.getTrueValue() : this.getFalseValue();
       this.onChange();
     });
   }

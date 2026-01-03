@@ -33,16 +33,21 @@ export class DarkModeTrigger extends BaseTrigger {
     // Initialize state
     this.check().then((initialState) => {
       if (this._lastMatch === null) {
-        const shouldIgnoreInitial = this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
         if (shouldIgnoreInitial) {
-             debugLog(`[DarkModeTrigger] Initial state: ${initialState} (Ignored)`);
-             this._lastMatch = initialState;
+          debugLog(
+            `[DarkModeTrigger] Initial state: ${initialState} (Ignored)`
+          );
+          this._lastMatch = initialState;
         } else {
-             debugLog(`[DarkModeTrigger] Initial state: ${initialState} (Checking immediate)`);
-             this._lastMatch = initialState;
-             if (initialState) {
-                 this.emit('triggered');
-             }
+          debugLog(
+            `[DarkModeTrigger] Initial state: ${initialState} (Checking immediate)`
+          );
+          this._lastMatch = initialState;
+          if (initialState) {
+            this.emit('triggered');
+          }
         }
       }
     });
@@ -51,19 +56,22 @@ export class DarkModeTrigger extends BaseTrigger {
       const isMatch = await this.check();
 
       if (this._lastMatch === null) {
-         const shouldIgnoreInitial = this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
-         if (shouldIgnoreInitial) {
-            debugLog(`[DarkModeTrigger] Initial Race: ${isMatch} (Ignored)`);
-            this._lastMatch = isMatch;
-            return;
-         } else {
-            debugLog(`[DarkModeTrigger] Initial Race: ${isMatch} (Checking immediate)`);
-            this._lastMatch = isMatch;
-             if (isMatch) {
-                 this.emit('triggered');
-             }
-             return;
-         }
+        const shouldIgnoreInitial =
+          this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        if (shouldIgnoreInitial) {
+          debugLog(`[DarkModeTrigger] Initial Race: ${isMatch} (Ignored)`);
+          this._lastMatch = isMatch;
+          return;
+        } else {
+          debugLog(
+            `[DarkModeTrigger] Initial Race: ${isMatch} (Checking immediate)`
+          );
+          this._lastMatch = isMatch;
+          if (isMatch) {
+            this.emit('triggered');
+          }
+          return;
+        }
       }
 
       if (isMatch !== this._lastMatch) {
@@ -72,9 +80,13 @@ export class DarkModeTrigger extends BaseTrigger {
         );
         this._lastMatch = isMatch;
         if (isMatch) {
-          debugLog(`[DarkModeTrigger] Condition met (TRUE). Emitting 'triggered'.`);
+          debugLog(
+            `[DarkModeTrigger] Condition met (TRUE). Emitting 'triggered'.`
+          );
         } else {
-          debugLog(`[DarkModeTrigger] Condition lost (FALSE). Emitting 'triggered' to signal update.`);
+          debugLog(
+            `[DarkModeTrigger] Condition lost (FALSE). Emitting 'triggered' to signal update.`
+          );
         }
         this.emit('triggered');
       }

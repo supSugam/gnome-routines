@@ -4,7 +4,6 @@ about: Create a report to help us fix the issue you're experiencing
 title: ''
 labels: bug
 assignees: ''
-
 ---
 
 **What happened?**
@@ -12,9 +11,10 @@ Please describe what happened and what went wrong.
 
 **Steps to reproduce**
 How can we see this bug ourselves?
-1. 
-2. 
-3. 
+
+1.
+2.
+3.
 
 **What did you expect to happen?**
 Description of what you thought would happen.
@@ -23,9 +23,10 @@ Description of what you thought would happen.
 If you have screenshots, please add them here.
 
 **System Information**
- - Distribution (e.g. Fedora, Ubuntu): 
- - GNOME Version (if known): 
- - Extension Version: 
+
+- Distribution (e.g. Fedora, Ubuntu):
+- GNOME Version (if known):
+- Extension Version:
 
 **Logs (Optional)**
 If you are comfortable using the terminal, run this command and paste the output corresponding to the error:

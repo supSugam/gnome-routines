@@ -28,7 +28,6 @@ export class BluetoothTriggerEditor extends BaseEditor {
       ConnectionState.DISABLED,
     ];
 
-
     if (!this.btConfig.state) {
       this.btConfig.state = ConnectionState.CONNECTED;
     }

@@ -31,6 +31,7 @@ export class WallpaperTrigger extends BaseTrigger {
       this._unsubscribe();
       this._unsubscribe = null;
     }
+
     debugLog('[WallpaperTrigger] Deactivated');
   }
 

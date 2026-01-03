@@ -1,11 +1,14 @@
-
 // @ts-ignore
 import GLib from 'gi://GLib';
 // @ts-ignore
 import Gio from 'gi://Gio';
 
 import { BaseTrigger } from './base.js';
-import { TriggerType, StartupTriggerConfig, TriggerStrategy } from '../types.js';
+import {
+  TriggerType,
+  StartupTriggerConfig,
+  TriggerStrategy,
+} from '../types.js';
 import debugLog from '../../utils/log.js';
 
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';

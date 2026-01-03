@@ -90,21 +90,21 @@ export class RefreshRateActionEditor extends BaseEditor {
       // If current config isn't in list (e.g. diff monitor), select first or closest?
       // Select first for safety
       if (this._rates.length > 0) {
-          this._combo.selected = 0;
-          this.config.rate = this._rates[0];
-          this.onChange();
+        this._combo.selected = 0;
+        this.config.rate = this._rates[0];
+        this.onChange();
       }
     }
 
     // Connect change signal
     // @ts-ignore
     this._combo.connect('notify::selected', () => {
-        const selectedIndex = this._combo.selected;
-        if (selectedIndex >= 0 && selectedIndex < this._rates.length) {
-            this.config.rate = this._rates[selectedIndex];
-            debugLog(`[RefreshRateEditor] Selected rate: ${this.config.rate}`);
-            this.onChange();
-        }
+      const selectedIndex = this._combo.selected;
+      if (selectedIndex >= 0 && selectedIndex < this._rates.length) {
+        this.config.rate = this._rates[selectedIndex];
+        debugLog(`[RefreshRateEditor] Selected rate: ${this.config.rate}`);
+        this.onChange();
+      }
     });
   }
 

@@ -1,107 +1,138 @@
- [Triggers]
+[Triggers]
 
- 1. Time
- - Exact Time: Works (Disable it if no repeat after once it is triggered)
- - Time Period: Works
+1.  Time
 
- 2. Repeat Interval
- - Works
+- Exact Time: Works (Disable it if no repeat after once it is triggered)
+- Time Period: Works
 
- 3. App Opened
- - Works
+2.  Repeat Interval
 
- 4. Wifi Connection
- - Works
+- Works
 
- 5. Bluetooth Connection
- - Works
+3.  App Opened
 
- 6. Battery
- - Works but need rethink on strategy ie. when charging is capped / plugged in or not
+- Works
 
- 7. Power Saver
- - Works
+4.  Wifi Connection
 
- 8. Dark Mode
- - Works
+- Works
 
- 9. DND
- - Works
+5.  Bluetooth Connection
 
- 10. Airplane Mode
- - Works
+- Works
 
- 11. Wired Headphones
- - Works
+6.  Battery
 
- 12. Clipboard
- - Text: Works
- - Image: Works, no deep comparison so it will trigger even if the new image is the same
- - Regex: Not tested
+- Works but need rethink on strategy ie. when charging is capped / plugged in or not
 
- 13. Wallpaper Change
- - Works
- 
- 14. Startup/Login
- - Not tested
+7.  Power Saver
 
- 15. Login (not implemented)
+- Works
 
+8.  Dark Mode
 
- [Actions]
+- Works
 
- 1. Show Notification (can be a trigger)
- - Works
+9.  DND
 
- 2. Run Command
- - Works
+- Works
 
- 3. App Opened
- - Works
+10. Airplane Mode
 
- 4. Turn Wifi On/Off
- - Works
+- Works
 
- 5. Turn Bluetooth On/Off
- - Works
+11. Wired Headphones
 
- 6. Turn DND On/Off (can be a trigger)
- - Works
+- Works
+
+12. Clipboard
+
+- Text: Works
+- Image: Works, no deep comparison so it will trigger even if the new image is the same
+- Regex: Not tested
+
+13. Wallpaper Change
+
+- Works
+
+14. Startup/Login
+
+- Not tested
+
+15. Login (not implemented)
+
+[Actions]
+
+1.  Show Notification (can be a trigger)
+
+- Works
+
+2.  Run Command
+
+- Works
+
+3.  App Opened
+
+- Works
+
+4.  Turn Wifi On/Off
+
+- Works
+
+5.  Turn Bluetooth On/Off
+
+- Works
+
+6.  Turn DND On/Off (can be a trigger)
+
+- Works
 
 7. Airplane Mode
- - Works
+
+- Works
 
 8. Set Volume
- - Works
+
+- Works
 
 9. Set Brightness
- - Works
+
+- Works
 
 10. Set Keyboard Brightness
- - Works
+
+- Works
 
 11. Set Wallpaper
- - Works
+
+- Works
 
 12. Set Dark Mode
- - Works
 
- 13. Set Night Light (can be a trigger)
- - Works
+- Works
 
- 14. Set Screen Orientation
- - Works
+13. Set Night Light (can be a trigger)
 
- 15. Take Screenshot (can be a trigger)
- - Works
+- Works
 
- 16. Open Link
- - Works
- 
- 17. Manage Clipboard
- - Text: Works
- - Image: Works, no deep comparison so it will trigger even if the new image is the same
- - Regex: Not tested
+14. Set Screen Orientation
 
- 18. Change Refresh Rate
- - Works
+- Works
+
+15. Take Screenshot (can be a trigger)
+
+- Works
+
+16. Open Link
+
+- Works
+
+17. Manage Clipboard
+
+- Text: Works
+- Image: Works, no deep comparison so it will trigger even if the new image is the same
+- Regex: Not tested
+
+18. Change Refresh Rate
+
+- Works

@@ -78,6 +78,7 @@ export class WifiTriggerEditor extends BaseEditor {
     if (!this.config.ssids || this.config.ssids.length === 0) {
       return 'Leave empty for any network';
     }
+
     if (this.config.ssids.length === 1) {
       return this.config.ssids[0];
     }

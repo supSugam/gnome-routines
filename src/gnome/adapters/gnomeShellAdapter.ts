@@ -48,42 +48,55 @@ export class GnomeShellAdapter implements ISystemAdapter {
   setDND(enabled: boolean): void {
     this._system.setDND(enabled);
   }
+
   getDND(): boolean {
     return this._system.getDND();
   }
+
   setBrightness(percentage: number): void {
     this._display.setBrightness(percentage);
   }
+
   getBrightness(): number {
     return this._display.getBrightness();
   }
+
   setVolume(percentage: number): Promise<void> {
     return this._audio.setVolume(percentage);
   }
+
   getVolume(): Promise<number> {
     return this._audio.getVolume();
   }
+
   setBluetoothVolume(percentage: number): Promise<boolean> {
     return this._audio.setBluetoothVolume(percentage);
   }
+
   setSinkVolume(sinkName: string, percentage: number): void {
     // Stub
   }
+
   getBluetoothAudioSinkName(): string | null {
     return null; // Stub
   }
+
   setWallpaper(uri: string): void {
     this._display.setWallpaper(uri);
   }
+
   getWallpaper(): string {
     return this._display.getWallpaper();
   }
+
   onWallpaperChanged(callback: (newUri: string) => void): () => void {
     return this._display.onWallpaperChanged(callback);
   }
+
   setBluetooth(enabled: boolean): Promise<void> {
     return this._bluetooth.setBluetooth(enabled);
   }
+
   getBluetooth(): Promise<boolean> {
     return this._bluetooth.getBluetooth();
   }
@@ -92,6 +105,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   setWifi(enabled: boolean): void {
     this._network.setWifi(enabled);
   }
+
   connectToWifi(ssid: string): Promise<boolean> {
     // Interface requires Promise<boolean>
     return new Promise((resolve) => {
@@ -104,9 +118,11 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getWifiState(): boolean {
     return this._network.getWifiState();
   }
+
   getBatteryLevel(): number {
     return this._power.getBatteryLevel();
   }
+
   isCharging(): boolean {
     return this._power.isCharging();
   }
@@ -116,6 +132,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
     // Stub
     return null;
   }
+
   onActiveAppChanged(callback: (appName: string) => void): () => void {
     // Stub
     return () => {};
@@ -130,9 +147,11 @@ export class GnomeShellAdapter implements ISystemAdapter {
   onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
     return this._network.onWifiStateChanged(callback);
   }
+
   getCurrentWifiSSID(): string | null {
     return this._network.getCurrentWifiSSID();
   }
+
   getSavedWifiNetworks(): string[] {
     return this._network.getSavedWifiNetworks();
   }
@@ -141,6 +160,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getWifiPowerState(): boolean {
     return this._network.getWifiPowerState();
   }
+
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     return this._network.onWifiPowerStateChanged(callback);
   }
@@ -149,14 +169,17 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getBluetoothPowerState(): Promise<boolean> {
     return this._bluetooth.getBluetooth();
   }
+
   onBluetoothPowerStateChanged(
     callback: (isEnabled: boolean) => void
   ): () => void {
     return this._bluetooth.onBluetoothPowerStateChanged(callback);
   }
+
   getConnectedBluetoothDevices(): Promise<{ name: string; address: string }[]> {
     return this._bluetooth.getConnectedBluetoothDevices();
   }
+
   onBluetoothDeviceStateChanged(callback: () => void): () => void {
     return this._bluetooth.onBluetoothDeviceStateChanged(callback);
   }
@@ -175,6 +198,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getPowerSaverState(): Promise<boolean> {
     return Promise.resolve(this._power.getPowerSaver());
   }
+
   onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void {
     // Legacy: wrap profile change to boolean callback
     return this._power.onPowerProfileChanged((profile) => {
@@ -186,6 +210,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getDarkModeState(): boolean {
     return this._display.getDarkMode();
   }
+
   onDarkModeStateChanged(callback: (isDark: boolean) => void): () => void {
     return this._display.onDarkModeChanged(callback);
   }
@@ -193,11 +218,13 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getAirplaneModeState(): Promise<boolean> {
     return Promise.resolve(this._network.getAirplaneModeState());
   }
+
   onAirplaneModeStateChanged(
     callback: (isEnabled: boolean) => void
   ): () => void {
     return this._network.onAirplaneModeStateChanged(callback);
   }
+
   onDndStateChanged(callback: (enabled: boolean) => void): () => void {
     return this._system.onDndStateChanged(callback);
   }
@@ -206,6 +233,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   getWiredHeadphonesState(): Promise<boolean> {
     return this._audio.getWiredHeadphonesState();
   }
+
   onWiredHeadphonesStateChanged(
     callback: (isConnected: boolean) => void
   ): () => void {
@@ -216,9 +244,11 @@ export class GnomeShellAdapter implements ISystemAdapter {
   connectBluetoothDevice(id: string): Promise<void> {
     return this._bluetooth.connectBluetoothDevice(id);
   }
+
   disconnectBluetoothDevice(id: string): Promise<void> {
     return this._bluetooth.disconnectBluetoothDevice(id);
   }
+
   setAirplaneMode(enabled: boolean): void {
     this._network.setAirplaneMode(enabled);
     this._bluetooth.setBluetooth(!enabled);
@@ -228,30 +258,39 @@ export class GnomeShellAdapter implements ISystemAdapter {
   setDarkMode(enabled: boolean): void {
     this._display.setDarkMode(enabled);
   }
+
   getDarkMode(): boolean {
     return this._display.getDarkMode();
   }
+
   setNightLight(enabled: boolean): void {
     this._display.setNightLight(enabled);
   }
+
   getNightLight(): boolean {
     return this._display.getNightLight();
   }
+
   setScreenTimeout(seconds: number): void {
     this._display.setScreenTimeout(seconds);
   }
+
   getScreenTimeout(): number {
     return this._display.getScreenTimeout();
   }
+
   setScreenOrientation(orientation: 'portrait' | 'landscape'): void {
     this._display.setScreenOrientation(orientation);
   }
+
   setRefreshRate(rate: number): Promise<void> {
     return this._display.setRefreshRate(rate);
   }
+
   getRefreshRate(): Promise<number> {
     return this._display.getRefreshRate();
   }
+
   getAvailableRefreshRates(): Promise<number[]> {
     return this._display.getAvailableRefreshRates();
   }
@@ -260,12 +299,15 @@ export class GnomeShellAdapter implements ISystemAdapter {
   setPowerSaver(enabled: boolean): void {
     this._power.setPowerSaver(enabled);
   }
+
   setPowerProfile(profile: string): void {
     this._power.setPowerProfile(profile);
   }
+
   getPowerSaver(): Promise<boolean> {
     return Promise.resolve(this._power.getPowerSaver());
   }
+
   getPowerProfile(): Promise<string> {
     return Promise.resolve(this._power.getPowerProfile());
   }
@@ -274,12 +316,15 @@ export class GnomeShellAdapter implements ISystemAdapter {
   openLink(url: string): void {
     this._system.openLink(url);
   }
+
   takeScreenshot(directory?: string): void {
     this._system.takeScreenshot(directory || '');
   }
+
   executeCommand(command: string): void {
     this._system.executeCommand(command);
   }
+
   openApp(appIds: string[]): void {
     if (Array.isArray(appIds)) {
       appIds.forEach((id) => this._system.openApp(id));
@@ -293,6 +338,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   setKeyboardBrightness(percentage: number): void {
     this._display.setKeyboardBrightness(percentage);
   }
+
   getKeyboardBrightness(): Promise<number> {
     return this._display.getKeyboardBrightness();
   }
@@ -304,12 +350,15 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }> {
     return this._clipboard.getClipboardContent();
   }
+
   setClipboardText(text: string): void {
     this._clipboard.setClipboardText(text);
   }
+
   clearClipboard(): void {
     this._clipboard.clearClipboard();
   }
+
   onClipboardChanged(callback: () => void): () => void {
     return this._clipboard.onClipboardChanged(callback);
   }

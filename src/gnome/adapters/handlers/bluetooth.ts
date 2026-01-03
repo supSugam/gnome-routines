@@ -37,6 +37,7 @@ export class BluetoothAdapter {
               : 'rfkill block bluetooth';
             GLib.spawn_command_line_async(rfkillCommand);
           }
+
           resolve();
         });
       } catch (e) {
@@ -50,6 +51,7 @@ export class BluetoothAdapter {
         } catch (err) {
           debugLog('[BluetoothAdapter] rfkill fallback failed:', err);
         }
+
         resolve();
       }
     });
@@ -88,6 +90,7 @@ export class BluetoothAdapter {
                 return;
               }
             }
+
             resolve(false);
           } catch (e) {
             debugLog(
@@ -347,6 +350,7 @@ export class BluetoothAdapter {
                   }
                 }
               }
+
               resolve(devices);
             } catch (e) {
               debugLog('[BluetoothAdapter] Error parsing managed objects:', e);

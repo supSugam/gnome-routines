@@ -1,4 +1,3 @@
-
 const Adw = imports.gi.Adw;
 const Gtk = imports.gi.Gtk;
 

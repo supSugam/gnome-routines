@@ -1,4 +1,3 @@
-
 // @ts-ignore
 import Adw from 'gi://Adw';
 // @ts-ignore
@@ -19,7 +18,7 @@ export class StartupTriggerEditor extends BaseEditor {
       title: 'Info',
       subtitle: 'This routine will run once when you log in.',
     });
-    
+
     // Add an icon for visual feedback
     const icon = new Gtk.Image({
       icon_name: 'system-log-out-symbolic', // or something indicating startup/session

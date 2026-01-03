@@ -123,6 +123,7 @@ export class ClipboardTrigger extends BaseTrigger {
       this.cleanup();
       this.cleanup = null;
     }
+
     if (this.debounceId) {
       GLib.source_remove(this.debounceId);
       this.debounceId = null;

@@ -114,8 +114,8 @@ export const getTriggerSummary = (trigger: Trigger): string => {
       config.profile === 'power-saver'
         ? 'Power Saver'
         : config.profile === 'performance'
-        ? 'Performance'
-        : 'Balanced';
+          ? 'Performance'
+          : 'Balanced';
     return `When profile is ${profileName}`;
   }
 
@@ -156,61 +156,74 @@ export const getActionSummary = (action: Action): string => {
       ? 'Disable Do Not Disturb'
       : 'Enable Do Not Disturb';
   }
+
   if (action.type === ActionType.BLUETOOTH) {
     const config = action.config as BinaryStateActionConfig;
     return config.enabled === false ? 'Disable Bluetooth' : 'Enable Bluetooth';
   }
+
   if (action.type === ActionType.WIFI) {
     const config = action.config as BinaryStateActionConfig;
     return config.enabled === false ? 'Turn off Wifi' : 'Turn on Wifi';
   }
+
   if (action.type === ActionType.AIRPLANE_MODE) {
     const config = action.config as BinaryStateActionConfig;
     return config.enabled === false
       ? 'Disable Airplane Mode'
       : 'Enable Airplane Mode';
   }
+
   if (action.type === ActionType.CONNECT_BLUETOOTH) {
     const config = action.config as ConnectBluetoothActionConfig;
     return `Connect to Bluetooth device: ${
       config.deviceName || config.deviceId
     }`;
   }
+
   if (action.type === ActionType.DISCONNECT_BLUETOOTH) {
     const config = action.config as ConnectBluetoothActionConfig;
     return `Disconnect from Bluetooth device: ${
       config.deviceName || config.deviceId
     }`;
   }
+
   if (action.type === ActionType.CONNECT_WIFI) {
     const config = action.config as ConnectWifiActionConfig;
     return `Connect to Wifi network: ${config.ssid}`;
   }
+
   if (action.type === ActionType.VOLUME) {
     const config = action.config as VolumeActionConfig;
     return `Set volume to ${config.level}%`;
   }
+
   if (action.type === ActionType.BRIGHTNESS) {
     const config = action.config as BrightnessActionConfig;
     return `Set brightness to ${config.level}%`;
   }
+
   if (action.type === ActionType.KEYBOARD_BRIGHTNESS) {
     const config = action.config as BrightnessActionConfig;
     return `Set keyboard brightness to ${config.level}%`;
   }
+
   if (action.type === ActionType.WALLPAPER) {
     const config = action.config as WallpaperActionConfig;
     const filename = config.uri ? config.uri.split('/').pop() : 'Unknown';
     return `Set wallpaper to ${filename}`;
   }
+
   if (action.type === ActionType.DARK_MODE) {
     const config = action.config as BinaryStateActionConfig;
     return config.enabled ? 'Enable Dark Mode' : 'Disable Dark Mode';
   }
+
   if (action.type === ActionType.NIGHT_LIGHT) {
     const config = action.config as BinaryStateActionConfig;
     return config.enabled ? 'Enable Night Light' : 'Disable Night Light';
   }
+
   if (action.type === ActionType.POWER_SAVER) {
     const config = action.config as any;
     if (config.profile) {
@@ -218,39 +231,46 @@ export const getActionSummary = (action: Action): string => {
         config.profile === 'power-saver'
           ? 'Power Saver'
           : config.profile === 'performance'
-          ? 'Performance'
-          : 'Balanced';
+            ? 'Performance'
+            : 'Balanced';
       return `Set power profile to ${profileName}`;
     }
     // Legacy format
     return config.enabled ? 'Enable Power Saver' : 'Disable Power Saver';
   }
+
   if (action.type === ActionType.SCREEN_TIMEOUT) {
     const config = action.config as ScreenTimeoutActionConfig;
     return `Set screen timeout to ${config.seconds} seconds`;
   }
+
   if (action.type === ActionType.SCREEN_ORIENTATION) {
     const config = action.config as ScreenOrientationActionConfig;
     return `Set screen orientation to ${formatType(config.orientation)}`;
   }
+
   if (action.type === ActionType.OPEN_LINK) {
     const config = action.config as OpenLinkActionConfig;
     return `Open link: ${config.url}`;
   }
+
   if (action.type === ActionType.EXECUTE_COMMAND) {
     const config = action.config as ExecuteCommandActionConfig;
     return `Run command: ${config.command}`;
   }
+
   if (action.type === ActionType.OPEN_APP) {
     const config = action.config as OpenAppActionConfig;
     const count = config.appIds?.length || 0;
     return `Open ${count} application${count === 1 ? '' : 's'}`;
   }
+
   if (action.type === ActionType.TAKE_SCREENSHOT) return 'Take a screenshot';
   if (action.type === ActionType.NOTIFICATION) {
     const config = action.config as NotificationActionConfig;
     return `Send notification: "${config.title}"`;
   }
+
   if (action.type === ActionType.CLIPBOARD) {
     const config = action.config as ClipboardActionConfig;
     const { operation, sanitize } = config;
@@ -319,6 +339,7 @@ const formatState = (state: any): string => {
   ) {
     return 'On';
   }
+
   if (
     state === false ||
     state === 'off' ||

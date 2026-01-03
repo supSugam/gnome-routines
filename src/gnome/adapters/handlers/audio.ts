@@ -27,6 +27,7 @@ export class AudioAdapter {
             } catch (e) {
               debugLog('[AudioAdapter] Failed to set volume (async):', e);
             }
+
             resolve();
           });
         } catch (e) {
@@ -59,6 +60,7 @@ export class AudioAdapter {
                 return;
               }
             }
+
             resolve(50);
           } catch (e) {
             debugLog('[AudioAdapter] Failed to get volume (async):', e);
@@ -114,6 +116,7 @@ export class AudioAdapter {
                 found = true;
               }
             }
+
             resolve(found);
           } catch (e) {
             debugLog(
@@ -222,6 +225,7 @@ export class AudioAdapter {
                   lastState = isConnected;
                 });
               }
+
               readLine(); // Continue reading
             }
           } catch (e) {
@@ -255,4 +259,3 @@ export class AudioAdapter {
     };
   }
 }
-

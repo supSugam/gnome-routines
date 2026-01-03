@@ -200,30 +200,34 @@ export class TimeTriggerEditor extends BaseEditor {
     group.add(repeatContainer);
   }
 
-
   private getDaysSummary(days: number[]): string {
     if (!days || days.length === 0) return 'Never';
     if (days.length === 7) return 'Every Day';
-    
+
     // Check for Weekdays (Mon-Fri: 1,2,3,4,5)
-    const isWeekdays = days.length === 5 && 
-      !days.includes(0) && !days.includes(6) &&
-      [1,2,3,4,5].every(d => days.includes(d));
-      
+    const isWeekdays =
+      days.length === 5 &&
+      !days.includes(0) &&
+      !days.includes(6) &&
+      [1, 2, 3, 4, 5].every((d) => days.includes(d));
+
     if (isWeekdays) return 'Weekdays';
 
     // Check for Weekends (Sun, Sat: 0, 6)
-    const isWeekends = days.length === 2 && 
-      days.includes(0) && days.includes(6);
-      
+    const isWeekends =
+      days.length === 2 && days.includes(0) && days.includes(6);
+
     if (isWeekends) return 'Weekends';
-    
+
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days.map(d => dayNames[d]).join(', ');
+    return days.map((d) => dayNames[d]).join(', ');
   }
 
   // Helper to create 12h picker
-  private createTimePicker(initialTime24h: string, onUpdate: (time: string) => void) {
+  private createTimePicker(
+    initialTime24h: string,
+    onUpdate: (time: string) => void
+  ) {
     const box = new Gtk.Box({
       orientation: Gtk.Orientation.HORIZONTAL,
       spacing: 6,

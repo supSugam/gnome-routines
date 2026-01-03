@@ -76,6 +76,7 @@ export class DisplayAdapter {
         schema_id: 'org.gnome.desktop.background',
       });
     }
+
     debugLog('[DisplayAdapter] Setting up wallpaper change listener');
 
     // Method 1: Listen to GSettings 'changed' signal
@@ -126,6 +127,7 @@ export class DisplayAdapter {
       if (this._wallpaperSettings) {
         this._wallpaperSettings.disconnect(signalId);
       }
+
       if (fileMonitor) {
         fileMonitor.cancel();
       }
@@ -299,6 +301,7 @@ export class DisplayAdapter {
               e.message || e
             );
           }
+
           resolve();
         });
       } catch (e: any) {
@@ -331,6 +334,7 @@ export class DisplayAdapter {
                 if (line.includes(' connected')) {
                   displayName = line.split(' ')[0];
                 }
+
                 if (line.includes('*')) {
                   const match = line.match(/^\s*(\d+x\d+)/);
                   if (match) {
@@ -352,6 +356,7 @@ export class DisplayAdapter {
           } catch (e) {
             debugLog('[DisplayAdapter] Failed to set refresh rate phase 1:', e);
           }
+
           resolve();
         });
       } catch (e) {
@@ -382,6 +387,7 @@ export class DisplayAdapter {
                 return;
               }
             }
+
             debugLog(
               '[DisplayAdapter] Could not detect current refresh rate, defaulting to 60'
             );

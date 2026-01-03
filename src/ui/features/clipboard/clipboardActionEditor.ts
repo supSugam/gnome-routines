@@ -443,5 +443,3 @@ export class ClipboardActionEditor extends BaseEditor {
     return true;
   }
 }
-
-

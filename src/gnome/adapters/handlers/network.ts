@@ -73,6 +73,7 @@ export class NetworkAdapter {
                   connSsid = decoder.decode(new Uint8Array(data));
                 }
               }
+
               if (connSsid === ssid) {
                 debugLog(
                   `[NetworkAdapter] Found connection for ${ssid}, activating...`
@@ -112,6 +113,7 @@ export class NetworkAdapter {
               }
             }
           }
+
           debugLog(
             `[NetworkAdapter] No saved connection found for SSID: ${ssid}`
           );

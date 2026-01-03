@@ -17,6 +17,7 @@ Automate your GNOME desktop with powerful triggers and actions. Create routines 
 > If you encounter issues, I strongly suggest you **disable the extension** and [report the bug here](https://github.com/supSugam/gnome-routines/issues). Contributions and fixes are welcome!
 
 ## Table of Contents
+
 - [Installation](#installation)
 - [Features](#features)
   - [Triggers](#triggers)
@@ -42,10 +43,12 @@ npm run reinstall
 ```
 
 Restart GNOME Shell:
+
 - **X11**: `Alt+F2` → type `r` → Enter
 - **Wayland**: Log out and log back in
 
 Enable the extension:
+
 ```bash
 gnome-extensions enable gnome-routines@supSugam.com
 ```
@@ -57,7 +60,8 @@ gnome-extensions enable gnome-routines@supSugam.com
 GNOME Routines allows you to create automation rules using a simple **If -> Then** logic.
 
 ### Triggers
-*Events that start a routine:*
+
+_Events that start a routine:_
 
 ![Triggers Selection](docs/images/small/gnome-routines_triggers.png)
 
@@ -77,7 +81,8 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 - **Clipboard**: When clipboard content changes (supports regex matching).
 
 ### Actions
-*What happens when a routine runs:*
+
+_What happens when a routine runs:_
 
 - **Connectivity**:
   - Toggle **WiFi** / **Bluetooth** / **Airplane Mode**.
@@ -98,6 +103,7 @@ GNOME Routines allows you to create automation rules using a simple **If -> Then
 ## Gallery & Examples
 
 ### Routine#1: Keyboard Backlit
+
 Turn on keyboard backlight automatically during night hours.
 
 **Trigger**: Time 8:00 PM - 6:00 AM
@@ -106,6 +112,7 @@ Turn on keyboard backlight automatically during night hours.
 ![Keyboard Example](docs/images/small/gnome-routines_keyboard-backlit.png)
 
 ### Routine#2: Bluetooth Auto-Connect
+
 Automatically connect to your headphones when Bluetooth is turned on.
 
 **Trigger**: Bluetooth turned On
@@ -114,6 +121,7 @@ Automatically connect to your headphones when Bluetooth is turned on.
 ![Bluetooth Example](docs/images/small/gnome-routines_bt-autoconnect.png)
 
 ### Routine#3: Sanitize URLs
+
 Remove tracking parameters from URLs automatically when you copy them.
 
 **Trigger**: Clipboard Content Changes (Regex Match)
@@ -143,7 +151,8 @@ Let's create a simple routine to **Turn on Night Light when Dark Mode is enabled
 That's it! Toggle Dark Mode from your Quick Settings panel, and watch Night Light turn on automatically.
 
 ### Safety & History
-*Keep track of your automations:*
+
+_Keep track of your automations:_
 
 - View a detailed specific history of routine executions.
 - Identify failures or conflicts with health status indicators.

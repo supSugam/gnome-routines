@@ -1,4 +1,3 @@
-
 import { BaseAction } from './base.js';
 import { ActionType, ExecuteCommandActionConfig } from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';

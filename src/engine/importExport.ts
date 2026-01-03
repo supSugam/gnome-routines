@@ -63,22 +63,22 @@ export class ImportExportManager {
 
       return data.routines.map((rData) => {
         const id = GLib.uuid_string_random();
-        
+
         // Reconstruct Routine object structure expected by Manager/Triggers
         // We need to map the exported trigger configs back to what `addRoutine` expects.
         // `addRoutine` takes `Routine` interface which demands `Trigger[]`.
         // But `RoutineManager._hydrate` actually expects raw objects and converts them.
         // So passing raw objects here is fine as long as `triggers` array contains {type, config}.
-        
+
         return {
           id: id,
           name: rData.name,
-          enabled: rData.enabled, // Import as enabled? Maybe default to false for safety? 
+          enabled: rData.enabled, // Import as enabled? Maybe default to false for safety?
           // User asked for "easy sharing", usually enabled.
           matchType: rData.matchType,
           triggers: rData.triggers, // These are raw configs `{type, config}`
           actions: rData.actions, // Raw action configs
-        } as unknown as Routine; 
+        } as unknown as Routine;
       });
     } catch (e) {
       debugLog('[ImportExport] Import failed:', e);

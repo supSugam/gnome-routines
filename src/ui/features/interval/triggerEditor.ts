@@ -10,6 +10,7 @@ export class IntervalTriggerEditor extends BaseEditor {
     if (!this.config.interval || this.config.interval < 1) {
       this.config.interval = 30;
     }
+
     if (!this.config.unit) this.config.unit = 'minutes';
 
     const intervalRow = new Adw.EntryRow({

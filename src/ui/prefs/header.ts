@@ -141,7 +141,10 @@ export class PreferencesHeader {
             );
             currentRoutines.push(...newRoutines);
 
-            this.settings.set_string('routines', JSON.stringify(currentRoutines));
+            this.settings.set_string(
+              'routines',
+              JSON.stringify(currentRoutines)
+            );
             this.onRefresh();
             debugLog(`Imported ${newRoutines.length} routines`);
           }

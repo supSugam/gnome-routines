@@ -84,6 +84,7 @@ export class WifiAction extends BaseAction {
 
         await delay(waitTime);
       }
+
       debugLog('[WifiAction] Timed out connecting to ' + this.config.ssid);
     }
   }
@@ -277,6 +278,7 @@ export class BluetoothDeviceAction extends BaseAction {
 
         await delay(waitTime);
       }
+
       debugLog(
         `[BluetoothDeviceAction] Failed to connect to ${
           this.config.deviceName || this.config.deviceId

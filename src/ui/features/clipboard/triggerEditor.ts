@@ -32,19 +32,19 @@ export class ClipboardTriggerEditor extends BaseEditor {
     const updateClipboardTriggerUI = () => {
       const isRegex = clipboardTypeRow.selected === 3;
       clipboardRegexEntry.visible = isRegex;
-      
+
       this.config.contentType = cbTypes[clipboardTypeRow.selected];
       this.onChange();
     };
     // @ts-ignore
     clipboardTypeRow.connect('notify::selected', updateClipboardTriggerUI);
-    
+
     // @ts-ignore
     clipboardRegexEntry.connect('changed', () => {
       this.config.regex = clipboardRegexEntry.text;
       this.onChange();
     });
-    
+
     // Initial state
     clipboardRegexEntry.visible = clipboardTypeRow.selected === 3;
   }
