@@ -64,6 +64,63 @@ export class PowerAdapter {
     }
   }
 
+  onPowerProfileChanged(callback: (profile: string) => void): () => void {
+    try {
+      debugLog('[PowerAdapter] Subscribing to power profile changes');
+      const signalId = Gio.DBus.system.signal_subscribe(
+        'net.hadess.PowerProfiles',
+        'org.freedesktop.DBus.Properties',
+        'PropertiesChanged',
+        '/net/hadess/PowerProfiles',
+        null,
+        0,
+        (
+          connection: any,
+          sender: any,
+          path: any,
+          iface: any,
+          signal: any,
+          params: any
+        ) => {
+          try {
+            const unpacked = params.deep_unpack();
+            const interfaceName = unpacked[0];
+            const changedProps = unpacked[1];
+
+            if (
+              interfaceName === 'net.hadess.PowerProfiles' &&
+              changedProps.ActiveProfile !== undefined
+            ) {
+              const newProfile = changedProps.ActiveProfile.get_string()[0];
+              debugLog(
+                `[PowerAdapter] Power profile changed to: ${newProfile}`
+              );
+              callback(newProfile);
+            }
+          } catch (err) {
+            debugLog(
+              `[PowerAdapter] Error parsing power profile signal: ${err}`
+            );
+          }
+        }
+      );
+
+      return () => {
+        try {
+          Gio.DBus.system.signal_unsubscribe(signalId);
+        } catch (e) {
+          debugLog('[PowerAdapter] Error unsubscribing power profile:', e);
+        }
+      };
+    } catch (e) {
+      debugLog(
+        '[PowerAdapter] Failed to subscribe to power profile changes:',
+        e
+      );
+      return () => {};
+    }
+  }
+
   getBatteryLevel(): number {
     try {
       const result = Gio.DBus.system.call_sync(

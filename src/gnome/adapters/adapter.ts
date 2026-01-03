@@ -98,6 +98,7 @@ export interface SystemAdapter {
   setPowerSaver(enabled: boolean): void;
   setPowerProfile(profile: string): void;
   getPowerSaver(): Promise<boolean>;
+  getPowerProfile(): Promise<string>;
 
   // New Actions - Functions
   openLink(url: string): void;

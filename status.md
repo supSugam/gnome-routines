@@ -22,7 +22,10 @@
  7. Power Saver
  - Works
 
- 8. 
+ 8. Dark Mode
+ - Works
+
+ 9. 
 
 
  [Actions]

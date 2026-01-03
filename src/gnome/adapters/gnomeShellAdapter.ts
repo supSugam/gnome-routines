@@ -180,8 +180,10 @@ export class GnomeShellAdapter implements ISystemAdapter {
     return Promise.resolve(this._power.getPowerSaver());
   }
   onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void {
-    // Stub
-    return () => {};
+    // Legacy: wrap profile change to boolean callback
+    return this._power.onPowerProfileChanged((profile) => {
+      callback(profile === 'power-saver');
+    });
   }
 
   // --- System Settings ---
@@ -189,8 +191,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
     return this._display.getDarkMode();
   }
   onDarkModeStateChanged(callback: (isDark: boolean) => void): () => void {
-    // Stub - Needs GSettings signal
-    return () => {};
+    return this._display.onDarkModeChanged(callback);
   }
 
   getAirplaneModeState(): Promise<boolean> {
@@ -271,6 +272,9 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }
   getPowerSaver(): Promise<boolean> {
     return Promise.resolve(this._power.getPowerSaver());
+  }
+  getPowerProfile(): Promise<string> {
+    return Promise.resolve(this._power.getPowerProfile());
   }
 
   // --- New Actions - Functions ---

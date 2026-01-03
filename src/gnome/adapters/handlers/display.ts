@@ -148,6 +148,32 @@ export class DisplayAdapter {
     return settings.get_string('color-scheme') === 'prefer-dark';
   }
 
+  onDarkModeChanged(callback: (isDark: boolean) => void): () => void {
+    try {
+      debugLog('[DisplayAdapter] Subscribing to dark mode changes');
+      const settings = new Gio.Settings({
+        schema_id: 'org.gnome.desktop.interface',
+      });
+
+      const signalId = settings.connect('changed::color-scheme', () => {
+        const isDark = settings.get_string('color-scheme') === 'prefer-dark';
+        debugLog(`[DisplayAdapter] Dark mode changed to: ${isDark}`);
+        callback(isDark);
+      });
+
+      return () => {
+        try {
+          settings.disconnect(signalId);
+        } catch (e) {
+          debugLog('[DisplayAdapter] Error unsubscribing dark mode:', e);
+        }
+      };
+    } catch (e) {
+      debugLog('[DisplayAdapter] Failed to subscribe to dark mode changes:', e);
+      return () => {};
+    }
+  }
+
   setNightLight(enabled: boolean): void {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.settings-daemon.plugins.color',

@@ -36,7 +36,11 @@ export class TriggerFactory {
       case TriggerType.AIRPLANE_MODE:
       case TriggerType.HEADPHONES:
       case 'system':
-        return new SystemTrigger(data.id, data.config, adapter);
+        return new SystemTrigger(
+          data.id,
+          { ...data.config, type: data.type },
+          adapter
+        );
       case TriggerType.DARK_MODE:
         return new DarkModeTrigger(data.id, data.config, adapter);
       case TriggerType.DND:

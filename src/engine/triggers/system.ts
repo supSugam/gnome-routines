@@ -13,34 +13,43 @@ export class SystemTrigger extends BaseTrigger {
   }
 
   async check(): Promise<boolean> {
-    let currentState = false;
-
-    switch (this.config.type) {
-      case TriggerType.POWER_SAVER:
-        currentState = await this.adapter.getPowerSaverState();
-        break;
-      case TriggerType.AIRPLANE_MODE:
-        currentState = await this.adapter.getAirplaneModeState();
-        break;
-      case TriggerType.HEADPHONES:
-        currentState = await this.adapter.getWiredHeadphonesState();
-        break;
+    switch (this.type) {
+      case TriggerType.POWER_SAVER: {
+        // For power profiles, compare the actual profile string
+        const currentProfile = await this.adapter.getPowerProfile();
+        const targetProfile = this.config.profile || 'power-saver';
+        debugLog(
+          `[SystemTrigger] Checking power profile. Current: ${currentProfile}, Target: ${targetProfile}`
+        );
+        return currentProfile === targetProfile;
+      }
+      case TriggerType.AIRPLANE_MODE: {
+        const currentState = await this.adapter.getAirplaneModeState();
+        const targetState =
+          this.config.state === 'on' || this.config.state === 'connected';
+        debugLog(
+          `[SystemTrigger] Checking ${this.type}. Current: ${currentState}, Target: ${targetState}`
+        );
+        return currentState === targetState;
+      }
+      case TriggerType.HEADPHONES: {
+        const currentState = await this.adapter.getWiredHeadphonesState();
+        const targetState =
+          this.config.state === 'on' || this.config.state === 'connected';
+        debugLog(
+          `[SystemTrigger] Checking ${this.type}. Current: ${currentState}, Target: ${targetState}`
+        );
+        return currentState === targetState;
+      }
     }
-
-    const targetState =
-      this.config.state === 'on' || this.config.state === 'connected';
-    debugLog(
-      `[SystemTrigger] Checking ${this.config.type}. Current: ${currentState}, Target: ${targetState}`
-    );
-
-    return currentState === targetState;
+    return false;
   }
 
   private _lastMatch: boolean | null = null;
   private cleanup: (() => void) | null = null;
 
   activate(): void {
-    debugLog(`[SystemTrigger] Activating listener for ${this.config.type}`);
+    debugLog(`[SystemTrigger] Activating listener for ${this.type}`);
     this._isActivated = true;
 
     // Initialize state
@@ -51,12 +60,12 @@ export class SystemTrigger extends BaseTrigger {
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
         if (shouldIgnoreInitial) {
           debugLog(
-            `[SystemTrigger] Setting initial state for ${this.config.type}: ${initialState} (Ignored)`
+            `[SystemTrigger] Setting initial state for ${this.type}: ${initialState} (Ignored)`
           );
           this._lastMatch = initialState;
         } else {
           debugLog(
-            `[SystemTrigger] Setting initial state for ${this.config.type}: ${initialState} (Checking immediate)`
+            `[SystemTrigger] Setting initial state for ${this.type}: ${initialState} (Checking immediate)`
           );
           this._lastMatch = initialState;
           if (initialState) {
@@ -78,13 +87,13 @@ export class SystemTrigger extends BaseTrigger {
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
         if (shouldIgnoreInitial) {
           debugLog(
-            `[SystemTrigger] ${this.config.type} Initial Race: ${isMatch} (Ignored)`
+            `[SystemTrigger] ${this.type} Initial Race: ${isMatch} (Ignored)`
           );
           this._lastMatch = isMatch;
           return;
         } else {
           debugLog(
-            `[SystemTrigger] ${this.config.type} Initial Race: ${isMatch} (Checking immediate)`
+            `[SystemTrigger] ${this.type} Initial Race: ${isMatch} (Checking immediate)`
           );
           this._lastMatch = isMatch;
           if (isMatch) {
@@ -96,7 +105,7 @@ export class SystemTrigger extends BaseTrigger {
 
       if (isMatch !== this._lastMatch) {
         debugLog(
-          `[SystemTrigger] ${this.config.type} state changed: ${this._lastMatch} -> ${isMatch}`
+          `[SystemTrigger] ${this.type} state changed: ${this._lastMatch} -> ${isMatch}`
         );
         this._lastMatch = isMatch;
         if (isMatch) {
@@ -112,7 +121,7 @@ export class SystemTrigger extends BaseTrigger {
       }
     };
 
-    switch (this.config.type) {
+    switch (this.type) {
       case TriggerType.POWER_SAVER:
         this.cleanup = this.adapter.onPowerSaverStateChanged((isActive) =>
           callback(isActive)
