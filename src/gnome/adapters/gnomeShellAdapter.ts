@@ -123,11 +123,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
 
   // --- Startup State ---
   getStartupState(): { isStartup: boolean; timeSinceInit: number } {
-    // Interface expects sync object.
-    // We should perform a sync check if possible, or assume false if unknown context.
-    // For now returning defaults to satisfy type.
-    // Real implementation needs sync check or cache from init.
-    return { isStartup: false, timeSinceInit: 0 };
+    return this._startup.getStartupState();
   }
 
   // --- Network Tracking ---

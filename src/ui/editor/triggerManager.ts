@@ -8,17 +8,24 @@ import GLib from 'gi://GLib';
 import { TriggerEditorFactory } from '../components/triggerEditorFactory.js';
 import { getTriggerSummary, getTriggerTitle } from '../utils/summaryHelpers.js';
 import { UI_STRINGS } from '../utils/constants.js';
-import { getSystemType } from '../../utils/system.js';
+import {
+  getSystemType,
+  hasBattery,
+  hasWifi,
+  hasBluetooth,
+} from '../../utils/system.js';
 import { TriggerType, SystemType } from '../../engine/types.js';
 
 export class TriggerManager {
   private parentWindow: any;
   private routine: any;
   private group: any;
+  private onUpdate?: () => void;
 
-  constructor(parentWindow: any, routine: any) {
+  constructor(parentWindow: any, routine: any, onUpdate?: () => void) {
     this.parentWindow = parentWindow;
     this.routine = routine;
+    this.onUpdate = onUpdate;
   }
 
   createGroup(): any {
@@ -127,6 +134,8 @@ export class TriggerManager {
       this.group.add(addTriggerBtn);
       this._children.push(addTriggerBtn);
     }
+
+    if (this.onUpdate) this.onUpdate();
   }
 
   private _children: any[] = [];
@@ -184,11 +193,21 @@ export class TriggerManager {
       { id: TriggerType.WALLPAPER, title: UI_STRINGS.triggers.wallpaper },
     ];
 
-    // Filter for PC
-    if (getSystemType() === SystemType.PC) {
+    // Filter based on capabilities
+    if (!hasBattery()) {
       triggerTypes = triggerTypes.filter(
         (t) => t.id !== TriggerType.BATTERY && t.id !== TriggerType.POWER_SAVER
       );
+    }
+
+    if (!hasWifi()) {
+      triggerTypes = triggerTypes.filter(
+        (t) => t.id !== TriggerType.WIFI && t.id !== TriggerType.AIRPLANE_MODE
+      );
+    }
+
+    if (!hasBluetooth()) {
+      triggerTypes = triggerTypes.filter((t) => t.id !== TriggerType.BLUETOOTH);
     }
 
     // Filter Interval Exclusivity

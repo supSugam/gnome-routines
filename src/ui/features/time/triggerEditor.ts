@@ -63,10 +63,13 @@ export class TimeTriggerEditor extends BaseEditor {
       startRow.visible = isPeriod;
       endRow.visible = isPeriod;
 
-      // Clear irrelevant fields to avoid confusion in config
+      // Sync config from UI widgets to ensure defaults/current edits are captured
       if (isPeriod) {
+        this.config.startTime = startPicker.getValue();
+        this.config.endTime = endPicker.getValue();
         delete this.config.time;
       } else {
+        this.config.time = timePicker.getValue();
         delete this.config.startTime;
         delete this.config.endTime;
       }
@@ -272,7 +275,20 @@ export class TimeTriggerEditor extends BaseEditor {
       onUpdate(timeStr);
     };
 
-    return { widget: box };
+    const getValue = () => {
+      let hour = hourSpin.value;
+      const minute = minuteSpin.value;
+
+      if (isPm && hour !== 12) hour += 12;
+      if (!isPm && hour === 12) hour = 0;
+
+      return `${String(hour).padStart(2, '0')}:${String(minute).padStart(
+        2,
+        '0'
+      )}`;
+    };
+
+    return { widget: box, getValue };
   }
 
   validate(): boolean | string {

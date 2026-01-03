@@ -42,11 +42,15 @@
  13. Wallpaper Change
  - Works
  
+ 14. Startup/Login
+ - Not tested
+
+ 15. Login (not implemented)
 
 
  [Actions]
 
- 1. Show Notification
+ 1. Show Notification (can be a trigger)
  - Works
 
  2. Run Command
@@ -61,7 +65,7 @@
  5. Turn Bluetooth On/Off
  - Works
 
- 6. Turn DND On/Off
+ 6. Turn DND On/Off (can be a trigger)
  - Works
 
 7. Airplane Mode
@@ -82,13 +86,13 @@
 12. Set Dark Mode
  - Works
 
- 13. Set Night Light
+ 13. Set Night Light (can be a trigger)
  - Works
 
  14. Set Screen Orientation
  - Works
 
- 15. Take Screenshot
+ 15. Take Screenshot (can be a trigger)
  - Works
 
  16. Open Link

@@ -23,17 +23,26 @@ export class ClipboardTrigger extends BaseTrigger {
   public _isActivated: boolean = false;
   private cleanup: (() => void) | null = null;
 
+  private _ready: boolean = false;
+
   activate(): void {
     debugLog(
       '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'
     );
 
-    // Initialize basline
+    // Initialize baseline silently
     this.adapter.getClipboardContent().then((res) => {
       this._lastContent = res.content;
+      this._ready = true;
+      debugLog('[ClipboardTrigger] Baseline content set. Ready for events.');
     });
 
     this.cleanup = this.adapter.onClipboardChanged(() => {
+      if (!this._ready) {
+        debugLog('[ClipboardTrigger] Ignoring event during initialization.');
+        return;
+      }
+
       debugLog(
         '[ClipboardTrigger] Adapter reported change (Event). Waiting for sync...'
       );

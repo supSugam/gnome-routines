@@ -5,48 +5,55 @@ import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
 
 export class StartupAdapter {
-    getStartupState(): Promise<boolean> {
-        return new Promise((resolve) => {
-            try {
-                // Ensure caching/efficient check as requested in previous guidelines
-                // The lock file approach: if file DOES NOT exist in current runtime dir, it's startup.
-                // Then we create it.
-                // BUT: runtime dir (/run/user/1000) is cleared on reboot/logout.
-                
-                const runtimeDir = GLib.get_user_runtime_dir();
-                const lockFilePath = `${runtimeDir}/gnome-routines-session.lock`;
-                const file = Gio.File.new_for_path(lockFilePath);
+  private _isStartup: boolean = false;
+  private _initTime: number;
 
-                if (file.query_exists(null)) {
-                    // Already exists, so not startup
-                    debugLog('[StartupAdapter] Session lock file exists, not startup.');
-                    resolve(false);
-                } else {
-                    // Does not exist, it IS startup
-                    debugLog('[StartupAdapter] Session lock file missing, is startup.');
-                    resolve(true);
-                }
-            } catch (e) {
-                debugLog('[StartupAdapter] Error checking startup state:', e);
-                resolve(false);
-            }
-        });
-    }
+  constructor() {
+    this._initTime = Date.now();
+    this._checkStartupState();
+  }
 
-    writeLockFile(): void {
+  private _checkStartupState() {
+    try {
+      const runtimeDir = GLib.get_user_runtime_dir();
+      const lockFilePath = `${runtimeDir}/gnome-routines-session.lock`;
+      const file = Gio.File.new_for_path(lockFilePath);
+
+      if (file.query_exists(null)) {
+        // Already exists, so not startup
+        debugLog('[StartupAdapter] Session lock file exists, not startup.');
+        this._isStartup = false;
+      } else {
+        // Does not exist, it IS startup
+        debugLog('[StartupAdapter] Session lock file missing, is startup.');
+        this._isStartup = true;
+
+        // Create lock file immediately
         try {
-            const runtimeDir = GLib.get_user_runtime_dir();
-            const lockFilePath = `${runtimeDir}/gnome-routines-session.lock`;
-            const file = Gio.File.new_for_path(lockFilePath);
-            
-            if (!file.query_exists(null)) {
-                // Create empty file
-                const stream = file.create(Gio.FileCreateFlags.NONE, null);
-                stream.close(null);
-                debugLog(`[StartupAdapter] Created session lock file at ${lockFilePath}`);
-            }
+          const stream = file.create(Gio.FileCreateFlags.NONE, null);
+          stream.close(null);
+          debugLog(
+            `[StartupAdapter] Created session lock file at ${lockFilePath}`
+          );
         } catch (e) {
-            debugLog('[StartupAdapter] Failed to write lock file:', e);
+          debugLog('[StartupAdapter] Failed to create lock file:', e);
         }
+      }
+    } catch (e) {
+      debugLog('[StartupAdapter] Error checking startup state:', e);
+      this._isStartup = false;
     }
+  }
+
+  getStartupState(): { isStartup: boolean; timeSinceInit: number } {
+    return {
+      isStartup: this._isStartup,
+      timeSinceInit: Date.now() - this._initTime,
+    };
+  }
+
+  // Deprecated/Unused but kept if interface requires it or for cleanup
+  writeLockFile(): void {
+    // Logic moved to constructor
+  }
 }

@@ -8,9 +8,20 @@ import GLib from 'gi://GLib';
 import { ActionEditorFactory } from '../components/actionEditorFactory.js';
 import { getActionSummary, getActionTitle } from '../utils/summaryHelpers.js';
 import { UI_STRINGS } from '../utils/constants.js';
-import { getSystemType } from '../../utils/system.js';
-import { ActionType, DeactivateStrategy, SystemType } from '../../engine/types.js';
+import {
+  getSystemType,
+  hasBattery,
+  hasWifi,
+  hasBluetooth,
+} from '../../utils/system.js';
+import {
+  ActionType,
+  DeactivateStrategy,
+  SystemType,
+  TriggerType,
+} from '../../engine/types.js';
 import { ACTION_METADATA } from '../../engine/actionMetadata.js';
+import { TRIGGER_METADATA } from '../../engine/triggerMetadata.js';
 import debugLog from '../../utils/log.js';
 
 export class ActionManager {
@@ -43,12 +54,13 @@ export class ActionManager {
     this.refresh();
   }
 
-  private refresh() {
+  refresh() {
     this.refreshActions();
     this.refreshEndActions();
   }
 
   private refreshActions() {
+    if (!this.actionGroup) return;
     this.actionChildren.forEach((c) => this.actionGroup.remove(c));
     this.actionChildren = [];
 
@@ -60,7 +72,9 @@ export class ActionManager {
 
       // Edit on click
       // @ts-ignore
-      row.connect('activated', () => this.editAction(action, false, () => this.refresh()));
+      row.connect('activated', () =>
+        this.editAction(action, false, () => this.refresh())
+      );
       row.activatable = true;
 
       const deleteBtn = new Gtk.Button({
@@ -103,6 +117,7 @@ export class ActionManager {
   }
 
   private refreshEndActions() {
+    if (!this.endGroup) return;
     this.endChildren.forEach((c) => this.endGroup.remove(c));
     this.endChildren = [];
 
@@ -110,7 +125,20 @@ export class ActionManager {
       const meta = ACTION_METADATA[action.type as ActionType];
       return meta?.canRevert;
     });
-    this.endGroup.visible = hasRevertible;
+
+    const hasAllowableTrigger = this.routine.triggers.some((t: any) => {
+      if (!t.type) return false;
+      const meta = TRIGGER_METADATA[t.type as TriggerType];
+
+      let allow = meta?.canAllowRevert;
+      if (typeof allow === 'function') {
+        allow = allow(t.config);
+      }
+
+      return allow === true;
+    });
+
+    this.endGroup.visible = hasRevertible && hasAllowableTrigger;
 
     if (!hasRevertible) return;
 
@@ -125,7 +153,9 @@ export class ActionManager {
         if (type === 'custom') {
           if (action.onDeactivate?.config) {
             const dummy = { ...action, config: action.onDeactivate.config };
-            return `${UI_STRINGS.editor.end.customPrefix}${getActionSummary(dummy)}`;
+            return `${UI_STRINGS.editor.end.customPrefix}${getActionSummary(
+              dummy
+            )}`;
           }
           return UI_STRINGS.editor.end.custom;
         }
@@ -183,20 +213,25 @@ export class ActionManager {
           config: action.onDeactivate?.config || {},
         };
 
-        this.editAction(dummyAction, false, (newConfig) => {
-             // callback receives config only if specific mode? 
-             // Wait, editAction sends object updated.
-             // I need to customize editAction to support returning config or updating dummy.
-             
-             // My editAction writes to passed object.
-             // So I read from dummyAction.
-             if (!action.onDeactivate) action.onDeactivate = { type: 'custom' };
+        this.editAction(
+          dummyAction,
+          false,
+          (newConfig) => {
+            // callback receives config only if specific mode?
+            // Wait, editAction sends object updated.
+            // I need to customize editAction to support returning config or updating dummy.
+
+            // My editAction writes to passed object.
+            // So I read from dummyAction.
+            if (!action.onDeactivate) action.onDeactivate = { type: 'custom' };
             action.onDeactivate.config = dummyAction.config;
             debugLog(
               `[Editor] Saved custom deactivation config for ${action.type}`
             );
             row.subtitle = getEndSummary();
-        }, true); // Custom flag
+          },
+          true
+        ); // Custom flag
       });
 
       const box = new Gtk.Box({ spacing: 10 });
@@ -292,8 +327,27 @@ export class ActionManager {
       { id: ActionType.REFRESH_RATE, title: UI_STRINGS.actions.refreshRate },
     ];
 
-    if (getSystemType() === SystemType.PC) {
+    // Filter based on capabilities
+    if (!hasBattery()) {
       actionTypes = actionTypes.filter((t) => t.id !== ActionType.POWER_SAVER);
+    }
+
+    if (!hasWifi()) {
+      actionTypes = actionTypes.filter(
+        (t) =>
+          t.id !== ActionType.WIFI &&
+          t.id !== ActionType.CONNECT_WIFI &&
+          t.id !== ActionType.AIRPLANE_MODE
+      );
+    }
+
+    if (!hasBluetooth()) {
+      actionTypes = actionTypes.filter(
+        (t) =>
+          t.id !== ActionType.BLUETOOTH &&
+          t.id !== ActionType.CONNECT_BLUETOOTH &&
+          t.id !== ActionType.DISCONNECT_BLUETOOTH
+      );
     }
 
     const typeModel = new Gtk.StringList({
@@ -356,14 +410,14 @@ export class ActionManager {
 
     // @ts-ignore
     addBtn.connect('clicked', () => {
-        // Update the action object passed in
-        action.type = currentType;
-        action.config = tempConfig;
-        
-        if (isNew) this.routine.actions.push(action);
-        
-        onSave(); // Notify caller
-        actionWindow.close();
+      // Update the action object passed in
+      action.type = currentType;
+      action.config = tempConfig;
+
+      if (isNew) this.routine.actions.push(action);
+
+      onSave(); // Notify caller
+      actionWindow.close();
     });
 
     actionWindow.present();

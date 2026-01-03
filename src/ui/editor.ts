@@ -87,13 +87,17 @@ export class RoutineEditor {
     });
     group.add(nameEntry);
 
+    // Then & End Section (Actions)
+    const actionManager = new ActionManager(this.window, this.routine);
+
     // If Section (Triggers)
-    const triggerManager = new TriggerManager(this.window, this.routine);
+    // Pass callback to refresh actions when triggers change (e.g. for revert visibility)
+    const triggerManager = new TriggerManager(this.window, this.routine, () => {
+      actionManager.refresh();
+    });
     const triggerGroup = triggerManager.createGroup();
     content.add(triggerGroup);
 
-    // Then & End Section (Actions)
-    const actionManager = new ActionManager(this.window, this.routine);
     actionManager.createGroups(content);
 
     this.window.present();
