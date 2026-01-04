@@ -57,8 +57,6 @@ export class RoutineManager implements RoutineManagerInterface {
   ) {
     const state = this.getRoutineHealth(id);
     if (health !== RoutineHealth.UNKNOWN) {
-      // Don't downgrade ERROR to WARNING or OK immediately unless specific success logic
-      // Simplification: Set to new health
       state.health = health;
     }
 
@@ -69,11 +67,9 @@ export class RoutineManager implements RoutineManagerInterface {
         status: log.status || ExecutionStatus.SUCCESS,
         message: log.message,
       });
-      // Limit history
       if (state.history.length > 50) state.history.pop();
     }
 
-    // Persist to StateManager
     this.stateManager.setState(id, 'health_status', state);
   }
 
@@ -105,19 +101,15 @@ export class RoutineManager implements RoutineManagerInterface {
 
   async reload() {
     debugLog('[RoutineManager] Reloading routines from settings...');
-    // Reset first run flag so that NEW_CHANGE_ONLY strategies are respected (suppressed)
-    // for any newly added or modified routines that happen to match immediately.
     this._isFirstRun = true;
     const rawRoutines = await this.storage.loadRoutines();
     const newRoutineMap = new Map<string, Routine>();
 
-    // Hydrate new routines
     rawRoutines.forEach((r) => {
       const routine = this._hydrate(r);
       if (routine) newRoutineMap.set(routine.id, routine);
     });
 
-    // 1. Handle Removed
     for (const id of this.routines.keys()) {
       if (!newRoutineMap.has(id)) {
         debugLog(`[RoutineManager] Routine ${id} removed`);
@@ -125,31 +117,21 @@ export class RoutineManager implements RoutineManagerInterface {
       }
     }
 
-    // 2. Handle Added & Modified
     for (const [id, newRoutine] of newRoutineMap) {
       const existing = this.routines.get(id);
       if (!existing) {
-        // Added
         debugLog(`[RoutineManager] Routine ${id} added`);
         this.routines.set(id, newRoutine);
       } else {
-        // Modified - Check if actually changed
         if (this.areRoutinesEqual(existing, newRoutine)) {
           debugLog(
             `[RoutineManager] Routine ${id} configuration unchanged. Keeping active state.`
           );
           continue;
         }
-
         debugLog(`[RoutineManager] Routine ${id} updated (config changed)`);
-
-        // Save current isActive state if it might be relevant,
-        // but we WANT it to re-trigger, so we don't transfer isActive = true if it changed.
-        // Actually, _removeRoutine deactivates triggers and routine if active.
         this._removeRoutine(id);
         this.routines.set(id, newRoutine);
-
-        // Ensure it's not marked active so evaluate() will trigger it
         newRoutine.isActive = false;
       }
     }
@@ -182,7 +164,6 @@ export class RoutineManager implements RoutineManagerInterface {
       }
     }
 
-    // Compare Actions
     if (r1.actions.length !== r2.actions.length) return false;
     for (let i = 0; i < r1.actions.length; i++) {
       const a1 = r1.actions[i];
@@ -201,9 +182,6 @@ export class RoutineManager implements RoutineManagerInterface {
   }
 
   private isConfigEqual(c1: any, c2: any): boolean {
-    // Simple JSON stringify comparison is usually sufficient for our config objects
-    // as they are generated consistently.
-    // Handle undefined/null explicitly if needed, but stringify handles null. source undefined becomes undefined.
     if (c1 === undefined && c2 === undefined) return true;
     if (c1 === undefined || c2 === undefined) return false;
     return JSON.stringify(c1) === JSON.stringify(c2);
@@ -259,19 +237,12 @@ export class RoutineManager implements RoutineManagerInterface {
         debugLog(
           `[RoutineManager] Validation Failed for ${routine.name}: ${validation.error}`
         );
-        // We still add it so user can see it's broken in UI (if UI supports it)
-        // But we mark it as ERROR immediately
         this.routines.set(routine.id, routine);
         this.updateHealth(routine.id, RoutineHealth.ERROR, {
           type: ExecutionType.CHECK,
           status: ExecutionStatus.FAILURE,
           message: validation.error,
         });
-        // Do NOT save enabled state as valid?
-        // Actually, if we add it, we should clear 'enabled' flag?
-        // Or just rely on Health check preventing run?
-
-        // Ideally: Disable it.
         routine.enabled = false;
         this.save();
         return;
@@ -374,8 +345,7 @@ export class RoutineManager implements RoutineManagerInterface {
                 debugLog(
                   `[RoutineManager] Skipping activation for ${routine.name} on first run (Trigger Strategy).`
                 );
-                routine.isActive = true; // Mark active silently
-                // We should probably save this state change so next run knows it's active
+                routine.isActive = true;
                 this.save();
                 continue;
               }
@@ -475,11 +445,8 @@ export class RoutineManager implements RoutineManagerInterface {
       );
 
       if (trigger.activate && !trigger._isActivated) {
-        // Mark as activated BEFORE calling activate() to prevent infinite recursion
-        // if the trigger emits 'triggered' synchronously during activation (like AppTrigger)
         trigger._isActivated = true;
 
-        // Listen for changes
         if (trigger.on) {
           trigger.on('triggered', async () => {
             try {
@@ -493,8 +460,6 @@ export class RoutineManager implements RoutineManagerInterface {
               const isEventBasedOnly =
                 metadata?.defaultStrategy === TriggerStrategy.NEW_CHANGE_ONLY;
 
-              // For event-based triggers (like wallpaper), the 'triggered' event IS the condition
-              // Don't call check() as it returns false for these triggers
               const isValid = isEventBasedOnly ? true : await trigger.check();
               debugLog(
                 `[GR-DEBUG] [RoutineManager] Trigger check result for "${routine.name}": ${isValid} (eventBased: ${isEventBasedOnly})`
@@ -599,10 +564,6 @@ export class RoutineManager implements RoutineManagerInterface {
       if (trigger.deactivate && trigger._isActivated) {
         trigger.deactivate();
         trigger._isActivated = false;
-        // Remove listeners?
-        // EventEmitter usually handles this if we implement off, but for now deactivation stops internal listeners.
-        // We should ideally clean up our own listeners to avoid leaks if routine is removed.
-        // But simplified for now.
       }
     });
   }
@@ -616,7 +577,6 @@ export class RoutineManager implements RoutineManagerInterface {
 
     const activeTriggers: Trigger[] = [];
     for (const trigger of triggers) {
-      // If this trigger is in the forced list, treat it as true immediately
       if (forceActiveTriggers.some((t) => t.id === trigger.id)) {
         activeTriggers.push(trigger);
         continue;
@@ -666,7 +626,7 @@ export class RoutineManager implements RoutineManagerInterface {
         state.lastError = String(e);
       }
     }
-    // If we didn't crash, update success log if not already error
+    // If no crash, update success log if not already error
     if (state.health !== RoutineHealth.ERROR) {
       this.updateHealth(routine.id, RoutineHealth.OK, {
         type: ExecutionType.ACTIVATE,
@@ -696,9 +656,8 @@ export class RoutineManager implements RoutineManagerInterface {
               onDeactivate.config
             )}`
           );
-          // Create a temporary action to execute the custom config
           const customAction = ActionFactory.create(
-            { ...action, config: onDeactivate.config }, // Reuse type and ID, swap config
+            { ...action, config: onDeactivate.config },
             this.adapter,
             this.stateManager,
             routine.id
@@ -737,9 +696,6 @@ export class RoutineManager implements RoutineManagerInterface {
       try {
         this.deactivateTriggers(routine);
         if (routine.isActive) {
-          // We should probably NOT execute revert actions on disable,
-          // as that might be unexpected when just turning off the extension.
-          // We just stop tracking.
           routine.isActive = false;
         }
       } catch (e) {

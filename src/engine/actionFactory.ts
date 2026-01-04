@@ -80,13 +80,6 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
-      case 'bluetooth_device': // kept for backward compatibility if needed, but should be deprecated
-        action = new BluetoothDeviceAction(
-          data.id,
-          data.config,
-          adapter
-        ) as unknown as Action;
-        break;
       case ActionType.AIRPLANE_MODE:
         action = new AirplaneModeAction(
           data.id,
@@ -151,8 +144,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
-      case ActionType.TAKE_SCREENSHOT: // screenshot is mapped to TAKE_SCREENSHOT ("take_screenshot") in types but might be "screenshot" in legacy
-      case 'screenshot':
+      case ActionType.TAKE_SCREENSHOT:
         action = new ScreenshotAction(
           data.id,
           data.config,

@@ -121,13 +121,9 @@ export interface SystemTriggerConfig {
     | 'disconnected';
 }
 
-export interface ClipboardTriggerConfig {
-  // No config needed for now, just detects change
-}
+export interface ClipboardTriggerConfig {}
 
-export interface StartupTriggerConfig {
-  // No specific config needed, just existence matches
-}
+export interface StartupTriggerConfig {}
 
 export type TriggerConfig =
   | TimeTriggerConfig
@@ -143,9 +139,6 @@ export enum TriggerStrategy {
   EXISTING_STATE = 'existing_state', // Checks conditions immediately on startup. (e.g. Battery Level)
   NEW_CHANGE_ONLY = 'new_change_only', // Ignores startup state, waits for new event. (e.g. Charging Status)
 }
-// Note: EVENT_CHANGE and INITIAL_IGNORE are similar.
-// User specific request: "Bluetooth... not trigger if status was already from before".
-// "Time... need to tune in".
 
 export interface Trigger {
   id: string;

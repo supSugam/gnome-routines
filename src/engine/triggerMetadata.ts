@@ -57,8 +57,6 @@ export const TRIGGER_METADATA: Record<TriggerType, TriggerMetadata> = {
   [TriggerType.TIME]: {
     defaultStrategy: TriggerStrategy.EXISTING_STATE,
     canAllowRevert: (config: any) => {
-      // If startTime/endTime exists, it's a Period (Stateful) -> Allow Revert
-      // If only 'time' exists, it's Specific Time (Event) -> No Revert
       return !!(config?.startTime && config?.endTime);
     },
   },

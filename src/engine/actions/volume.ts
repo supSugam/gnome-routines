@@ -8,21 +8,22 @@ import { ActionType, VolumeActionConfig } from '../types.js';
 
 export class VolumeAction extends BaseAction {
   private previousVolume: number | null = null;
-  private timeoutId: number | null = null;
+  private retryTimeoutId: number | null = null;
 
   constructor(id: string, config: VolumeActionConfig, adapter: SystemAdapter) {
     super(id, ActionType.VOLUME, config, adapter);
   }
 
   destroy(): void {
-    if (this.timeoutId) {
-      GLib.source_remove(this.timeoutId);
-      this.timeoutId = null;
+    if (this.retryTimeoutId) {
+      GLib.source_remove(this.retryTimeoutId);
+      this.retryTimeoutId = null;
     }
   }
 
   async execute(): Promise<void> {
-    debugLog(`[VolumeAction] Setting volume to: ${this.config.level}%`);
+    const targetLevel = this.config.level;
+    debugLog(`[VolumeAction] Setting volume to: ${targetLevel}%`);
 
     try {
       if (this.previousVolume === null) {
@@ -32,16 +33,56 @@ export class VolumeAction extends BaseAction {
         );
       }
 
-      // Try setting Bluetooth volume first (if sink available)
-      await this.adapter.setBluetoothVolume(this.config.level);
+      // Set volume immediately
+      await this.setVolumeAll(targetLevel);
 
-      // Force system volume
-      await this.adapter.setVolume(this.config.level);
-
-      debugLog(`[VolumeAction] Volume set to ${this.config.level}%`);
+      // Retry to ensure it sticks (fights against system default on BT connect)
+      this.retryWithVerification(targetLevel, 3);
     } catch (e) {
       debugLog(`[VolumeAction] Failed to execute:`, e);
     }
+  }
+
+  private async setVolumeAll(level: number): Promise<void> {
+    // Try setting Bluetooth volume first (if sink available)
+    await this.adapter.setBluetoothVolume(level);
+    // Force system volume
+    await this.adapter.setVolume(level);
+  }
+
+  private retryWithVerification(
+    targetLevel: number,
+    retriesLeft: number
+  ): void {
+    if (retriesLeft <= 0) {
+      debugLog('[VolumeAction] Max retries reached, giving up');
+      return;
+    }
+
+    // Wait 500ms and verify volume is correct
+    this.retryTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+      this.retryTimeoutId = null;
+
+      this.adapter.getVolume().then((currentVolume) => {
+        // Allow 2% tolerance
+        if (Math.abs(currentVolume - targetLevel) <= 2) {
+          debugLog(
+            `[VolumeAction] Volume verified at ${currentVolume}% (target: ${targetLevel}%)`
+          );
+          return;
+        }
+
+        debugLog(
+          `[VolumeAction] Volume drifted to ${currentVolume}%, re-setting to ${targetLevel}% (${retriesLeft - 1} retries left)`
+        );
+
+        this.setVolumeAll(targetLevel).then(() => {
+          this.retryWithVerification(targetLevel, retriesLeft - 1);
+        });
+      });
+
+      return GLib.SOURCE_REMOVE;
+    });
   }
 
   async revert(): Promise<void> {

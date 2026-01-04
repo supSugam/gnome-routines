@@ -26,7 +26,7 @@ export default class GnomeRoutinesExt extends Extension {
     const storage = new GSettingsStorageAdapter(settings);
     this.manager = new RoutineManager(storage, this.adapter, settings);
 
-    // Add Quick Settings Toggle
+    // Quick Settings Toggle
     try {
       const qs = createQuickSettingsToggle(this, this.manager);
       this.quickSettingsToggle = qs.toggle;
@@ -40,7 +40,6 @@ export default class GnomeRoutinesExt extends Extension {
       debugLog('[GnomeRoutines] Failed to create Quick Settings:', e);
     }
 
-    // Load routines and update Quick Settings state after load completes
     this.manager
       .load()
       .then(() => {
@@ -53,7 +52,6 @@ export default class GnomeRoutinesExt extends Extension {
         debugLog('[GnomeRoutines] Error during load:', e);
       });
 
-    // Watch for settings changes
     this.settingsChangedId = settings.connect('changed::routines', () => {
       debugLog('[GnomeRoutines] Settings changed, reloading...');
       if (this.manager) {

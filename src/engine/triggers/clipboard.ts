@@ -3,10 +3,24 @@ import { BaseTrigger } from './base.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 // @ts-ignore
 import GLib from 'gi://GLib';
-import { TriggerType, TriggerStrategy } from '../types.js';
+import { TriggerType } from '../types.js';
 
+/**
+ * ClipboardTrigger - fires when clipboard content actually changes.
+ *
+ * Clean approach:
+ * - First event after activation sets the baseline (ignored)
+ * - Only subsequent events can trigger
+ * - Uses content hashing to detect actual changes
+ */
 export class ClipboardTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
+  private _baselineHash: string | null = null;
+  private _hasTriggered: boolean = false;
+  public _isActivated: boolean = false;
+  private cleanup: (() => void) | null = null;
+  private syncTimeoutId: number | null = null;
+  private _baselineEstablished: boolean = false;
 
   constructor(
     id: string,
@@ -17,126 +31,131 @@ export class ClipboardTrigger extends BaseTrigger {
     this.adapter = adapter;
   }
 
-  private _lastContent: string | undefined;
-  private _hasTriggered: boolean = false;
-  private debounceId: number | null = null;
-  public _isActivated: boolean = false;
-  private cleanup: (() => void) | null = null;
-
-  private _ready: boolean = false;
+  private hashContent(
+    type: 'text' | 'image' | 'other',
+    content: string | undefined
+  ): string {
+    return `${type}:${content ?? ''}`;
+  }
 
   activate(): void {
-    debugLog(
-      '[ClipboardTrigger] Activating trigger. Registering callback with adapter...'
-    );
+    debugLog('[ClipboardTrigger] Activating...');
 
-    // Initialize baseline silently
-    this.adapter.getClipboardContent().then((res) => {
-      this._lastContent = res.content;
-      this._ready = true;
-      debugLog('[ClipboardTrigger] Baseline content set. Ready for events.');
-    });
+    this._baselineEstablished = false;
+    this._baselineHash = null;
 
+    // Subscribe to clipboard changes
     this.cleanup = this.adapter.onClipboardChanged(() => {
-      if (!this._ready) {
-        debugLog('[ClipboardTrigger] Ignoring event during initialization.');
-        return;
-      }
-
-      debugLog(
-        '[ClipboardTrigger] Adapter reported change (Event). Waiting for sync...'
-      );
-
-      // We must wait a brief moment for the clipboard content to actually populate
-      // in the St.Clipboard API after the ownership change signal.
-      // This is NOT polling; it is a single synchronization delay.
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
-        this.adapter.getClipboardContent().then((res) => {
-          const currentContent = res.content;
-
-          // Only deduplicate text content.
-          // For images/other, we don't have the bytes to compare, so we assume it's new.
-          // This prevents the issue where copying two different images results in both being 'undefined' and ignored.
-          const isSame =
-            res.type === 'text' && currentContent === this._lastContent;
-
-          debugLog(
-            `[ClipboardTrigger] Content fetched. Type: ${res.type}, Length: ${
-              res.content?.length ?? 0
-            }`
-          );
-
-          if (isSame) {
-            debugLog(
-              '[ClipboardTrigger] Content identical to last trigger. Ignoring.'
-            );
-            return;
-          }
-
-          this._lastContent = currentContent;
-
-          // Logic for config match
-          let isMatch = false;
-          const contentType = this.config.contentType || 'any';
-          debugLog(
-            `[ClipboardTrigger] Checking match. Config: ${contentType}, Regex: ${this.config.regex}, ResType: ${res.type}`
-          );
-
-          if (contentType === 'any') isMatch = true;
-          else if (contentType === 'text') isMatch = res.type === 'text';
-          else if (contentType === 'image')
-            isMatch = res.type === 'image' || res.type === 'other';
-          else if (
-            this.config.contentType === 'regex' &&
-            this.config.regex &&
-            res.type === 'text' &&
-            res.content
-          ) {
-            try {
-              isMatch = new RegExp(this.config.regex).test(res.content);
-            } catch (e) {
-              isMatch = false;
-            }
-          }
-
-          if (isMatch) {
-            debugLog(
-              `[ClipboardTrigger] Match confirmed. Setting trigger flag.`
-            );
-            this._hasTriggered = true;
-            this.emit('triggered');
-          } else {
-            debugLog('[ClipboardTrigger] Match failed.');
-          }
-        });
-        return false; // Single execution
-      });
+      this.handleClipboardChange();
     });
-    this._isActivated = true;
+
+    debugLog(
+      '[ClipboardTrigger] Waiting for first event to establish baseline...'
+    );
+  }
+
+  private handleClipboardChange(): void {
+    // Debounce rapid events
+    if (this.syncTimeoutId !== null) {
+      GLib.source_remove(this.syncTimeoutId);
+      this.syncTimeoutId = null;
+    }
+
+    this.syncTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+      this.syncTimeoutId = null;
+      this.processClipboardEvent();
+      return GLib.SOURCE_REMOVE;
+    });
+  }
+
+  private processClipboardEvent(): void {
+    this.adapter
+      .getClipboardContent()
+      .then((res) => {
+        const currentHash = this.hashContent(res.type, res.content);
+
+        // First event: establish baseline, don't trigger
+        if (!this._baselineEstablished) {
+          this._baselineHash = currentHash;
+          this._baselineEstablished = true;
+          debugLog(
+            `[ClipboardTrigger] Baseline established: ${currentHash.substring(0, 50)}...`
+          );
+          return;
+        }
+
+        // Subsequent events: check for actual change
+        if (currentHash === this._baselineHash) {
+          debugLog(
+            '[ClipboardTrigger] No actual change (same hash). Ignoring.'
+          );
+          return;
+        }
+
+        debugLog(
+          `[ClipboardTrigger] REAL change detected: ${currentHash.substring(0, 50)}...`
+        );
+        this._baselineHash = currentHash;
+
+        if (this.matchesConfig(res)) {
+          debugLog('[ClipboardTrigger] Filter matched. Triggering!');
+          this._hasTriggered = true;
+          this.emit('triggered');
+        } else {
+          debugLog('[ClipboardTrigger] Filter not matched.');
+        }
+      })
+      .catch((e) => {
+        debugLog('[ClipboardTrigger] Failed to get clipboard content:', e);
+      });
+  }
+
+  private matchesConfig(res: {
+    type: 'text' | 'image' | 'other';
+    content?: string;
+  }): boolean {
+    const contentType = this.config.contentType || 'any';
+
+    switch (contentType) {
+      case 'any':
+        return true;
+      case 'text':
+        return res.type === 'text';
+      case 'image':
+        return res.type === 'image' || res.type === 'other';
+      case 'regex':
+        if (!this.config.regex || res.type !== 'text' || !res.content) {
+          return false;
+        }
+        try {
+          return new RegExp(this.config.regex).test(res.content);
+        } catch {
+          return false;
+        }
+      default:
+        return false;
+    }
   }
 
   deactivate(): void {
-    if (!this._isActivated) return;
+    debugLog('[ClipboardTrigger] Deactivating...');
 
-    debugLog('[ClipboardTrigger] Deactivating trigger.');
+    if (this.syncTimeoutId !== null) {
+      GLib.source_remove(this.syncTimeoutId);
+      this.syncTimeoutId = null;
+    }
+
     if (this.cleanup) {
       this.cleanup();
       this.cleanup = null;
     }
 
-    if (this.debounceId) {
-      GLib.source_remove(this.debounceId);
-      this.debounceId = null;
-    }
-    this._isActivated = false;
+    this._baselineHash = null;
+    this._baselineEstablished = false;
   }
 
   async check(): Promise<boolean> {
-    // Return the momentary state and reset it
     const triggered = this._hasTriggered;
-    // Only reset if it was true?
-    // If we reset it here, we assume check() is called exactly once per event processing.
-    // RoutineManager calls check() in evaluate().
     if (triggered) {
       this._hasTriggered = false;
     }

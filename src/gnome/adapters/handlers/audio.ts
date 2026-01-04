@@ -119,18 +119,16 @@ export class AudioAdapter {
       callback(state);
     };
 
+    // Only listen to default-sink-changed - headphone connection changes the default sink
+    // stream-changed fires too frequently (on every volume change, app audio, etc.)
     const idDefault = this._mixer.connect(
       'default-sink-changed',
       checkHeadphones
     );
-    const idStream = this._mixer.connect('stream-changed', () => {
-      checkHeadphones();
-    });
 
     return () => {
       try {
         this._mixer.disconnect(idDefault);
-        this._mixer.disconnect(idStream);
       } catch (e) {
         debugLog('[AudioAdapter] Error disconnecting Gvc signals:', e);
       }
