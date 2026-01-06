@@ -52,7 +52,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
     });
     group.add(btDevicesRow);
 
-    // Hide device selection if checking for power state
+    // Hide device selection
     // @ts-ignore
     btRow.connect('notify::selected', () => {
       const isPowerState = btRow.selected >= 2;
@@ -85,7 +85,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
     } else {
       availableDevices.forEach((dev) => {
         const devRow = new Adw.ActionRow({ title: dev.name });
-        // Use name as identifier to maintain compatibility with legacy data
+        // Identifier
         const identifier = dev.name;
 
         const check = new Gtk.CheckButton({

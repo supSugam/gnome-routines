@@ -26,7 +26,7 @@ export default class GnomeRoutinesExt extends Extension {
     const storage = new GSettingsStorageAdapter(settings);
     this.manager = new RoutineManager(storage, this.adapter, settings);
 
-    // Quick Settings Toggle
+    // Quick Settings
     try {
       const qs = createQuickSettingsToggle(this, this.manager);
       this.quickSettingsToggle = qs.toggle;

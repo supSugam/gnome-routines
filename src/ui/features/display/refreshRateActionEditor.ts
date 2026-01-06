@@ -33,7 +33,7 @@ export class RefreshRateActionEditor extends BaseEditor {
     this._spinner.valign = Gtk.Align.CENTER;
     row.add_suffix(this._spinner);
 
-    // Initial dummy model or loading state
+    // Loading model
     const model = new Gtk.StringList({
       strings: ['Loading...'],
     });
@@ -87,8 +87,7 @@ export class RefreshRateActionEditor extends BaseEditor {
     if (index >= 0) {
       this._combo.selected = index;
     } else {
-      // If current config isn't in list (e.g. diff monitor), select first or closest?
-      // Select first for safety
+      // Fallback selection
       if (this._rates.length > 0) {
         this._combo.selected = 0;
         this.config.rate = this._rates[0];
@@ -96,7 +95,7 @@ export class RefreshRateActionEditor extends BaseEditor {
       }
     }
 
-    // Connect change signal
+    // Listen
     // @ts-ignore
     this._combo.connect('notify::selected', () => {
       const selectedIndex = this._combo.selected;

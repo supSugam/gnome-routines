@@ -18,8 +18,7 @@ export class NetworkAdapter {
       this._client = NM.Client.new(null);
     } catch (e) {
       debugLog('[NetworkAdapter] Failed to simple-init NM Client:', e);
-      // Async fallback if sync fails? But constructor can't be async.
-      // We'll rely on method calls doing their checks.
+      // Async fallback
       NM.Client.new_async(null, (obj: any, result: any) => {
         try {
           this._client = NM.Client.new_finish(result);
@@ -36,8 +35,7 @@ export class NetworkAdapter {
       try {
         this._client = NM.Client.new(null);
       } catch (e) {
-        // If sync new() fails, we might be in a context where it's not allowed?
-        // But usually we just return what we have.
+        // Sync init failed
         debugLog('[NetworkAdapter] Warning: NM Client re-init attempted');
       }
     }
@@ -62,9 +60,7 @@ export class NetworkAdapter {
       null,
       null,
       (client: any, result: any) => {
-        // Logic for connection is complex in NM (need device/access point).
-        // Reusing simplified logic or placeholder from original adapter.
-        // The original code iterated connections to find matching SSID.
+        // Complex connection logic
         try {
           const connections = client.get_connections();
           for (const conn of connections) {
@@ -131,7 +127,7 @@ export class NetworkAdapter {
   }
 
   getWifiState(): boolean {
-    // Returns whether WiFi is CONNECTED to a network (not just powered on)
+    // Connected check
     const client = this._ensureClient();
     if (!client) return false;
 
@@ -141,7 +137,7 @@ export class NetworkAdapter {
   }
 
   getWifiPowerState(): boolean {
-    // Returns whether WiFi radio is enabled
+    // Enabled check
     const client = this._ensureClient();
     return client ? client.wireless_enabled : false;
   }
@@ -150,7 +146,7 @@ export class NetworkAdapter {
     const client = this._ensureClient();
     if (!client) return () => {};
 
-    // Use shared dispatcher for primary-connection signal
+    // Primary connection signal
     if (!this._wifiStateDispatcher) {
       debugLog('[NetworkAdapter] Creating shared WiFi state dispatcher');
       this._wifiStateDispatcher = new GObjectSignalDispatcher(
@@ -204,10 +200,10 @@ export class NetworkAdapter {
           if (s_wireless) {
             const ssidBytes = s_wireless.get_ssid();
             if (ssidBytes) {
-              // get_ssid() returns GLib.Bytes, need to get the data
+              // Extract SSID data
               const data = ssidBytes.get_data();
               if (data) {
-                // Convert byte array to string
+                // Convert to string
                 const decoder = new TextDecoder('utf-8');
                 return decoder.decode(new Uint8Array(data));
               }
@@ -275,7 +271,7 @@ export class NetworkAdapter {
       debugLog('[NetworkAdapter] No client for airplane mode check');
       return false;
     }
-    // In GNOME, airplane mode = WiFi disabled (quick settings toggle)
+    // GNOME airplane mode logic
     const isAirplane = !client.wireless_enabled;
     debugLog(
       `[NetworkAdapter] Airplane mode check: wifi_enabled=${client.wireless_enabled}, result=${isAirplane}`

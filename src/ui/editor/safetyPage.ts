@@ -36,7 +36,7 @@ export class SafetyPage {
     const content = new Adw.PreferencesPage();
     toolbarView.content = content;
 
-    // Load State
+    // Load state
     let state: RoutineState | null = null;
     try {
       const json = this.settings.get_string('routine-states');
@@ -61,7 +61,7 @@ export class SafetyPage {
       };
     }
 
-    // Health Status Group
+    // Health Status
     const statusGroup = new Adw.PreferencesGroup({
       title: UI_STRINGS.editor.safety.health,
     });
@@ -115,7 +115,7 @@ export class SafetyPage {
       );
     }
 
-    // History Group
+    // History
     const historyGroup = new Adw.PreferencesGroup({
       title: UI_STRINGS.editor.safety.history,
     });

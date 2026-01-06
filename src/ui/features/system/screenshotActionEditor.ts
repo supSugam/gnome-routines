@@ -27,28 +27,29 @@ export class ScreenshotActionEditor extends BaseEditor {
     const prefixPath = homeDir + '/';
 
     // Set default if empty
+    // Default
     if (!this.screenConfig.directory) {
       this.screenConfig.directory = this.getDefaultDir();
     }
 
-    // Calculate relative path for display
+    // Relative path
     let relativePath = '';
     if (this.screenConfig.directory.startsWith(prefixPath)) {
       relativePath = this.screenConfig.directory.substring(prefixPath.length);
     } else {
-      // Fallback/Force-fix
+      // Fallback
       const def = this.getDefaultDir();
       this.screenConfig.directory = def;
       relativePath = def.substring(prefixPath.length);
     }
 
     const pathRow = new Adw.EntryRow({
-      title: 'Save Directory (~/)', // Indicate relative to home
+      title: 'Save Directory (~/)',
       text: relativePath,
     });
     group.add(pathRow);
 
-    // Reset Button
+    // Reset Btn
     const resetButton = new Gtk.Button({
       icon_name: 'edit-undo-symbolic',
       valign: Gtk.Align.CENTER,
@@ -65,7 +66,7 @@ export class ScreenshotActionEditor extends BaseEditor {
     });
     pathRow.add_suffix(resetButton);
 
-    // Change Listener
+    // Listener
     // @ts-ignore
     pathRow.connect('changed', () => {
       const relative = pathRow.text;

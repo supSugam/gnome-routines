@@ -8,7 +8,7 @@ import {
 import { StateManager } from '../stateManager.js';
 
 /**
- * HealthTracker - Tracks routine execution health and history.
+ * HealthTracker
  * Single Responsibility: Health state management.
  */
 export class HealthTracker {
@@ -19,7 +19,6 @@ export class HealthTracker {
     this.stateManager = stateManager;
   }
 
-  /** Get health state for a routine, creating default if needed */
   getHealth(id: string): RoutineState {
     let state = this.states.get(id);
     if (!state) {
@@ -35,7 +34,6 @@ export class HealthTracker {
     return state;
   }
 
-  /** Update health status and optionally add a log entry */
   updateHealth(
     id: string,
     health: RoutineHealth,
@@ -63,7 +61,6 @@ export class HealthTracker {
     this.stateManager.setState(id, 'health_status', state);
   }
 
-  /** Record a successful execution */
   recordSuccess(id: string, message?: string): void {
     const state = this.getHealth(id);
     state.lastRun = Date.now();
@@ -76,7 +73,6 @@ export class HealthTracker {
     });
   }
 
-  /** Record a failed execution */
   recordFailure(id: string, error: string): void {
     const state = this.getHealth(id);
     state.failureCount++;
@@ -89,7 +85,6 @@ export class HealthTracker {
     });
   }
 
-  /** Record a warning (non-fatal issue) */
   recordWarning(id: string, message: string): void {
     this.updateHealth(id, RoutineHealth.WARNING, {
       type: ExecutionType.ACTIVATE,
@@ -98,12 +93,10 @@ export class HealthTracker {
     });
   }
 
-  /** Remove health state for a routine */
   delete(id: string): void {
     this.states.delete(id);
   }
 
-  /** Clear all health states */
   clear(): void {
     this.states.clear();
   }

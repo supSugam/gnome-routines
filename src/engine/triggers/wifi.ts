@@ -19,7 +19,7 @@ export class WifiTrigger extends BaseTrigger {
   }
 
   async check(): Promise<boolean> {
-    // Power state check
+    // Check power
     if (
       this.config.state === ConnectionState.ENABLED ||
       this.config.state === ConnectionState.DISABLED
@@ -33,7 +33,7 @@ export class WifiTrigger extends BaseTrigger {
         : !isEnabled;
     }
 
-    // Connection state check
+    // Check connection
     const isConnected = this.adapter.getWifiState();
     const currentSSID = this.adapter.getCurrentWifiSSID();
 
@@ -41,7 +41,7 @@ export class WifiTrigger extends BaseTrigger {
       `[WifiTrigger] Checking connection state. Current: ${isConnected} (${currentSSID}), Target: ${this.config.state}`
     );
 
-    // If specific networks are configured
+    // Specific SSIDs
     if (this.config.ssids && this.config.ssids.length > 0) {
       if (this.config.state === ConnectionState.CONNECTED) {
         // Must be connected AND to one of the allowed SSIDs
@@ -51,11 +51,7 @@ export class WifiTrigger extends BaseTrigger {
           this.config.ssids.includes(currentSSID)
         );
       } else {
-        // Disconnected logic with specific networks
-        // "Disconnected FROM X" check.
-        // If we are currently disconnected, we satisfy "Disconnected from X".
-        // If we are currently connected to Y (and Y is not X), we strictly allow "Disconnected from X".
-        // If we are connected to X, we are NOT disconnected from X.
+        // Disconnect logic
         return currentSSID === null || !this.config.ssids.includes(currentSSID);
       }
     }
@@ -141,7 +137,6 @@ export class WifiTrigger extends BaseTrigger {
         );
       } else {
         // Connection Baseline
-        // Connection Baseline
         this._lastState = this.adapter.getWifiState();
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
@@ -154,10 +149,7 @@ export class WifiTrigger extends BaseTrigger {
           debugLog(
             `[WifiTrigger] Initial Connection State: ${this._lastState} (Checking immediate)`
           );
-          // Check immediate trigger
-          // Note: Logic is complex for SSIDs, we can reuse onWifiStateChanged callback or duplicate check.
-          // Reusing callback is tricky because it expects a change.
-          // Let's explicitly check here if not ignoring.
+          // Check immediate
 
           if (
             this.config.state === ConnectionState.CONNECTED &&
@@ -176,7 +168,7 @@ export class WifiTrigger extends BaseTrigger {
             if (!this._initialized) return;
 
             if (this._lastState === isConnected) {
-              // Duplicate event / No change
+              // Ignore duplicate
               return;
             }
             this._lastState = isConnected;
@@ -199,7 +191,7 @@ export class WifiTrigger extends BaseTrigger {
               }
             } else if (this.config.state === ConnectionState.DISCONNECTED) {
               if (!isConnected) {
-                // USER REQUIREMENT: Turning off Wifi is NOT a disconnect event.
+                // Ignore disconnect if power off
                 const isPowerOn = this.adapter.getWifiPowerState();
                 if (!isPowerOn) {
                   debugLog(

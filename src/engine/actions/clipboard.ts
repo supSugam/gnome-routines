@@ -39,7 +39,7 @@ export class ClipboardAction extends BaseAction {
     this.globalParams = new Set();
     this.customRules = [];
 
-    // 1. Load Predefined
+    // Predefined
     if (
       mode === SanitizationMode.PREDEFINED ||
       mode === SanitizationMode.MERGE
@@ -48,10 +48,10 @@ export class ClipboardAction extends BaseAction {
         const paramSet = new Set(params as string[]);
 
         if (key === 'global') {
-          // Global params
+          // Global
           this.globalParams = paramSet;
         } else {
-          // Simplified logic: simple suffix/substring check
+          // Suffix/substring check
           // key is 'instagram.com', 'amazon.', etc.
           if (key.endsWith('.')) {
             // 'amazon.' -> contains check
@@ -72,7 +72,7 @@ export class ClipboardAction extends BaseAction {
       });
     }
 
-    // 2. Load Custom (Prefix based)
+    // Custom
     if (mode === SanitizationMode.CUSTOM || mode === SanitizationMode.MERGE) {
       customRulesConfig.forEach(
         (rule: { domain: string; params: string[] }) => {
@@ -131,11 +131,11 @@ export class ClipboardAction extends BaseAction {
           }
         }
 
-        // B. Apply Sanitization
+        // Sanitize
         if (this.config.sanitize) {
           if (!this.rulesCompiled) this.compileRules();
 
-          // Robust URL Regex to find URLs in text
+          // URL Regex
           const urlRegex =
             /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
 
@@ -154,8 +154,8 @@ export class ClipboardAction extends BaseAction {
                 return matchedUrl;
               }
 
-              // Parse Query Params Manually
-              // We want to preserve specific encoding for values, so we work with raw pairs
+              // Parse params
+              // Preserve encoding
               const rawPairs = query.split('&');
               const keptPairs: string[] = [];
               let urlChanged = false;
@@ -282,7 +282,6 @@ export class ClipboardAction extends BaseAction {
   }
 
   revert(): void {
-    // Reverting clipboard changes is complex (need history).
-    // For now, no-op.
+    // No-op (complex history)
   }
 }

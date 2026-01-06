@@ -107,7 +107,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }
 
   connectToWifi(ssid: string): Promise<boolean> {
-    // Interface requires Promise<boolean>
+    // Promise<boolean> required
     return new Promise((resolve) => {
       this._network.connectToWifi(ssid);
       resolve(true);
@@ -185,9 +185,6 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }
 
   // --- Power & Battery ---
-  // getBatteryLevel & isCharging already defined above in State section??
-  // Interface might have them twice or sectioned comments.
-  // TS only allows one impl.
 
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
@@ -200,7 +197,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
   }
 
   onPowerSaverStateChanged(callback: (isActive: boolean) => void): () => void {
-    // Legacy: wrap profile change to boolean callback
+    // Legacy wrapper
     return this._power.onPowerProfileChanged((profile) => {
       callback(profile === 'power-saver');
     });
@@ -365,9 +362,7 @@ export class GnomeShellAdapter implements ISystemAdapter {
 
   // --- Cleanup ---
   destroy(): void {
-    // Clean up handlers if they have destroy methods
-    // Currently handlers are stateless or return cleanup functions on subscription
-    // But we clear references to allow GC
+    // Cleanup handlers
     // @ts-ignore
     this._audio = null;
     // @ts-ignore

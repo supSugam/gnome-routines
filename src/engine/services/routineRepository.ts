@@ -7,7 +7,7 @@ import { ActionFactory } from '../actionFactory.js';
 import { StateManager } from '../stateManager.js';
 
 /**
- * RoutineRepository - Handles CRUD operations and hydration for routines.
+ * RoutineRepository
  * Single Responsibility: Data access and routine object lifecycle.
  */
 export class RoutineRepository {
@@ -26,7 +26,7 @@ export class RoutineRepository {
     this.stateManager = stateManager;
   }
 
-  /** Load all routines from storage and hydrate them */
+  /** Load and hydrate routines from storage */
   async load(): Promise<void> {
     debugLog('[RoutineRepository] Loading routines from storage...');
     const rawRoutines = await this.storage.loadRoutines();
@@ -45,58 +45,55 @@ export class RoutineRepository {
     debugLog(`[RoutineRepository] Total routines: ${this.routines.size}`);
   }
 
-  /** Save all routines to storage */
+  /** Save all routines */
   async save(): Promise<void> {
     const list = Array.from(this.routines.values());
     await this.storage.saveRoutines(list);
   }
 
-  /** Get a routine by ID */
   get(id: string): Routine | undefined {
     return this.routines.get(id);
   }
 
-  /** Get all routines */
   getAll(): Routine[] {
     return Array.from(this.routines.values());
   }
 
-  /** Get all routines as iterable */
   values(): IterableIterator<Routine> {
     return this.routines.values();
   }
 
-  /** Check if a routine exists */
   has(id: string): boolean {
     return this.routines.has(id);
   }
 
-  /** Get count of routines */
   get size(): number {
     return this.routines.size;
   }
 
-  /** Add or update a routine (hydrates if raw) */
   set(id: string, routine: Routine): void {
     this.routines.set(id, routine);
   }
 
-  /** Remove a routine by ID */
   delete(id: string): boolean {
     return this.routines.delete(id);
   }
 
-  /** Clear all routines */
   clear(): void {
     this.routines.clear();
   }
 
-  /** Hydrate a raw routine from storage into a full Routine object */
+  /** Hydrate a raw routine from storage */
   hydrate(rawRoutine: any): Routine | null {
     try {
       const triggers = (rawRoutine.triggers || [])
         .map((t: any) =>
-          TriggerFactory.create(t, this.adapter, this.stateManager, rawRoutine.id)
+          TriggerFactory.create(
+            t,
+            this.adapter,
+            this.stateManager,
+            rawRoutine.id
+          )
         )
         .filter((t: any) => t !== null) as Trigger[];
 
@@ -106,7 +103,12 @@ export class RoutineRepository {
 
       const actions = (rawRoutine.actions || [])
         .map((a: any) =>
-          ActionFactory.create(a, this.adapter, this.stateManager, rawRoutine.id)
+          ActionFactory.create(
+            a,
+            this.adapter,
+            this.stateManager,
+            rawRoutine.id
+          )
         )
         .filter((a: any) => a !== null) as Action[];
 
@@ -121,7 +123,7 @@ export class RoutineRepository {
     }
   }
 
-  /** Compare two routines for equality (config-based, ignores runtime state) */
+  /** Compare two routines (config-based) */
   areEqual(r1: Routine, r2: Routine): boolean {
     if (
       r1.name !== r2.name ||
@@ -131,7 +133,7 @@ export class RoutineRepository {
       return false;
     }
 
-    // Compare Triggers
+    // Triggers
     if (r1.triggers.length !== r2.triggers.length) return false;
     for (let i = 0; i < r1.triggers.length; i++) {
       const t1 = r1.triggers[i];
@@ -145,7 +147,7 @@ export class RoutineRepository {
       }
     }
 
-    // Compare Actions
+    // Actions
     if (r1.actions.length !== r2.actions.length) return false;
     for (let i = 0; i < r1.actions.length; i++) {
       const a1 = r1.actions[i];
@@ -169,7 +171,6 @@ export class RoutineRepository {
     return JSON.stringify(c1) === JSON.stringify(c2);
   }
 
-  /** Get count of enabled routines */
   getEnabledCount(): number {
     let count = 0;
     for (const routine of this.routines.values()) {

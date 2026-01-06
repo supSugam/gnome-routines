@@ -1,14 +1,11 @@
 import { Routine, ResourceType, ACTION_RESOURCE_MAP } from '../types.js';
 
 /**
- * ConflictDetector - Detects resource conflicts between routines.
+ * ConflictDetector
  * Single Responsibility: Conflict analysis.
  */
 export class ConflictDetector {
-  /**
-   * Check for resource conflicts between a candidate routine and active routines.
-   * Returns names of conflicting routines.
-   */
+  /** Returns names of conflicting routines */
   checkConflicts(candidate: Routine, allRoutines: Iterable<Routine>): string[] {
     const conflicts = new Set<string>();
     const candidateResources = this.getResources(candidate);
@@ -19,7 +16,6 @@ export class ConflictDetector {
 
       const activeResources = this.getResources(active);
 
-      // Check for resource intersection
       for (const resource of candidateResources) {
         if (activeResources.has(resource)) {
           conflicts.add(active.name);
@@ -31,9 +27,6 @@ export class ConflictDetector {
     return Array.from(conflicts);
   }
 
-  /**
-   * Get the set of resources that a routine's actions will modify.
-   */
   getResources(routine: Routine): Set<ResourceType> {
     const resources = new Set<ResourceType>();
 
@@ -47,9 +40,6 @@ export class ConflictDetector {
     return resources;
   }
 
-  /**
-   * Check if two routines would conflict based on their resources.
-   */
   wouldConflict(r1: Routine, r2: Routine): boolean {
     const resources1 = this.getResources(r1);
     const resources2 = this.getResources(r2);

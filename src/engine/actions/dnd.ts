@@ -22,10 +22,9 @@ export class DndAction extends BaseAction {
 
   async execute(): Promise<void> {
     debugLog(`[DndAction] Setting DND to: ${this.config.enabled}`);
-    // Store current state before changing
+    // Store state
     const currentState = this.adapter.getDND();
 
-    // Save to stateManager for persistence
     this.stateManager.saveState(this.routineId, ActionType.DND, currentState);
     debugLog(`[DndAction] Saved previous DND state: ${currentState}`);
 

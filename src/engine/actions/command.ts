@@ -21,6 +21,6 @@ export class ExecuteCommandAction extends BaseAction {
   }
 
   revert(): void {
-    // Cannot revert arbitrary command execution
+    // No revert
   }
 }

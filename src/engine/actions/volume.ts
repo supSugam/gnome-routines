@@ -36,7 +36,7 @@ export class VolumeAction extends BaseAction {
       // Set volume immediately
       await this.setVolumeAll(targetLevel);
 
-      // Retry to ensure it sticks (fights against system default on BT connect)
+      // Retry (fight system override)
       this.retryWithVerification(targetLevel, 3);
     } catch (e) {
       debugLog(`[VolumeAction] Failed to execute:`, e);
@@ -44,9 +44,9 @@ export class VolumeAction extends BaseAction {
   }
 
   private async setVolumeAll(level: number): Promise<void> {
-    // Try setting Bluetooth volume first (if sink available)
+    // Set BT volume
     await this.adapter.setBluetoothVolume(level);
-    // Force system volume
+    // Set system volume
     await this.adapter.setVolume(level);
   }
 
@@ -59,12 +59,12 @@ export class VolumeAction extends BaseAction {
       return;
     }
 
-    // Wait 500ms and verify volume is correct
+    // Wait & Verify
     this.retryTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
       this.retryTimeoutId = null;
 
       this.adapter.getVolume().then((currentVolume) => {
-        // Allow 2% tolerance
+        // 2% tolerance
         if (Math.abs(currentVolume - targetLevel) <= 2) {
           debugLog(
             `[VolumeAction] Volume verified at ${currentVolume}% (target: ${targetLevel}%)`

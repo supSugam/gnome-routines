@@ -8,7 +8,7 @@ import { SignalDispatcher } from '../../utils/signalDispatcher.js';
 export class BluetoothAdapter {
   private _adapterPath: string | null = null;
 
-  // Shared dispatchers - one subscription, many listeners
+  // Shared dispatchers
   private _powerDispatcher: SignalDispatcher<
     (enabled: boolean) => void
   > | null = null;

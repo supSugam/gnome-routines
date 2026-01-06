@@ -18,7 +18,7 @@ export class IntervalTriggerEditor extends BaseEditor {
       input_purpose: Gtk.InputPurpose.NUMBER,
     });
 
-    // Initialize text
+    // Init text
     intervalRow.text = String(this.config.interval);
 
     // Filter input and update config
@@ -40,7 +40,7 @@ export class IntervalTriggerEditor extends BaseEditor {
 
       // Update config
       if (text === '' || isNaN(parsed)) {
-        this.config.interval = 0; // Mark as invalid
+        this.config.interval = 0; // Invalid
       } else {
         this.config.interval = parsed;
       }
@@ -50,7 +50,7 @@ export class IntervalTriggerEditor extends BaseEditor {
 
     group.add(intervalRow);
 
-    // Unit Selector
+    // Unit
     const unitRow = new Adw.ComboRow({
       title: 'Time Unit',
       model: new Gtk.StringList({

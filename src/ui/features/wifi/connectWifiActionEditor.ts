@@ -22,7 +22,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
   }
 
   private addRetrySettings(group: any) {
-    // Timeout Row
+    // Timeout
     const timeoutRow = new Adw.ActionRow({
       title: 'Wait Timeout (seconds)',
       subtitle: 'Stop trying after this many seconds',
@@ -44,7 +44,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
     timeoutRow.add_suffix(timeoutSpin);
     group.add(timeoutRow);
 
-    // Interval Row
+    // Interval
     const intervalRow = new Adw.ActionRow({
       title: 'Retry Interval (seconds)',
       subtitle: 'Wait this long between attempts',
@@ -120,7 +120,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
           this.config.ssid = ssid;
           row.subtitle = ssid;
         } else {
-          // If unchecking current, clear it
+          // Clear if current
           if (this.config.ssid === ssid) {
             this.config.ssid = null;
             row.subtitle = 'No network selected';

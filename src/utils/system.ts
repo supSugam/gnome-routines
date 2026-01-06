@@ -23,7 +23,7 @@ export function hasBattery(): boolean {
 
     for (let i = 0; i < devices.length; i++) {
       const device = devices[i];
-      // UPower.DeviceKind.BATTERY = 2
+      // BATTERY = 2
       if (device.kind === 2) {
         batteryFound = true;
         break;
@@ -41,15 +41,15 @@ export function hasBattery(): boolean {
 export function hasWifi(): boolean {
   if (cachedHasWifi !== null) return cachedHasWifi;
 
-  // Default to true if unsure, better to show valid option than hide valid one
+  // Default true
   cachedHasWifi = true;
 
   try {
-    // Try sync check first
+    // Sync check
     const client = NM.Client.new(null);
     if (client) {
       const devices = client.get_devices();
-      // NM.DeviceType.WIFI = 2
+      // WIFI = 2
       const wifiDev = devices.find((d: any) => d.device_type === 2);
       cachedHasWifi = !!wifiDev;
       debugLog(`[SystemUtils] Wifi capability: ${cachedHasWifi}`);
@@ -66,23 +66,18 @@ export function hasBluetooth(): boolean {
   cachedHasBluetooth = true; // Default to true
 
   try {
-    // fast check: see if we can get the proxy for adapter
+    // Proxy check
     const proxy = new Gio.DBusProxy({
       g_connection: Gio.DBus.system,
       g_name: 'org.bluez',
       g_object_path: '/org/bluez/hci0',
       g_interface_name: 'org.bluez.Adapter1',
     });
-    // Just creating proxy doesn't mean it exists.
-    // Usually checking name owner or a property works.
+    // Proxy validation
     if (!proxy.g_name_owner) {
-      // Maybe no hci0, try iterating objects? Too slow for sync.
-      // If 'org.bluez' is not owned on bus, then definitely no bluetooth
-      // But checking ownership synchronously might be tricky with just Proxy wrapper.
-      // Actually, just let it be true for now or rely on Bluez service check.
+      // Ownership check
     }
-    // Better simple check:
-    // Does /sys/class/bluetooth exist? (Linux specific, safe enough)
+    // Sysfs check
     const file = Gio.File.new_for_path('/sys/class/bluetooth');
     cachedHasBluetooth = file.query_exists(null);
     debugLog(
@@ -95,10 +90,7 @@ export function hasBluetooth(): boolean {
   return cachedHasBluetooth!;
 }
 
-/**
- * Detects if the system is a Laptop or PC based on battery presence.
- * Uses a cached value after the first check.
- */
+/** Detect System Type */
 export function getSystemType(): SystemType {
   if (cachedType) return cachedType;
 

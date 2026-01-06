@@ -20,7 +20,7 @@ export class BatteryTriggerEditor extends BaseEditor {
       strings: ['Charging Status', 'Battery Level'],
     });
 
-    // Init defaults
+    // Defaults
     if (!this.batteryConfig.mode)
       this.batteryConfig.mode = BatteryTriggerMode.STATUS;
     if (!this.batteryConfig.status)
@@ -36,7 +36,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     });
     group.add(battModeRow);
 
-    // Status UI
+    // Status
     const battStatusModel = new Gtk.StringList({
       strings: ['Charging', 'Discharging'],
     });
@@ -47,7 +47,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     });
     group.add(battStatusRow);
 
-    // Level UI
+    // Level
     const battLevelTypeModel = new Gtk.StringList({
       strings: ['Below', 'Equal or Above'],
     });
@@ -69,7 +69,7 @@ export class BatteryTriggerEditor extends BaseEditor {
     });
     group.add(battLevelRow);
 
-    // Visibility logic for Battery
+    // Visibility logic
     const updateBattVisibility = () => {
       const isLevel = battModeRow.selected === 1;
       battStatusRow.visible = !isLevel;

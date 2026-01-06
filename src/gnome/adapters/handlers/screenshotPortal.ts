@@ -35,10 +35,7 @@ export async function captureScreenshot(): Promise<string> {
 
       const connection = proxy.get_connection();
 
-      // We need a unique handle token to match the request
-      // However, the proxy wrapper simplifies calls but signal handling for specific requests can be tricky.
-      // The standard flow is: Call Screenshot -> Get Handle Path -> Subscribe to Response on that Path.
-
+      // DBus handle management
       // Using DBusProxy.call for more control if needed, but wrapper is okay if we use the returned handle path.
 
       debugLog('[ScreenshotPortal] Requesting screenshot via Portal...');
@@ -50,16 +47,12 @@ export async function captureScreenshot(): Promise<string> {
       };
 
       // 1. Call Screenshot
-      // The generated proxy wrapper's method signatures can be tricky.
-      // ScreenshotRemote(parent_window, options, callback)
-      // The callback receives (result, error) where result is the out param (handle path)
+      // Remote call
 
       proxy.ScreenshotRemote('', options, (result: any, error: any) => {
         if (error) {
-          // Sometimes "error" is passed as first arg in GJS if method fails?
-          // Or result is null.
+          // GJS callback quirks
           // Let's check if result is actually the handle string.
-          // GJS proxies usually return [outArgs] or outArg.
 
           debugLog(
             '[ScreenshotPortal] ScreenshotRemote callback error/result:',
@@ -70,8 +63,7 @@ export async function captureScreenshot(): Promise<string> {
           return;
         }
 
-        // If success, result[0] is usually the handle path string if multiple out args, or just the string if one?
-        // The XML says one out arg 'handle' (o).
+        // Handle result
         // In GJS, single return values are often unwrapped.
 
         let handlePath = result;

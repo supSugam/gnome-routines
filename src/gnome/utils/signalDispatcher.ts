@@ -2,28 +2,13 @@
 import Gio from 'gi://Gio';
 import debugLog from '../../utils/log.js';
 
-/**
- * SignalDispatcher - Manages shared D-Bus signal subscriptions.
- * 
- * Instead of each trigger creating its own subscription, the adapter
- * creates ONE subscription and dispatches to all registered callbacks.
- * 
- * Usage:
- *   const dispatcher = new SignalDispatcher('org.bluez', 'PropertiesChanged', ...);
- *   
- *   // Multiple triggers can register:
- *   const cleanup1 = dispatcher.addCallback(() => { ... });
- *   const cleanup2 = dispatcher.addCallback(() => { ... });
- *   
- *   // When signal fires, both callbacks are invoked
- *   // When last callback is removed, subscription is unsubscribed
- */
+/** SignalDispatcher: Shared D-Bus signals */
 export class SignalDispatcher<T extends (...args: any[]) => void> {
   private callbacks: Set<T> = new Set();
   private signalId: number | null = null;
   private isSubscribed: boolean = false;
 
-  // Factory function that creates the actual subscription
+  // Subscription factory
   private subscribeFactory: (dispatch: T) => number;
   private unsubscribeFactory: (signalId: number) => void;
   private name: string;
@@ -38,10 +23,7 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
     this.unsubscribeFactory = unsubscribeFactory;
   }
 
-  /**
-   * Add a callback to receive dispatched signals.
-   * Returns a cleanup function to remove the callback.
-   */
+  /** Add callback */
   addCallback(callback: T): () => void {
     this.callbacks.add(callback);
 
@@ -50,9 +32,11 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
       this.subscribe();
     }
 
-    debugLog(`[SignalDispatcher:${this.name}] Callback added. Total: ${this.callbacks.size}`);
+    debugLog(
+      `[SignalDispatcher:${this.name}] Callback added. Total: ${this.callbacks.size}`
+    );
 
-    // Return cleanup function
+    // Cleanup
     return () => {
       this.removeCallback(callback);
     };
@@ -60,9 +44,11 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
 
   private removeCallback(callback: T): void {
     this.callbacks.delete(callback);
-    debugLog(`[SignalDispatcher:${this.name}] Callback removed. Total: ${this.callbacks.size}`);
+    debugLog(
+      `[SignalDispatcher:${this.name}] Callback removed. Total: ${this.callbacks.size}`
+    );
 
-    // Unsubscribe when last callback is removed
+    // Unsubscribe last
     if (this.callbacks.size === 0 && this.isSubscribed) {
       this.unsubscribe();
     }
@@ -72,7 +58,7 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
     if (this.isSubscribed) return;
 
     try {
-      // Create dispatch function that fans out to all callbacks
+      // Fan-out dispatch
       const dispatchFn = ((...args: any[]) => {
         for (const callback of this.callbacks) {
           try {
@@ -85,7 +71,9 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
 
       this.signalId = this.subscribeFactory(dispatchFn);
       this.isSubscribed = true;
-      debugLog(`[SignalDispatcher:${this.name}] Subscribed (id: ${this.signalId})`);
+      debugLog(
+        `[SignalDispatcher:${this.name}] Subscribed (id: ${this.signalId})`
+      );
     } catch (e) {
       debugLog(`[SignalDispatcher:${this.name}] Subscribe failed:`, e);
     }
@@ -96,7 +84,9 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
 
     try {
       this.unsubscribeFactory(this.signalId);
-      debugLog(`[SignalDispatcher:${this.name}] Unsubscribed (id: ${this.signalId})`);
+      debugLog(
+        `[SignalDispatcher:${this.name}] Unsubscribed (id: ${this.signalId})`
+      );
     } catch (e) {
       debugLog(`[SignalDispatcher:${this.name}] Unsubscribe failed:`, e);
     }
@@ -105,7 +95,7 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
     this.isSubscribed = false;
   }
 
-  /** Force cleanup (e.g., on extension disable) */
+  /** Force cleanup */
   destroy(): void {
     this.callbacks.clear();
     this.unsubscribe();
@@ -117,9 +107,7 @@ export class SignalDispatcher<T extends (...args: any[]) => void> {
   }
 }
 
-/**
- * GObjectSignalDispatcher - For GObject signal connections (connect/disconnect pattern)
- */
+/** GObjectSignalDispatcher */
 export class GObjectSignalDispatcher<T extends (...args: any[]) => void> {
   private callbacks: Set<T> = new Set();
   private signalId: number | null = null;

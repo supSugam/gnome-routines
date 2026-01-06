@@ -20,11 +20,11 @@ export class PowerSaverAction extends BaseAction {
   async execute(): Promise<void> {
     const config = this.config as PowerProfileActionConfig;
 
-    // Support both new profile format and legacy enabled format
+    // Support legacy config
     if (config.profile) {
       this.adapter.setPowerProfile(config.profile);
     } else if (config.enabled !== undefined) {
-      // Legacy compatibility: enabled=true -> power-saver, enabled=false -> balanced
+      // Legacy compact
       this.adapter.setPowerProfile(
         config.enabled ? PowerProfile.POWER_SAVER : PowerProfile.BALANCED
       );
@@ -32,7 +32,7 @@ export class PowerSaverAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
-    // Revert to balanced by default
+    // Revert balanced
     this.adapter.setPowerProfile(PowerProfile.BALANCED);
   }
 }

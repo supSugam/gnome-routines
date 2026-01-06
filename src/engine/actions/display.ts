@@ -24,7 +24,7 @@ export class DarkModeAction extends BaseAction {
 
   async execute(): Promise<void> {
     debugLog(`[DarkModeAction] Executing: enabled=${this.config.enabled}`);
-    // Save current state before changing
+    // Save to stateManager for persistence
     const currentState = this.adapter.getDarkMode();
     this.stateManager.saveState(
       this.routineId,
@@ -138,14 +138,13 @@ export class ScreenOrientationAction extends BaseAction {
     debugLog(
       `[ScreenOrientationAction] Executing: orientation=${this.config.orientation}`
     );
-    // Screen orientation is complex and doesn't have a reliable getter
-    // Skip state persistence for now
+    // No getter available
     await this.adapter.setScreenOrientation(this.config.orientation);
   }
 
   async revert(): Promise<void> {
     debugLog(`[ScreenOrientationAction] Reverting (toggling from config)`);
-    // Toggle orientation as fallback
+    // Toggle fallback
     this.adapter.setScreenOrientation(
       this.config.orientation === ScreenOrientation.PORTRAIT
         ? ScreenOrientation.LANDSCAPE

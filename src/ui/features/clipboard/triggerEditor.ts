@@ -21,7 +21,7 @@ export class ClipboardTriggerEditor extends BaseEditor {
     });
     group.add(clipboardRegexEntry);
 
-    // Initialize selection
+    // Init selection
     const cbTypes = ['any', 'text', 'image', 'regex'];
     if (this.config.contentType && cbTypes.includes(this.config.contentType)) {
       clipboardTypeRow.selected = cbTypes.indexOf(this.config.contentType);
@@ -45,7 +45,7 @@ export class ClipboardTriggerEditor extends BaseEditor {
       this.onChange();
     });
 
-    // Initial state
+    // Init state
     clipboardRegexEntry.visible = clipboardTypeRow.selected === 3;
   }
 

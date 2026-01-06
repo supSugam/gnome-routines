@@ -18,7 +18,7 @@ export class SystemTrigger extends BaseTrigger {
   async check(): Promise<boolean> {
     switch (this.type) {
       case TriggerType.POWER_SAVER: {
-        // For power profiles, compare the actual profile string
+        // Compare power profile
         const currentProfile = await this.adapter.getPowerProfile();
         const targetProfile = this.config.profile || 'power-saver';
         debugLog(
@@ -55,7 +55,6 @@ export class SystemTrigger extends BaseTrigger {
     debugLog(`[SystemTrigger] Activating listener for ${this.type}`);
     this._isActivated = true;
 
-    // Initialize state
     // Initialize state
     this.check().then((initialState) => {
       debugLog(
@@ -94,19 +93,14 @@ export class SystemTrigger extends BaseTrigger {
     });
 
     const callback = async (state: boolean) => {
-      // We need to re-evaluate the full condition because "state" arg might just be the raw value
-      // but check() compares it to target.
-      // Actually the callback args vary by adapter method.
-      // But simply calling check() is safest to get "Matched or Not".
+      // Re-evaluate condition
       const isMatch = await this.check();
 
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
 
-        // CRITICAL: For NEW_CHANGE_ONLY, we MUST baseline to this first value
-        // and NEVER emit, regardless of whether it matches or not.
-        // We are only interested in subsequent *changes*.
+        // Baseline NEW_CHANGE_ONLY
         if (shouldIgnoreInitial) {
           debugLog(
             `[SystemTrigger] ${this.type} Initial Callback: ${isMatch} (Ignored by Strategy)`
@@ -139,7 +133,7 @@ export class SystemTrigger extends BaseTrigger {
           debugLog(`[SystemTrigger] Condition lost (FALSE). Not emitting.`);
         }
       }
-    };
+    };;
 
     switch (this.type) {
       case TriggerType.POWER_SAVER:

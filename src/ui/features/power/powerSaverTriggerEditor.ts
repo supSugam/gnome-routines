@@ -7,10 +7,10 @@ import { PowerProfile } from '../../../engine/types.js';
 
 export class PowerSaverTriggerEditor extends BaseEditor {
   render(group: any): void {
-    // Initialize defaults if missing
+    // Defaults
     if (!this.config.profile) this.config.profile = PowerProfile.POWER_SAVER;
 
-    // Warning about power-profiles-daemon
+    // Warning
     const infoRow = new Adw.ActionRow({
       title: 'Requires power-profiles-daemon',
       subtitle:

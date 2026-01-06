@@ -19,6 +19,6 @@ export class NotificationAction extends BaseAction {
   }
 
   revert(): void {
-    // No revert for notification
+    // No revert
   }
 }

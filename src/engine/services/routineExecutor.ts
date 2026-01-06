@@ -1,12 +1,18 @@
 import debugLog from '../../utils/log.js';
-import { Routine, Action, RoutineHealth, ExecutionType, ExecutionStatus } from '../types.js';
+import {
+  Routine,
+  Action,
+  RoutineHealth,
+  ExecutionType,
+  ExecutionStatus,
+} from '../types.js';
 import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 import { ActionFactory } from '../actionFactory.js';
 import { StateManager } from '../stateManager.js';
 import { HealthTracker } from './healthTracker.js';
 
 /**
- * RoutineExecutor - Executes and reverts routine actions.
+ * RoutineExecutor
  * Single Responsibility: Action execution lifecycle.
  */
 export class RoutineExecutor {
@@ -24,9 +30,7 @@ export class RoutineExecutor {
     this.healthTracker = healthTracker;
   }
 
-  /**
-   * Execute all actions for a routine (activation).
-   */
+  /** Execute all actions for a routine (activation) */
   async activate(routine: Routine): Promise<void> {
     debugLog(`[RoutineExecutor] Activating: ${routine.name}`);
     debugLog(`[RoutineExecutor] Actions: ${routine.actions.length}`);
@@ -63,21 +67,22 @@ export class RoutineExecutor {
     }
   }
 
-  /**
-   * Deactivate a routine by reverting or applying custom deactivation.
-   */
+  /** Deactivate a routine by reverting or applying custom deactivation */
   async deactivate(routine: Routine): Promise<void> {
     debugLog(`[RoutineExecutor] Deactivating: ${routine.name}`);
     routine.isActive = false;
 
-    // Process actions in reverse order
+    // Reversed order
     for (let i = routine.actions.length - 1; i >= 0; i--) {
       const action = routine.actions[i];
       await this.deactivateAction(action, routine.id);
     }
   }
 
-  private async deactivateAction(action: Action, routineId: string): Promise<void> {
+  private async deactivateAction(
+    action: Action,
+    routineId: string
+  ): Promise<void> {
     const onDeactivate = action.onDeactivate;
 
     if (onDeactivate) {
@@ -88,7 +93,9 @@ export class RoutineExecutor {
 
       if (onDeactivate.type === 'custom' && onDeactivate.config) {
         debugLog(`[RoutineExecutor] Custom deactivation for ${action.id}`);
-        debugLog(`[RoutineExecutor] Config: ${JSON.stringify(onDeactivate.config)}`);
+        debugLog(
+          `[RoutineExecutor] Config: ${JSON.stringify(onDeactivate.config)}`
+        );
 
         const customAction = ActionFactory.create(
           { ...action, config: onDeactivate.config },
@@ -101,14 +108,16 @@ export class RoutineExecutor {
           try {
             await customAction.execute();
           } catch (e) {
-            debugLog(`[RoutineExecutor] Custom deactivation failed for ${action.id}:`, e);
+            debugLog(
+              `[RoutineExecutor] Custom deactivation failed for ${action.id}:`,
+              e
+            );
           }
         }
         return;
       }
     }
 
-    // Default: revert
     if (action.revert) {
       try {
         await action.revert();

@@ -7,7 +7,7 @@ export abstract class BaseTrigger extends EventEmitter implements Trigger {
   type: TriggerType;
   config: Record<string, any>;
   isActive: boolean = false;
-  strategy?: TriggerStrategy; // Defined in types
+  strategy?: TriggerStrategy;
 
   constructor(
     id: string,

@@ -38,7 +38,6 @@ export class StartupTrigger extends BaseTrigger {
     }
 
     if (this.hasFired) {
-      // Don't spam debug log here as it will be called frequently by manager
       return false;
     }
 
@@ -48,9 +47,7 @@ export class StartupTrigger extends BaseTrigger {
       `[GnomeRoutines-DEBUG] StartupTrigger Check - isStartup: ${isStartup}, timeSinceInit: ${timeSinceInit}ms`
     );
 
-    // We only trigger if it is indeed a startup session AND we are checking
-    // reasonably close to initialization.
-    // Increased grace period to 120s to allow for slow logins or delayed routine checks.
+    // Valid trigger window
     const GRACE_PERIOD_MS = 120000;
 
     if (isStartup && timeSinceInit < GRACE_PERIOD_MS) {

@@ -8,7 +8,7 @@ import { BaseEditor } from '../../components/baseEditor.js';
 
 export class AppTriggerEditor extends BaseEditor {
   render(group: any): void {
-    // Inline Search and List
+    // Search & List
     const appSearch = new Gtk.SearchEntry({
       placeholder_text: 'Search Apps...',
     });
@@ -17,7 +17,7 @@ export class AppTriggerEditor extends BaseEditor {
 
     const appScroll = new Gtk.ScrolledWindow();
     appScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
-    appScroll.min_content_height = 300; // Fixed height for scrollable area
+    appScroll.min_content_height = 300; // Fixed height
     appScroll.propagate_natural_height = true;
 
     const appList = new Gtk.ListBox({
@@ -27,6 +27,7 @@ export class AppTriggerEditor extends BaseEditor {
     appScroll.child = appList;
     group.add(appScroll);
 
+    // Init selection
     // Initialize selected apps
     if (!this.config.appIds) {
       this.config.appIds = this.config.appId ? [this.config.appId] : [];
@@ -50,7 +51,7 @@ export class AppTriggerEditor extends BaseEditor {
         row.add_prefix(img);
       }
 
-      // Switch for selection
+      // Toggle
       const toggle = new Gtk.Switch({
         active: selectedAppIds.has(app.get_id()),
       });

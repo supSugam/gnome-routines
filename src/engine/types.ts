@@ -46,7 +46,7 @@ export enum ActionType {
   EXECUTE_COMMAND = 'execute_command',
 }
 
-// --- Trigger Configs ---
+// Trigger Configs
 
 export enum ConnectionState {
   CONNECTED = 'connected',
@@ -136,8 +136,8 @@ export type TriggerConfig =
   | StartupTriggerConfig;
 
 export enum TriggerStrategy {
-  EXISTING_STATE = 'existing_state', // Checks conditions immediately on startup. (e.g. Battery Level)
-  NEW_CHANGE_ONLY = 'new_change_only', // Ignores startup state, waits for new event. (e.g. Charging Status)
+  EXISTING_STATE = 'existing_state',
+  NEW_CHANGE_ONLY = 'new_change_only', // Ignores startup state
 }
 
 export interface Trigger {
@@ -150,7 +150,7 @@ export interface Trigger {
   on(event: 'activate' | 'deactivate', callback: () => void): void;
 }
 
-// --- Action Configs ---
+// Action Configs
 
 export interface OpenAppActionConfig {
   appIds: string[];
@@ -285,7 +285,7 @@ export type ActionConfig =
   | OpenLinkActionConfig
   | ClipboardActionConfig
   | ExecuteCommandActionConfig
-  | Record<string, any>; // Fallback for now
+  | Record<string, any>;
 
 export enum DeactivateStrategy {
   REVERT = 'revert',
@@ -331,7 +331,7 @@ export interface RoutineManagerInterface {
   getRoutineHealth(id: string): RoutineState;
 }
 
-// --- Safety & Health Types ---
+// Safety & Health Types
 
 export enum ResourceType {
   WIFI = 'resource_wifi',
@@ -355,7 +355,7 @@ export const ACTION_RESOURCE_MAP: Record<ActionType, ResourceType[]> = {
   [ActionType.CONNECT_BLUETOOTH]: [ResourceType.BLUETOOTH],
   [ActionType.DISCONNECT_BLUETOOTH]: [ResourceType.BLUETOOTH],
   [ActionType.BRIGHTNESS]: [ResourceType.DISPLAY_BRIGHTNESS],
-  [ActionType.KEYBOARD_BRIGHTNESS]: [ResourceType.DISPLAY_BRIGHTNESS], // Assuming shared? Or separate
+  [ActionType.KEYBOARD_BRIGHTNESS]: [ResourceType.DISPLAY_BRIGHTNESS],
   [ActionType.VOLUME]: [ResourceType.VOLUME],
   [ActionType.WALLPAPER]: [ResourceType.WALLPAPER],
   [ActionType.POWER_SAVER]: [ResourceType.POWER_SAVER],
@@ -365,18 +365,14 @@ export const ACTION_RESOURCE_MAP: Record<ActionType, ResourceType[]> = {
   [ActionType.NIGHT_LIGHT]: [ResourceType.NIGHT_LIGHT],
   [ActionType.SCREEN_TIMEOUT]: [ResourceType.SCREEN_TIMEOUT],
   [ActionType.SCREEN_ORIENTATION]: [ResourceType.SCREEN_ORIENTATION],
-  // Actions that don't lock resources: Open App, Notification, Screenshot, Clipboard (maybe?)
   [ActionType.OPEN_APP]: [],
   [ActionType.NOTIFICATION]: [],
   [ActionType.TAKE_SCREENSHOT]: [],
-  [ActionType.CLIPBOARD]: [], // Could argue clipboard is a resource, but multiple writes usually unlikely to "conflict" in a damaging way compared to hardware toggles
+  [ActionType.CLIPBOARD]: [],
   [ActionType.OPEN_LINK]: [],
   [ActionType.REFRESH_RATE]: [],
   [ActionType.EXECUTE_COMMAND]: [],
 };
-
-// Fix for keyboard brightness if not in enum properly or special handling
-// Actually ActionType has KEYBOARD_BRIGHTNESS
 
 export enum RoutineHealth {
   OK = 'ok',
@@ -413,7 +409,7 @@ export interface RoutineState {
   history: ExecutionLog[];
 }
 
-// --- Import/Export Types ---
+// Import/Export Types
 
 export interface RoutineExport {
   version: number;

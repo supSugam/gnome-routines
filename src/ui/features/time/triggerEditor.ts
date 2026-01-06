@@ -7,12 +7,12 @@ import { BaseEditor } from '../../components/baseEditor.js';
 export class TimeTriggerEditor extends BaseEditor {
   render(group: any): void {
     // Time Mode Selector
-    // Init defaults if completely empty (new trigger)
+    // Init defaults
     if (!this.config.time && !this.config.startTime && !this.config.endTime) {
       this.config.time = '09:00';
     }
 
-    // Time Mode Selector
+    // Mode Selector
     const timeTypeRow = new Adw.ComboRow({
       title: 'Time Mode',
       model: new Gtk.StringList({
@@ -22,7 +22,7 @@ export class TimeTriggerEditor extends BaseEditor {
     });
     group.add(timeTypeRow);
 
-    // Time Pickers
+    // Pickers
     const timeRow = new Adw.ActionRow({ title: 'Time' });
     const timePicker = this.createTimePicker(
       this.config.time || '09:00',
@@ -56,14 +56,14 @@ export class TimeTriggerEditor extends BaseEditor {
     endRow.add_suffix(endPicker.widget);
     group.add(endRow);
 
-    // Visibility Logic
+    // Visibility
     const refreshTimeFields = () => {
       const isPeriod = timeTypeRow.selected === 1;
       timeRow.visible = !isPeriod;
       startRow.visible = isPeriod;
       endRow.visible = isPeriod;
 
-      // Sync config from UI widgets to ensure defaults/current edits are captured
+      // Sync config
       if (isPeriod) {
         this.config.startTime = startPicker.getValue();
         this.config.endTime = endPicker.getValue();
@@ -79,12 +79,12 @@ export class TimeTriggerEditor extends BaseEditor {
     timeTypeRow.connect('notify::selected', refreshTimeFields);
     refreshTimeFields();
 
-    // Days Selection
+    // Days
     if (!this.config.days) {
       this.config.days = [0, 1, 2, 3, 4, 5, 6];
     }
 
-    // Repeat Section Container
+    // Repeat
     const repeatContainer = new Gtk.Box({
       orientation: Gtk.Orientation.VERTICAL,
       spacing: 12,
@@ -144,7 +144,7 @@ export class TimeTriggerEditor extends BaseEditor {
 
     wrapperBox.append(daysBox);
 
-    // Presets Menu
+    // Presets
     const menuBtn = new Gtk.MenuButton({
       icon_name: 'view-more-symbolic',
       tooltip_text: 'Presets',
@@ -223,7 +223,7 @@ export class TimeTriggerEditor extends BaseEditor {
     return days.map((d) => dayNames[d]).join(', ');
   }
 
-  // Helper to create 12h picker
+  // 12h picker
   private createTimePicker(
     initialTime24h: string,
     onUpdate: (time: string) => void
@@ -296,9 +296,7 @@ export class TimeTriggerEditor extends BaseEditor {
   }
 
   validate(): boolean | string {
-    // Time validation is implicit with SpinButtons
-    // But we should check if days are selected (if we implement days here)
-    // For now, basic validation passes
+    // Validation implicit
     return true;
   }
 }

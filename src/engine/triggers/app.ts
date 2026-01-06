@@ -19,7 +19,7 @@ export class AppTrigger extends BaseTrigger {
   activate(): void {
     this._appSystem = Shell.AppSystem.get_default();
 
-    // Listen for app state changes (started/stopped)
+    // Listen for app state changes
     const installChangedId = this._appSystem.connect(
       'app-state-changed',
       () => {
@@ -30,7 +30,6 @@ export class AppTrigger extends BaseTrigger {
 
     this._handlerIds.push(installChangedId);
 
-    // Initial check
     this.check();
   }
 
@@ -52,7 +51,7 @@ export class AppTrigger extends BaseTrigger {
       ).appIds.join(', ')}`
     );
 
-    // Check if any of our target apps are running
+    // Check running apps
     const match = runningApps.some((app: any) => {
       const appId = app.get_id().replace('.desktop', '');
       return (this.config as AppTriggerConfig).appIds.some(
@@ -66,7 +65,7 @@ export class AppTrigger extends BaseTrigger {
       debugLog(`[AppTrigger] No target apps running`);
     }
 
-    // Only emit if state changed or first check
+    // Emit only on state change
     if (this._lastMatch === null) {
       const shouldIgnoreInitial =
         this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
@@ -77,7 +76,6 @@ export class AppTrigger extends BaseTrigger {
       this._lastMatch = match;
 
       if (!shouldIgnoreInitial && match) {
-        // If NOT ignoring initial, AND match is true, trigger.
         this.emit('triggered');
       }
       return match;

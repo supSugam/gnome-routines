@@ -20,7 +20,7 @@ export class AudioAdapter {
       return Promise.resolve();
     }
     return new Promise((resolve) => {
-      // We might want a timeout here, but usually it connects quickly
+      // No timeout (fast connection)
       const id = this._mixer.connect(
         'state-changed',
         (mixer: any, state: number) => {
@@ -125,7 +125,7 @@ export class AudioAdapter {
       );
     }
 
-    // Wrap the callback to check headphone state on sink change
+    // Wrap callback
     const wrappedCallback = () => {
       this.getWiredHeadphonesState().then((state) => {
         callback(state);

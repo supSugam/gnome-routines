@@ -63,7 +63,6 @@ export class ExecuteCommandEditor extends BaseEditor {
     box.append(scroller);
 
     // We add our custom box to the preferences group.
-    // AdwPreferencesGroup supports arbitrary widgets.
     group.add(box);
   }
 

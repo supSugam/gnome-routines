@@ -13,10 +13,10 @@ function getLogStream() {
     const logDir = GLib.build_filenamev([cacheDir, EXTENSION_DEFAULTS.log.dir]);
 
     if (GLib.mkdir_with_parents(logDir, 0o755) !== 0) {
-      // Ignore error if exists
+      // Ignore error
     }
 
-    // Cleanup leftover temp files (.goutputstream-*)
+    // Cleanup temp
     try {
       const dir = Gio.File.new_for_path(logDir);
       const enumerator = dir.enumerate_children(
@@ -32,12 +32,12 @@ function getLogStream() {
           try {
             tempFile.delete(null);
           } catch (e) {
-            // Ignore delete errors
+            // Ignore delete
           }
         }
       }
     } catch (e) {
-      // Ignore cleanup errors
+      // Ignore cleanup
     }
 
     const logFile = GLib.build_filenamev([
@@ -46,7 +46,7 @@ function getLogStream() {
     ]);
     const file = Gio.File.new_for_path(logFile);
 
-    // Append mode
+    // Append
     logStream = file.append_to(Gio.FileCreateFlags.NONE, null);
     return logStream;
   } catch (e) {
@@ -74,10 +74,10 @@ export default function debugLog(message: string, ...args: any[]) {
     .join(' ');
   const fullMessage = `GR-DEBUG -- ${timestamp} ${message} ${argsStr}`;
 
-  // Console output
+  // Console
   console.log(fullMessage);
 
-  // File output
+  // File
   if (EXTENSION_DEFAULTS.log.saveToFile) {
     try {
       const stream = getLogStream();
@@ -97,7 +97,7 @@ export function startFreshLog() {
     try {
       stream.truncate(0, null);
     } catch (e) {
-      // Truncate might fail on some streams, ignore
+      // Ignore fail
     }
   }
 }

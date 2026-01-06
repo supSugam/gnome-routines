@@ -5,11 +5,8 @@ import { SystemAdapter } from '../../gnome/adapters/adapter.js';
 import debugLog from '../../utils/log.js';
 
 /**
- * WallpaperTrigger - fires when wallpaper changes.
- *
- * Note: Unlike other NEW_CHANGE_ONLY triggers, the wallpaper GSettings signal
- * only fires on actual changes, so we don't need baseline filtering here.
- * The signal itself is already filtered to real changes.
+ * WallpaperTrigger
+ * Event-based (filtered by settings)
  */
 export class WallpaperTrigger extends BaseTrigger {
   private _adapter: SystemAdapter;

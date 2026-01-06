@@ -18,7 +18,7 @@ export class DndTriggerEditor extends BinaryStateTriggerEditor {
     return 'off';
   }
 
-  // Ensure initialization happens
+  // Init
   render(group: any): void {
     if (this.config.state === undefined) {
       this.config.state = this.getTrueValue();

@@ -11,7 +11,7 @@ export class DndTrigger extends BaseTrigger {
   private cleanup: (() => void) | null = null;
 
   constructor(id: string, config: any, adapter: SystemAdapter) {
-    // Strategy: Default from metadata (INITIAL_IGNORE)
+    // Use default strategy
     super(id, TriggerType.DND, config);
     this.adapter = adapter;
   }
@@ -70,7 +70,7 @@ export class DndTrigger extends BaseTrigger {
         const isMatch = isDnd === targetState;
 
         if (!this._initialized) {
-          // Race condition logic
+          // Race condition
           if (shouldIgnoreInitial) {
             debugLog(
               `[DndTrigger] Initial Event: ${isMatch} (Baselined - Ignored)`

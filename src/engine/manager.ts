@@ -22,14 +22,8 @@ import {
 } from './services/index.js';
 
 /**
- * RoutineManager - Orchestrates routine evaluation and lifecycle.
- *
- * This is now a thin orchestration layer that delegates to specialized services:
- * - RoutineRepository: CRUD and hydration
- * - HealthTracker: Health state management
- * - ConflictDetector: Resource conflict detection
- * - TriggerOrchestrator: Trigger lifecycle
- * - RoutineExecutor: Action execution
+ * RoutineManager
+ * Orchestrates routine evaluation and lifecycle.
  */
 export class RoutineManager implements RoutineManagerInterface {
   private repository: RoutineRepository;
@@ -39,7 +33,7 @@ export class RoutineManager implements RoutineManagerInterface {
   private executor: RoutineExecutor;
   private adapter: SystemAdapter;
 
-  // Circuit breaker state
+  // Check frequency
   private _evaluationCount: number = 0;
   private _lastResetTime: number = Date.now();
   private _isFirstRun: boolean = true;
@@ -48,7 +42,6 @@ export class RoutineManager implements RoutineManagerInterface {
     this.adapter = adapter;
     const stateManager = new StateManager(settings);
 
-    // Initialize services
     this.healthTracker = new HealthTracker(stateManager);
     this.repository = new RoutineRepository(storage, adapter, stateManager);
     this.conflictDetector = new ConflictDetector();
@@ -58,15 +51,13 @@ export class RoutineManager implements RoutineManagerInterface {
       this.healthTracker
     );
 
-    // TriggerOrchestrator needs callbacks into this manager
+    // Callbacks
     this.triggerOrchestrator = new TriggerOrchestrator({
       getRoutineHealth: (id) => this.healthTracker.getHealth(id),
       activateRoutine: (routine) => this.activateRoutine(routine),
       evaluate: (triggers) => this.evaluate(triggers),
     });
   }
-
-  // ============ Public API ============
 
   getRoutineHealth(id: string): RoutineState {
     return this.healthTracker.getHealth(id);
@@ -181,11 +172,9 @@ export class RoutineManager implements RoutineManagerInterface {
     debugLog('[RoutineManager] Destroyed');
   }
 
-  // ============ Core Evaluation Loop ============
-
   async evaluate(forceActiveTriggers: Trigger[] = []): Promise<void> {
     try {
-      // Circuit breaker
+      // Check frequency
       const now = Date.now();
       if (now - this._lastResetTime > 60000) {
         this._evaluationCount = 0;
@@ -207,7 +196,6 @@ export class RoutineManager implements RoutineManagerInterface {
         return;
       }
 
-      // Evaluate each routine
       for (const routine of this.repository.values()) {
         await this.evaluateRoutine(routine, forceActiveTriggers);
       }
@@ -218,14 +206,12 @@ export class RoutineManager implements RoutineManagerInterface {
     }
   }
 
-  // ============ Private Methods ============
-
   private async evaluateRoutine(
     routine: Routine,
     forceActiveTriggers: Trigger[]
   ): Promise<void> {
     try {
-      // Manage trigger lifecycle based on enabled state
+      // Lifecycle management
       if (routine.enabled) {
         this.triggerOrchestrator.activateAll(routine);
       } else {
@@ -236,7 +222,6 @@ export class RoutineManager implements RoutineManagerInterface {
         return;
       }
 
-      // Check triggers
       const activeTriggers = await this.triggerOrchestrator.checkAll(
         routine.triggers,
         routine.matchType || 'all',
@@ -245,7 +230,7 @@ export class RoutineManager implements RoutineManagerInterface {
       const shouldBeActive = activeTriggers.length > 0;
 
       if (shouldBeActive && !routine.isActive) {
-        // First-run strategy check
+        // Strategy check
         if (this._isFirstRun) {
           const allIgnorable = activeTriggers.every(
             (t) => t.strategy === TriggerStrategy.NEW_CHANGE_ONLY
@@ -259,8 +244,6 @@ export class RoutineManager implements RoutineManagerInterface {
             return;
           }
         }
-
-        // Conflict check
         const conflicts = this.conflictDetector.checkConflicts(
           routine,
           this.repository.values()

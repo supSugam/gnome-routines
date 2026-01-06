@@ -25,7 +25,7 @@ export class ClipboardActionEditor extends BaseEditor {
   }
 
   render(group: any): void {
-    // Operation Selector
+    // Operation
     const opModel = new Gtk.StringList({
       strings: [
         UI_STRINGS.clipboard.clear,
@@ -39,7 +39,7 @@ export class ClipboardActionEditor extends BaseEditor {
       model: opModel,
     });
 
-    // Map index to operation
+    // Valid ops
     const ops = [
       ClipboardOperation.CLEAR,
       ClipboardOperation.REPLACE,
@@ -47,7 +47,7 @@ export class ClipboardActionEditor extends BaseEditor {
     ];
     opRow.selected = ops.indexOf(this.config.operation);
 
-    // Dynamic content group
+    // Content group
     const contentGroup = new Adw.PreferencesGroup();
 
     // @ts-ignore
@@ -60,35 +60,14 @@ export class ClipboardActionEditor extends BaseEditor {
     group.add(opRow);
     group.add(contentGroup);
 
-    // Store sanitize group reference for refreshing
+    // Sanitize group ref
     (this as any)._sanitizeGroup = null;
 
     this.renderContent(contentGroup);
   }
 
   private renderContent(group: any): void {
-    // Clear existing rows (hacky way since Adw.PreferencesGroup doesn't have clear())
-    // We assume the group is empty or we are appending.
-    // Actually, Adw.PreferencesGroup doesn't support removing all children easily without keeping references.
-    // A better approach is to remove the group from parent and add a new one, but 'group' is passed in.
-    // Let's try to remove rows if we tracked them, or just use a container.
-    // For simplicity in this environment, let's assume we can't easily clear 'group' passed from parent
-    // if we don't control it fully.
-    // BUT, I can use a Gtk.Box inside the group? No, group expects rows.
-    // Let's rely on the fact that I can remove specific rows if I track them.
-
-    // Wait, I can't easily clear the group passed to renderContent if I didn't create it.
-    // But I created `contentGroup` in `render`. So I can remove it from `group` (the parent) and add a new one?
-    // `group` passed to `render` is the parent group.
-    // `contentGroup` is added to `group`.
-    // So I can't replace `contentGroup` easily inside `renderContent` without reference to `group`.
-    // Let's change the structure: `render` creates `contentGroup`, adds it to `group`.
-    // `renderContent` takes `contentGroup`.
-    // To clear `contentGroup`, I need to remove its children.
-    // Adw.PreferencesGroup inherits from Gtk.Widget -> GObject.
-    // It has `remove(child)`.
-
-    // Let's track children.
+    // Refresh rows
     if ((this as any)._rows) {
       (this as any)._rows.forEach((row: any) => group.remove(row));
     }
@@ -120,7 +99,7 @@ export class ClipboardActionEditor extends BaseEditor {
       (this as any)._rows.push(replaceRow);
     }
 
-    // Sanitize Section
+    // Sanitize
     if (this.config.operation !== ClipboardOperation.CLEAR) {
       const sanitizeGroup = new Adw.PreferencesGroup({
         title: UI_STRINGS.clipboard.sanitize,
@@ -146,7 +125,7 @@ export class ClipboardActionEditor extends BaseEditor {
   }
 
   private renderSanitizeConfig(group: any, visible: boolean): void {
-    // Remove existing config rows (hacky tracking)
+    // Refresh config rows
     if ((this as any)._sanitizeRows) {
       (this as any)._sanitizeRows.forEach((row: any) => group.remove(row));
     }
@@ -161,7 +140,7 @@ export class ClipboardActionEditor extends BaseEditor {
       };
     }
 
-    // Mode Selector
+    // Mode
     const modeModel = new Gtk.StringList({
       strings: [
         UI_STRINGS.clipboard.modes.predefined,
@@ -194,7 +173,7 @@ export class ClipboardActionEditor extends BaseEditor {
     group.add(modeRow);
     (this as any)._sanitizeRows.push(modeRow);
 
-    // Custom Rules Header/Group (Only show if NOT predefined only)
+    // Custom Rules
     if (this.config.sanitizeConfig.mode !== SanitizationMode.PREDEFINED) {
       const rulesHeader = new Adw.ActionRow({
         title: UI_STRINGS.clipboard.customParams,
@@ -211,7 +190,7 @@ export class ClipboardActionEditor extends BaseEditor {
       group.add(rulesHeader);
       (this as any)._sanitizeRows.push(rulesHeader);
 
-      // List Rules
+      // Rule List
       const rules = this.config.sanitizeConfig.domainRules || [];
       if (rules.length === 0) {
         const noRulesRow = new Adw.ActionRow({
@@ -307,7 +286,7 @@ export class ClipboardActionEditor extends BaseEditor {
     paramsEntry.tooltip_text = UI_STRINGS.clipboard.paramsToRemovePlaceholder;
     group.add(paramsEntry);
 
-    // Helper to normalize domain
+    // Domain Utils
     const normalizeDomain = (input: string): string | null => {
       let domainInput = input.trim();
       if (
@@ -368,9 +347,9 @@ export class ClipboardActionEditor extends BaseEditor {
       const exists = this.config.sanitizeConfig!.domainRules!.some((r, i) => {
         if (!isNew && i === index) return false; // Ignore self when editing
 
-        // Normalize existing rule for comparison
+        // Normalize rule
         const existingNormalized = normalizeDomain(r.domain);
-        // Fallback to exact string match if normalization fails (shouldn't happen for valid saved rules)
+        // Fallback
         return (
           (existingNormalized && existingNormalized === normalizedDomain) ||
           r.domain === domainEntry.text
@@ -381,7 +360,7 @@ export class ClipboardActionEditor extends BaseEditor {
         `[VALIDATE] exists: ${exists}, paramsEntry.text.length: ${paramsEntry.text.length}`
       );
 
-      // Make sure domain is valid
+      // Validation
       saveBtn.sensitive = isValidUrl && paramsEntry.text.length > 0 && !exists;
 
       if (!isValidUrl && domainEntry.text.length > 0) {

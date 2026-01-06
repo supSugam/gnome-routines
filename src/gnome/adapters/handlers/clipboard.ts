@@ -23,8 +23,8 @@ export class ClipboardAdapter {
             if (text) {
               resolve({ type: 'text', content: text });
             } else {
-              // Image checking is harder in St.Clipboard without callback complexity
-              // Assume empty or other for now
+              // Image support todo
+              // Assume empty/other
               resolve({ type: 'other' });
             }
           }
@@ -85,7 +85,7 @@ export class ClipboardAdapter {
         e
       );
 
-      // Fallback to polling if signal fails
+      // Polling fallback
       let lastContent: string | undefined;
       const id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
         this.getClipboardContent().then((res) => {

@@ -16,9 +16,7 @@ export class WallpaperAction extends BaseAction {
 
   execute(): void {
     debugLog(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
-    // Only capture the previous wallpaper if we haven't already.
-    // This ensures that if execute() is called multiple times while active,
-    // we don't overwrite the original wallpaper with the one we just set.
+    // Capture initial state
     if (!this.previousWallpaper) {
       this.previousWallpaper = this.adapter.getWallpaper();
       debugLog(

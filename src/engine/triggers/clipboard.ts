@@ -6,12 +6,7 @@ import GLib from 'gi://GLib';
 import { TriggerType } from '../types.js';
 
 /**
- * ClipboardTrigger - fires when clipboard content actually changes.
- *
- * Clean approach:
- * - First event after activation sets the baseline (ignored)
- * - Only subsequent events can trigger
- * - Uses content hashing to detect actual changes
+ * ClipboardTrigger
  */
 export class ClipboardTrigger extends BaseTrigger {
   private adapter: SystemAdapter;
@@ -44,7 +39,6 @@ export class ClipboardTrigger extends BaseTrigger {
     this._baselineEstablished = false;
     this._baselineHash = null;
 
-    // Subscribe to clipboard changes
     this.cleanup = this.adapter.onClipboardChanged(() => {
       this.handleClipboardChange();
     });
@@ -55,7 +49,7 @@ export class ClipboardTrigger extends BaseTrigger {
   }
 
   private handleClipboardChange(): void {
-    // Debounce rapid events
+    // Debounce
     if (this.syncTimeoutId !== null) {
       GLib.source_remove(this.syncTimeoutId);
       this.syncTimeoutId = null;
@@ -74,7 +68,7 @@ export class ClipboardTrigger extends BaseTrigger {
       .then((res) => {
         const currentHash = this.hashContent(res.type, res.content);
 
-        // First event: establish baseline, don't trigger
+        // Baseline initialization
         if (!this._baselineEstablished) {
           this._baselineHash = currentHash;
           this._baselineEstablished = true;
@@ -84,7 +78,7 @@ export class ClipboardTrigger extends BaseTrigger {
           return;
         }
 
-        // Subsequent events: check for actual change
+        // Check change
         if (currentHash === this._baselineHash) {
           debugLog(
             '[ClipboardTrigger] No actual change (same hash). Ignoring.'

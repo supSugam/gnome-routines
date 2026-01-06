@@ -26,7 +26,7 @@ export class BluetoothTrigger extends BaseTrigger {
 
   private async _evaluateCondition(): Promise<boolean> {
     try {
-      // Power state check
+      // Check power
       if (
         this.config.state === ConnectionState.ENABLED ||
         this.config.state === ConnectionState.DISABLED
@@ -41,7 +41,7 @@ export class BluetoothTrigger extends BaseTrigger {
       const connectedDevices =
         await this.adapter.getConnectedBluetoothDevices();
 
-      // If specific devices are configured
+      // Specific devices
       if (this.config.deviceIds && this.config.deviceIds.length > 0) {
         const isMatch = connectedDevices.some(
           (d) =>
@@ -79,7 +79,6 @@ export class BluetoothTrigger extends BaseTrigger {
     this._lastMatchState = null;
 
     // Initialize baseline state
-    // Initialize baseline state
     this._evaluateCondition().then((initialState) => {
       if (!this._initialized) {
         const shouldIgnoreInitial =
@@ -92,7 +91,6 @@ export class BluetoothTrigger extends BaseTrigger {
           this._lastMatchState = initialState;
           this._initialized = true;
         } else {
-          // STATE_PERSISTENT
           debugLog(
             `[BluetoothTrigger] Initial State established: ${initialState} (Checking immediate)`
           );
@@ -124,7 +122,7 @@ export class BluetoothTrigger extends BaseTrigger {
     if (!this._isActivated) return;
 
     if (!this._initialized) {
-      // Race condition: Event before first evaluation finished.
+      // Race condition: event before init
       // We accept this as the baseline.
       const currentState = await this._evaluateCondition();
       if (!this._initialized) {
@@ -143,7 +141,6 @@ export class BluetoothTrigger extends BaseTrigger {
           );
           this._lastMatchState = currentState;
           this._initialized = true;
-          // Proceed to check below
         }
       }
     }
@@ -157,8 +154,6 @@ export class BluetoothTrigger extends BaseTrigger {
       this._lastMatchState = currentMatch;
 
       if (currentMatch) {
-        // MATCH became TRUE
-
         // USER REQUIREMENT: Disconnect is only valid if Power is ON.
         if (this.config.state === ConnectionState.DISCONNECTED) {
           const isPowerOn = await this.adapter.getBluetoothPowerState();
@@ -166,11 +161,7 @@ export class BluetoothTrigger extends BaseTrigger {
             debugLog(
               `[BluetoothTrigger] Ignored Disconnect event because Bluetooth Power is OFF.`
             );
-            // We suppress the emission for this specific edge case.
-            // Logic: The condition IS true (disconnected), but we don't want to act on it.
-            // But we already updated _lastMatchState to true.
-            // So if we don't emit, RoutineManager won't activate.
-            // If we later connect (False), we will emit (False).
+            // Suppress emission if power off
             return;
           }
         }

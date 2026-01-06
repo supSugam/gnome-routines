@@ -10,7 +10,7 @@ export interface TriggerOrchestratorCallbacks {
 }
 
 /**
- * TriggerOrchestrator - Manages trigger lifecycle and event handling.
+ * TriggerOrchestrator
  * Single Responsibility: Trigger activation, deactivation, and event routing.
  */
 export class TriggerOrchestrator {
@@ -21,18 +21,13 @@ export class TriggerOrchestrator {
     this.callbacks = callbacks;
   }
 
-  /**
-   * Activate all triggers for a routine and wire up event handlers.
-   */
+  /** Activate and listen to all triggers */
   activateAll(routine: Routine): void {
     for (const trigger of routine.triggers) {
       this.activateTrigger(trigger as any, routine);
     }
   }
 
-  /**
-   * Deactivate all triggers for a routine.
-   */
   deactivateAll(routine: Routine): void {
     for (const trigger of routine.triggers) {
       const t = trigger as any;
@@ -43,9 +38,6 @@ export class TriggerOrchestrator {
     }
   }
 
-  /**
-   * Check all triggers and return those that are active.
-   */
   async checkAll(
     triggers: Trigger[],
     matchType: 'any' | 'all',
@@ -56,7 +48,7 @@ export class TriggerOrchestrator {
     const activeTriggers: Trigger[] = [];
 
     for (const trigger of triggers) {
-      // Force-active triggers bypass checking
+      // Bypass check for forced triggers
       if (forceTriggers.some((t) => t.id === trigger.id)) {
         activeTriggers.push(trigger);
         continue;
@@ -87,14 +79,13 @@ export class TriggerOrchestrator {
 
     trigger._isActivated = true;
 
-    // Wire up event handlers
+    // Setup handlers
     if (trigger.on) {
       this.setupTriggeredHandler(trigger, routine);
       this.setupActivateHandler(trigger);
       this.setupDeactivateHandler(trigger);
     }
 
-    // Actually activate the trigger
     try {
       trigger.activate();
     } catch (e) {
@@ -110,8 +101,10 @@ export class TriggerOrchestrator {
           `[TriggerOrchestrator] Trigger ${trigger.id} fired for "${routine.name}"`
         );
 
-        const metadata = TRIGGER_METADATA[trigger.type as keyof typeof TRIGGER_METADATA];
-        const isEventBased = metadata?.defaultStrategy === TriggerStrategy.NEW_CHANGE_ONLY;
+        const metadata =
+          TRIGGER_METADATA[trigger.type as keyof typeof TRIGGER_METADATA];
+        const isEventBased =
+          metadata?.defaultStrategy === TriggerStrategy.NEW_CHANGE_ONLY;
         const isValid = isEventBased ? true : await trigger.check();
 
         debugLog(
@@ -139,10 +132,14 @@ export class TriggerOrchestrator {
           }
         } else {
           if (isValid) {
-            debugLog('[TriggerOrchestrator] Inactive routine, valid trigger. Force-evaluating.');
+            debugLog(
+              '[TriggerOrchestrator] Inactive routine, valid trigger. Force-evaluating.'
+            );
             await this.callbacks.evaluate([trigger]);
           } else {
-            debugLog('[TriggerOrchestrator] Inactive routine, invalid trigger. Normal evaluation.');
+            debugLog(
+              '[TriggerOrchestrator] Inactive routine, invalid trigger. Normal evaluation.'
+            );
             await this.callbacks.evaluate();
           }
         }
@@ -158,18 +155,20 @@ export class TriggerOrchestrator {
   private setupActivateHandler(trigger: any): void {
     trigger.on('activate', () => {
       debugLog(`[TriggerOrchestrator] Trigger ${trigger.id} activated`);
-      this.callbacks.evaluate().catch((e) =>
-        debugLog('[TriggerOrchestrator] Error on activate:', e)
-      );
+      this.callbacks
+        .evaluate()
+        .catch((e) => debugLog('[TriggerOrchestrator] Error on activate:', e));
     });
   }
 
   private setupDeactivateHandler(trigger: any): void {
     trigger.on('deactivate', () => {
       debugLog(`[TriggerOrchestrator] Trigger ${trigger.id} deactivated`);
-      this.callbacks.evaluate().catch((e) =>
-        debugLog('[TriggerOrchestrator] Error on deactivate:', e)
-      );
+      this.callbacks
+        .evaluate()
+        .catch((e) =>
+          debugLog('[TriggerOrchestrator] Error on deactivate:', e)
+        );
     });
   }
 }

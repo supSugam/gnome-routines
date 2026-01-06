@@ -34,6 +34,7 @@ export class OpenAppActionEditor extends BaseEditor {
     const allApps = Gio.AppInfo.get_all().filter((app: any) =>
       app.should_show()
     );
+    // Rows
     // @ts-ignore
     const appRows: { row: Adw.ActionRow; name: string }[] = [];
 

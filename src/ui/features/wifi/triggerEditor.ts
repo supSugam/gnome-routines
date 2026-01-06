@@ -19,7 +19,7 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   render(group: any): void {
-    // Initialize defaults if missing
+    // Defaults
     if (!this.wifiConfig.state)
       this.wifiConfig.state = ConnectionState.CONNECTED;
     if (!this.wifiConfig.ssids) this.wifiConfig.ssids = [];
@@ -35,7 +35,7 @@ export class WifiTriggerEditor extends BaseEditor {
       ConnectionState.DISABLED,
     ];
 
-    // Default to connected if undefined (already handled above, but specific)
+    // Current state
     const currentState = this.wifiConfig.state;
     const selectedIndex = states.indexOf(currentState);
 
@@ -46,7 +46,7 @@ export class WifiTriggerEditor extends BaseEditor {
     });
     group.add(wifiRow);
 
-    // Wifi Network Selection
+    // Networks
     const wifiNetworksRow = new Adw.ExpanderRow({
       title: 'Specific Networks',
       subtitle: this.getNetworksSubtitle(),
@@ -60,7 +60,7 @@ export class WifiTriggerEditor extends BaseEditor {
       wifiNetworksRow.subtitle = this.getNetworksSubtitle();
     };
 
-    // Hide network selection if checking for power state
+    // Visibility
     // @ts-ignore
     wifiRow.connect('notify::selected', () => {
       this.wifiConfig.state = states[wifiRow.selected];
@@ -68,7 +68,7 @@ export class WifiTriggerEditor extends BaseEditor {
       this.onChange();
     });
 
-    // Initial sync
+    // Init
     updateVisibilityAndSubtitle();
 
     this.loadNetworks(wifiNetworksRow);
@@ -106,9 +106,7 @@ export class WifiTriggerEditor extends BaseEditor {
       debugLog('Failed to load wifi networks in prefs:', e);
     }
 
-    // Use a copy to avoid mutation reference issues if accidentally passed by ref logic elsewhere
-    // though here we modify config.ssids in place.
-    // Ensure we have set initialized
+    // Init Set
     const selectedNetworks = new Set<string>(this.config.ssids || []);
 
     if (availableNetworks.length === 0) {
@@ -140,8 +138,6 @@ export class WifiTriggerEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.wifiConfig.state) return 'Invalid state';
-    // If specific networks are selected but state is just "Enabled" (Turned On),
-    // we technically ignore them, but it's not "invalid".
     return true;
   }
 }

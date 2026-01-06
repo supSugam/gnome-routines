@@ -60,7 +60,7 @@ export class WifiAction extends BaseAction {
       this.initialSsid = this.adapter.getCurrentWifiSSID();
     }
 
-    // Default to true if undefined (legacy/connect_wifi compatibility)
+    // Default true
     const shouldEnable = this.config.enabled !== false;
 
     this.adapter.setWifi(shouldEnable);
@@ -78,7 +78,7 @@ export class WifiAction extends BaseAction {
         }s, Interval: ${intervalMs / 1000}s`
       );
 
-      // Attempt loop: Try at 0, interval, ..., timeout (inclusive)
+      // Retry loop
       while (!this.isDestroyed) {
         const elapsedSinceStart = Date.now() - startTime;
         const isFinalAttempt = elapsedSinceStart >= timeoutMs;
@@ -97,11 +97,11 @@ export class WifiAction extends BaseAction {
         );
         this.adapter.connectToWifi(this.config.ssid);
 
-        // Check if we should wait for next attempt
+        // Wait check
         const elapsed = Date.now() - startTime;
         if (elapsed >= timeoutMs) break;
 
-        // Calculate time to next interval or timeout cap
+        // Calc wait time
         const remaining = timeoutMs - elapsed;
         const waitTime = Math.min(intervalMs, remaining);
 
@@ -122,15 +122,14 @@ export class WifiAction extends BaseAction {
       );
       this.adapter.setWifi(this.initialState);
       if (this.initialState && this.initialSsid) {
-        // If it was on and connected, try to reconnect
-        // We don't wait for it, just trigger
+        // Reconnect if needed
         this.adapter.connectToWifi(this.initialSsid);
       }
       // Reset state capture
       this.initialState = null;
       this.initialSsid = null;
     } else {
-      // Fallback if no state captured (shouldn't happen if executed)
+      // Fallback
       this.adapter.setWifi(!this.config.enabled);
     }
   }
@@ -344,11 +343,11 @@ export class BluetoothDeviceAction extends BaseAction {
           debugLog(`[BluetoothDeviceAction] Connection attempt failed:`, e);
         }
 
-        // Check if we should wait for next attempt
+        // Wait check
         const elapsed = Date.now() - startTime;
         if (elapsed >= timeoutMs) break;
 
-        // Calculate time to next interval or timeout cap
+        // Calc wait time
         const remaining = timeoutMs - elapsed;
         const waitTime = Math.min(intervalMs, remaining);
 

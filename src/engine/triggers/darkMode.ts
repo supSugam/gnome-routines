@@ -30,7 +30,6 @@ export class DarkModeTrigger extends BaseTrigger {
     this._isActivated = true;
 
     // Initialize state
-    // Initialize state
     this.check().then((initialState) => {
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =

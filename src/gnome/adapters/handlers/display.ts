@@ -184,7 +184,7 @@ export class DisplayAdapter {
     return settings.get_uint('idle-delay');
   }
 
-  // Helper to call Mutter DisplayConfig
+  // Call Mutter DisplayConfig
   private _callDisplayConfig(
     method: string,
     args: GLib.Variant
@@ -271,10 +271,9 @@ export class DisplayAdapter {
       logicalMonitors[primaryMonitorIdx][3] = transform;
 
       // 3. Apply config
-      // ApplyMonitorsConfig(serial, method, logical_monitors, properties)
+      // ApplyMonitorsConfig
       // method: 1 = verify, 2 = temporary (persistent)
-      // We probably want 2 (persistent) or 1?
-      // 1 is "Temporary configuration" (resets on reboot), 2 is persistent.
+      // 1=Temp, 2=Persistent
 
       await this._callDisplayConfig(
         'ApplyMonitorsConfig',
@@ -295,14 +294,12 @@ export class DisplayAdapter {
     debugLog(
       `[DisplayAdapter] Setting refresh rate to ${rate}Hz stub - removing xrandr`
     );
-    // Removing xrandr support as requested.
-    // Implementing refresh rate via Mutter DBus is extremely complex requiring mode switching logic.
+    // Xrandr removed
     // For now we log that it's removed.
   }
 
   getRefreshRate(): Promise<number> {
-    // Stub - without xrandr, difficult to get simply.
-    // Could get from GetCurrentState logic if needed.
+    // Stub
     return Promise.resolve(60);
   }
 

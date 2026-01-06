@@ -20,7 +20,7 @@ export class SystemAdapter {
     const message = notification.message || '';
     debugLog(`[SystemAdapter] Creating notification: ${title} - ${message}`);
     try {
-      // Use Main.notify - the simplest and most compatible approach
+      // Use Main.notify
       (Main as any).notify(title, message);
       debugLog('[SystemAdapter] Notification shown successfully');
     } catch (e: any) {
@@ -35,7 +35,7 @@ export class SystemAdapter {
 
   setDND(enabled: boolean): void {
     debugLog(`[SystemAdapter] Setting DND to: ${enabled}`);
-    // GNOME 45+ uses GSettings for DND (notifications)
+    // GSettings DND
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.notifications',
     });
@@ -55,7 +55,7 @@ export class SystemAdapter {
       schema_id: 'org.gnome.desktop.notifications',
     });
 
-    // Store settings reference in closure to prevent GC
+    // Retain settings
     const settingsRef = settings;
 
     const id = settingsRef.connect('changed::show-banners', () => {
@@ -77,10 +77,8 @@ export class SystemAdapter {
   executeCommand(command: string): void {
     debugLog(`[SystemAdapter] Executing command (shell): ${command}`);
     try {
-      // Use bash with -i (interactive) to enable aliases
-      // Source .bashrc first, then run the command
+      // Interactive bash
       const homeDir = GLib.get_home_dir();
-      // Use bash -i to force interactive mode which processes aliases
       const argv = ['bash', '--rcfile', `${homeDir}/.bashrc`, '-ic', command];
 
       // Use SubprocessLauncher to set environment variables
@@ -89,7 +87,7 @@ export class SystemAdapter {
           Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
       });
 
-      // Set essential env vars for GUI scripts
+      // GUI env vars
       launcher.setenv('TERM', 'xterm-256color', true);
       launcher.setenv('DISPLAY', GLib.getenv('DISPLAY') || ':0', true);
       launcher.setenv(
@@ -107,7 +105,7 @@ export class SystemAdapter {
 
       const proc = launcher.spawnv(argv);
 
-      // Wait for process completion asynchronously
+      // Wait async
       proc.wait_async(null, (proc: any, res: any) => {
         try {
           proc.wait_finish(res);
@@ -132,7 +130,7 @@ export class SystemAdapter {
       app.activate();
     } else {
       debugLog(`[SystemAdapter] App not found: ${appId}`);
-      // Try simpler lookup or partial match if needed, but ID should be exact from .desktop
+      // Exact ID lookup
     }
   }
 

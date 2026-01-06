@@ -1,13 +1,10 @@
 // @ts-ignore
 import Gvc from 'gi://Gvc';
 
-// Each Gvc.MixerControl is a connection to PulseAudio,
-// so it's better to make it a singleton
+// Singleton Gvc.MixerControl (PulseAudio)
 let _mixerControl: any;
 
-/**
- * @returns {Gvc.MixerControl} - the mixer control singleton
- */
+/** Singleton Mixer */
 export function getMixerControl() {
   if (_mixerControl) return _mixerControl;
 

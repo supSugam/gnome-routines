@@ -24,11 +24,11 @@ export class StartupAdapter {
         debugLog('[StartupAdapter] Session lock file exists, not startup.');
         this._isStartup = false;
       } else {
-        // Does not exist, it IS startup
+        // Startup detected
         debugLog('[StartupAdapter] Session lock file missing, is startup.');
         this._isStartup = true;
 
-        // Create lock file immediately
+        // Lock file
         try {
           const stream = file.create(Gio.FileCreateFlags.NONE, null);
           stream.close(null);
@@ -52,7 +52,7 @@ export class StartupAdapter {
     };
   }
 
-  // Deprecated/Unused but kept if interface requires it or for cleanup
+  // Deprecated
   writeLockFile(): void {
     // Logic moved to constructor
   }

@@ -1,4 +1,3 @@
-// Services barrel export
 export { RoutineRepository } from './routineRepository.js';
 export { HealthTracker } from './healthTracker.js';
 export { ConflictDetector } from './conflictDetector.js';

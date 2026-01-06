@@ -66,7 +66,6 @@ export class BatteryTrigger extends BaseTrigger {
 
     this.cleanup = this.adapter.onBatteryStateChanged(
       async (level, isCharging) => {
-        // Re-evaluate condition
         const isMatch = await this.check();
         this._handleState(isMatch);
       }
@@ -74,7 +73,7 @@ export class BatteryTrigger extends BaseTrigger {
   }
 
   private _handleState(isMatch: boolean): void {
-    // Initial Check logic
+    // Initial check
     if (this._lastMatch === null) {
       if (this.strategy === TriggerStrategy.NEW_CHANGE_ONLY) {
         debugLog(
@@ -94,7 +93,7 @@ export class BatteryTrigger extends BaseTrigger {
       }
     }
 
-    // State Change Logic
+    // State change
     if (isMatch !== this._lastMatch) {
       debugLog(
         `[BatteryTrigger] Condition changed: ${this._lastMatch} -> ${isMatch}`

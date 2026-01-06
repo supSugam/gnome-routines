@@ -53,7 +53,7 @@ export class RoutineEditor {
     const navView = new Adw.NavigationView();
     this.window.content = navView;
 
-    // Main Page (Routine List)
+    // Main page
     const mainPage = new Adw.NavigationPage({
       title: this.isNew ? UI_STRINGS.editor.titleNew : UI_STRINGS.editor.title,
       tag: 'main',
@@ -90,8 +90,8 @@ export class RoutineEditor {
     // Then & End Section (Actions)
     const actionManager = new ActionManager(this.window, this.routine);
 
-    // If Section (Triggers)
-    // Pass callback to refresh actions when triggers change (e.g. for revert visibility)
+    // Triggers
+    // Refresh actions on trigger change
     const triggerManager = new TriggerManager(this.window, this.routine, () => {
       actionManager.refresh();
     });
@@ -128,7 +128,7 @@ export class RoutineEditor {
     });
     headerBar.pack_end(saveBtn);
 
-    // Safety Button
+    // Safety
     const safetyBtn = new Gtk.Button({
       icon_name: 'security-high-symbolic',
       tooltip_text: UI_STRINGS.editor.safety.title,

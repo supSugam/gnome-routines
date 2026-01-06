@@ -37,7 +37,7 @@ export class IntervalTrigger extends BaseTrigger {
       intervalSeconds *= 60;
     }
 
-    // Minimum 1 minute safety
+    // 1 min min
     if (intervalSeconds < 60) intervalSeconds = 60;
     return intervalSeconds;
   }
@@ -83,7 +83,7 @@ export class IntervalTrigger extends BaseTrigger {
       const remaining = intervalSeconds - elapsed;
 
       if (remaining <= 0) {
-        // Overdue - fire immediately, then start normal interval
+        // Overdue execution
         debugLog(
           `[IntervalTrigger] Overdue by ${-remaining}s. Firing immediately.`
         );
@@ -102,7 +102,7 @@ export class IntervalTrigger extends BaseTrigger {
       );
     }
 
-    // Start the initial timer (may be reduced if resuming)
+    // Start timer
     this._timeoutId = GLib.timeout_add_seconds(
       GLib.PRIORITY_DEFAULT,
       initialDelay,
@@ -111,7 +111,7 @@ export class IntervalTrigger extends BaseTrigger {
         this.saveLastTriggerTime();
         this.emit('triggered');
 
-        // If initial delay was different from interval, restart with normal interval
+        // Normalize interval
         if (initialDelay !== intervalSeconds) {
           this._timeoutId = GLib.timeout_add_seconds(
             GLib.PRIORITY_DEFAULT,
@@ -135,13 +135,11 @@ export class IntervalTrigger extends BaseTrigger {
       GLib.source_remove(this._timeoutId);
       this._timeoutId = null;
     }
-    // DO NOT clear lastTriggerTime - preserve for resume
+    // Keep state for resume
   }
 
   async check(): Promise<boolean> {
-    // Interval trigger is event-based - it fires via emit('triggered')
-    // on scheduled intervals. check() returns false to prevent
-    // spurious activation on evaluate() calls.
+    // Event-based only
     return false;
   }
 }

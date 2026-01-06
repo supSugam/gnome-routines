@@ -29,7 +29,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
   }
 
   private addRetrySettings(group: any) {
-    // Timeout Row
+    // Timeout
     const timeoutRow = new Adw.ActionRow({
       title: 'Wait Timeout (seconds)',
       subtitle: 'Stop trying after this many seconds',
@@ -51,7 +51,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     timeoutRow.add_suffix(timeoutSpin);
     group.add(timeoutRow);
 
-    // Interval Row
+    // Interval
     const intervalRow = new Adw.ActionRow({
       title: 'Retry Interval (seconds)',
       subtitle: 'Wait this long between attempts',
@@ -85,7 +85,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     const updateList = async () => {
       const devices = await this._adapter.getKnownDevices();
 
-      // Remove loading row if present
+      // Cleanup loading
       if (loadingRow.get_parent()) {
         row.remove(loadingRow);
       }
@@ -99,12 +99,12 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
       loadingRow.title = 'Turning on Bluetooth to fetch known devices...';
       await this._adapter.setBluetooth(true);
 
-      // Give it a moment to initialize
+      // Wait
       await new Promise((r) => setTimeout(r, 2000));
 
       const devices = await this._adapter.getKnownDevices();
 
-      // Turn off
+      // Disable
       await this._adapter.setBluetooth(false);
 
       if (loadingRow.get_parent()) {
@@ -144,7 +144,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
         // @ts-ignore
         check.connect('toggled', () => {
           if (check.active) {
-            // Uncheck others
+            // Single selection
             for (const [addr, btn] of checkboxes.entries()) {
               if (addr !== dev.address) {
                 btn.active = false;
@@ -156,7 +156,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
             this.config.action = ActionOperation.CONNECT;
             row.subtitle = dev.name;
           } else {
-            // If we are unchecking the CURRENTLY selected device, clear it
+            // Clear selection
             if (this.config.deviceId === dev.address) {
               this.config.deviceId = null;
               this.config.action = null;

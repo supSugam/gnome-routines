@@ -13,9 +13,7 @@ export class TimeTrigger extends BaseTrigger {
     super(id, TriggerType.TIME, config);
   }
 
-  /**
-   * Calculate seconds until a specific time (HH:MM) today or tomorrow
-   */
+  /** Seconds until HH:MM */
   private getSecondsUntilTime(targetTime: string): number {
     const [targetHour, targetMinute] = targetTime.split(':').map(Number);
     const now = GLib.DateTime.new_now_local();
@@ -37,9 +35,7 @@ export class TimeTrigger extends BaseTrigger {
     return diff;
   }
 
-  /**
-   * Check if today is a valid day for triggering
-   */
+  /** Valid day check */
   private isDayValid(): boolean {
     if (!this.config.days || this.config.days.length === 0) {
       return true; // No day restriction
@@ -50,9 +46,7 @@ export class TimeTrigger extends BaseTrigger {
     return this.config.days.includes(jsDay);
   }
 
-  /**
-   * Check if we're currently inside a time period
-   */
+  /** Check inside period */
   private isInsidePeriod(): boolean {
     if (!this.config.startTime || !this.config.endTime) return false;
 
@@ -75,7 +69,7 @@ export class TimeTrigger extends BaseTrigger {
   async check(): Promise<boolean> {
     if (!this.isDayValid()) return false;
 
-    // Specific Time
+    // Specific
     if (this.config.time) {
       const now = GLib.DateTime.new_now_local();
       const currentMinutes = now.get_hour() * 60 + now.get_minute();
@@ -86,7 +80,7 @@ export class TimeTrigger extends BaseTrigger {
       return currentMinutes === targetMinutes;
     }
 
-    // Time Period
+    // Period
     if (this.config.startTime && this.config.endTime) {
       return this.isInsidePeriod();
     }
@@ -103,15 +97,13 @@ export class TimeTrigger extends BaseTrigger {
     if (this.config.time) {
       this.scheduleExactTime();
     }
-    // Time Period: Check on boundaries
+    // Period: Check on boundaries
     else if (this.config.startTime && this.config.endTime) {
       this.schedulePeriodCheck();
     }
   }
 
-  /**
-   * Schedule a timeout for the exact trigger time
-   */
+  /** Schedule exact */
   private scheduleExactTime(): void {
     if (!this.config.time) return;
 
@@ -146,9 +138,7 @@ export class TimeTrigger extends BaseTrigger {
     );
   }
 
-  /**
-   * Schedule checks for period start/end times
-   */
+  /** Schedule period */
   private schedulePeriodCheck(): void {
     if (!this.config.startTime || !this.config.endTime) return;
 

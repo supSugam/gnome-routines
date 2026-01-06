@@ -38,29 +38,13 @@ export class TriggerManager {
   }
 
   private refresh() {
-    // Ideally we remove all children. Adw.PreferencesGroup doesn't have remove_all.
-    // We have to remove them one by one if we kept references, or just not support dynamic reordering easily.
-    // BUT given we are inside the editor, it's easier to just return a container that we can clear?
-    // Start fresh: We can't clear the group easily.
-    // Hack: We can use a GtkBox inside a single ActionRow? No.
-
-    // Proper way: Track all added widgets.
-    // Since this is a refactor, I'll stick to the logic seen in prefs.ts:
-    // It seems `page.remove(group)` is possible.
-    // So the caller (Editor) should clear the group? No, that exposes implementation.
-
-    // Better: `TriggerManager` manages an `Adw.PreferencesPage` content? No, it manages a specific Section.
-
-    // Let's implement track-and-remove.
-    // But `group.remove(child)` requires the child widget.
-    // So I will just store them.
-
+    // Refresh children
     if (this._children) {
       this._children.forEach((c) => this.group.remove(c));
     }
     this._children = [];
 
-    // Match Type Selector
+    // Match Type
     const matchTypeRow = new Adw.ComboRow({
       title: UI_STRINGS.editor.if.conditionLogic,
       model: new Gtk.StringList({
@@ -75,14 +59,14 @@ export class TriggerManager {
     this.group.add(matchTypeRow);
     this._children.push(matchTypeRow);
 
-    // Rows
+    // Triggers
     this.routine.triggers.forEach((trigger: any, index: number) => {
       const row = new Adw.ActionRow({
         title: getTriggerTitle(trigger.type),
         subtitle: getTriggerSummary(trigger),
       });
 
-      // Edit on click
+      // Edit
       // @ts-ignore
       row.connect('activated', () =>
         this.editTrigger(trigger, false, () => this.refresh())
@@ -105,8 +89,7 @@ export class TriggerManager {
       this._children.push(row);
     });
 
-    // Add Button
-    // Add Button (Only if no Interval trigger exists)
+    // Add (Excl. Interval)
     const hasInterval = this.routine.triggers.some(
       (t: any) => t.type === TriggerType.INTERVAL
     );
@@ -171,7 +154,7 @@ export class TriggerManager {
     let tempConfig = JSON.parse(JSON.stringify(trigger.config));
     let currentType = trigger.type;
 
-    // Use Enums for types
+    // Types
     let triggerTypes = [
       { id: TriggerType.STARTUP, title: UI_STRINGS.triggers.startup },
       { id: TriggerType.TIME, title: UI_STRINGS.triggers.time },
@@ -193,7 +176,7 @@ export class TriggerManager {
       { id: TriggerType.WALLPAPER, title: UI_STRINGS.triggers.wallpaper },
     ];
 
-    // Filter based on capabilities
+    // Capability filter
     if (!hasBattery()) {
       triggerTypes = triggerTypes.filter(
         (t) => t.id !== TriggerType.BATTERY && t.id !== TriggerType.POWER_SAVER
@@ -210,9 +193,7 @@ export class TriggerManager {
       triggerTypes = triggerTypes.filter((t) => t.id !== TriggerType.BLUETOOTH);
     }
 
-    // Filter Interval Exclusivity
-    // If routine has other triggers, we cannot switch to/add Interval
-    // Unless this IS the interval trigger we are editing
+    // Interval exclusivity
     const otherTriggers = this.routine.triggers.filter(
       (t: any) => t !== trigger
     );

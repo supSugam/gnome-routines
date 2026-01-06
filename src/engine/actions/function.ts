@@ -22,7 +22,7 @@ export class OpenLinkAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
-    // Cannot revert opening a link
+    // No revert
   }
 }
 
@@ -41,7 +41,7 @@ export class ScreenshotAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
-    // Cannot revert screenshot
+    // No revert
   }
 }
 
@@ -62,6 +62,6 @@ export class OpenAppAction extends BaseAction {
   }
 
   async revert(): Promise<void> {
-    // Could close app, but that's aggressive.
+    // No revert
   }
 }

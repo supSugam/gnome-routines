@@ -70,7 +70,7 @@ export class ActionManager {
         subtitle: getActionSummary(action),
       });
 
-      // Edit on click
+      // Edit
       // @ts-ignore
       row.connect('activated', () =>
         this.editAction(action, false, () => this.refresh())
@@ -216,13 +216,7 @@ export class ActionManager {
         this.editAction(
           dummyAction,
           false,
-          (newConfig) => {
-            // callback receives config only if specific mode?
-            // Wait, editAction sends object updated.
-            // I need to customize editAction to support returning config or updating dummy.
-
-            // My editAction writes to passed object.
-            // So I read from dummyAction.
+          () => {
             if (!action.onDeactivate) action.onDeactivate = { type: 'custom' };
             action.onDeactivate.config = dummyAction.config;
             debugLog(
@@ -231,7 +225,7 @@ export class ActionManager {
             row.subtitle = getEndSummary();
           },
           true
-        ); // Custom flag
+        ); // Custom mode
       });
 
       const box = new Gtk.Box({ spacing: 10 });
@@ -327,7 +321,7 @@ export class ActionManager {
       { id: ActionType.REFRESH_RATE, title: UI_STRINGS.actions.refreshRate },
     ];
 
-    // Filter based on capabilities
+    // Capability filter
     if (!hasBattery()) {
       actionTypes = actionTypes.filter((t) => t.id !== ActionType.POWER_SAVER);
     }
@@ -357,7 +351,7 @@ export class ActionManager {
       title: UI_STRINGS.editor.then.actionType,
       model: typeModel,
       selected: actionTypes.findIndex((t) => t.id === currentType),
-      visible: !isCustomConfigMode, // Hide type selector if only editing config
+      visible: !isCustomConfigMode, // Hide selector
     });
     group.add(typeRow);
 
@@ -416,7 +410,7 @@ export class ActionManager {
 
       if (isNew) this.routine.actions.push(action);
 
-      onSave(); // Notify caller
+      onSave(); // Notify
       actionWindow.close();
     });
 

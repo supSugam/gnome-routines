@@ -49,7 +49,7 @@ export class StateManager {
     }
     const routineStates = this.states.get(routineId)!;
 
-    // Only save if not already saved (preserve original state)
+    // Persist initial state
     if (!routineStates.has(setting)) {
       routineStates.set(setting, value);
       this.saveStates();
