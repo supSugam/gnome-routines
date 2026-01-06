@@ -3,9 +3,16 @@ import Gio from 'gi://Gio';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
+import { SignalDispatcher } from '../../utils/signalDispatcher.js';
 
 export class BluetoothAdapter {
   private _adapterPath: string | null = null;
+
+  // Shared dispatchers - one subscription, many listeners
+  private _powerDispatcher: SignalDispatcher<
+    (enabled: boolean) => void
+  > | null = null;
+  private _deviceDispatcher: SignalDispatcher<() => void> | null = null;
 
   constructor() {
     this._findAdapterPath().then((path) => {
@@ -226,88 +233,98 @@ export class BluetoothAdapter {
   onBluetoothPowerStateChanged(
     callback: (isEnabled: boolean) => void
   ): () => void {
-    try {
-      debugLog('[BluetoothAdapter] Subscribing to Bluetooth power changes');
-
-      const signalId = Gio.DBus.system.signal_subscribe(
-        'org.bluez',
-        'org.freedesktop.DBus.Properties',
-        'PropertiesChanged',
-        null,
-        null,
-        0,
-        (
-          connection: any,
-          sender: any,
-          path: any,
-          iface: any,
-          signal: any,
-          params: any
-        ) => {
-          try {
-            const [interfaceName, changedProps] = params.deep_unpack();
-            if (
-              interfaceName === 'org.bluez.Adapter1' &&
-              changedProps.Powered !== undefined
-            ) {
-              const newState = changedProps.Powered.get_boolean();
-              debugLog(`[BluetoothAdapter] Bluetooth Powered: ${newState}`);
-              callback(newState);
-            }
-          } catch (e) {}
-        }
-      );
-
-      return () => {
+    if (!this._powerDispatcher) {
+      debugLog('[BluetoothAdapter] Creating shared power state dispatcher');
+      const subscribeFactory = (
+        dispatch: (enabled: boolean) => void
+      ): number => {
+        return Gio.DBus.system.signal_subscribe(
+          'org.bluez',
+          'org.freedesktop.DBus.Properties',
+          'PropertiesChanged',
+          null,
+          null,
+          0,
+          (
+            _conn: any,
+            _sender: any,
+            _path: any,
+            _iface: any,
+            _signal: any,
+            params: any
+          ) => {
+            try {
+              const [interfaceName, changedProps] = params.deep_unpack();
+              if (
+                interfaceName === 'org.bluez.Adapter1' &&
+                changedProps.Powered !== undefined
+              ) {
+                const newState = changedProps.Powered.get_boolean();
+                debugLog(`[BluetoothAdapter] Bluetooth Powered: ${newState}`);
+                dispatch(newState);
+              }
+            } catch (_e) {}
+          }
+        );
+      };
+      const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {}
+        } catch (_e) {}
       };
-    } catch (e) {
-      debugLog('[BluetoothAdapter] Failed to subscribe to Bluetooth power:', e);
-      return () => {};
+      this._powerDispatcher = new SignalDispatcher(
+        'BT-Power',
+        subscribeFactory,
+        unsubscribeFactory
+      );
     }
+    return this._powerDispatcher.addCallback(callback);
   }
 
   onBluetoothDeviceStateChanged(callback: () => void): () => void {
-    try {
-      debugLog('[BluetoothAdapter] Subscribing to Bluetooth device changes');
-      const signalId = Gio.DBus.system.signal_subscribe(
-        'org.bluez',
-        'org.freedesktop.DBus.Properties',
-        'PropertiesChanged',
-        null,
-        null,
-        0,
-        (
-          connection: any,
-          sender: any,
-          path: any,
-          iface: any,
-          signal: any,
-          params: any
-        ) => {
-          try {
-            const [interfaceName, changedProps] = params.deep_unpack();
-            if (
-              interfaceName === 'org.bluez.Device1' &&
-              changedProps.Connected !== undefined
-            ) {
-              debugLog(`[BluetoothAdapter] Device connection changed`);
-              callback();
-            }
-          } catch (e) {}
-        }
-      );
-
-      return () => {
+    if (!this._deviceDispatcher) {
+      debugLog('[BluetoothAdapter] Creating shared device state dispatcher');
+      const subscribeFactory = (dispatch: () => void): number => {
+        return Gio.DBus.system.signal_subscribe(
+          'org.bluez',
+          'org.freedesktop.DBus.Properties',
+          'PropertiesChanged',
+          null,
+          null,
+          0,
+          (
+            _conn: any,
+            _sender: any,
+            _path: any,
+            _iface: any,
+            _signal: any,
+            params: any
+          ) => {
+            try {
+              const [interfaceName, changedProps] = params.deep_unpack();
+              if (
+                interfaceName === 'org.bluez.Device1' &&
+                changedProps.Connected !== undefined
+              ) {
+                debugLog(`[BluetoothAdapter] Device connection changed`);
+                dispatch();
+              }
+            } catch (_e) {}
+          }
+        );
+      };
+      const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {}
+        } catch (_e) {}
       };
-    } catch (e) {
-      return () => {};
+      this._deviceDispatcher = new SignalDispatcher(
+        'BT-Device',
+        subscribeFactory,
+        unsubscribeFactory
+      );
     }
+    return this._deviceDispatcher.addCallback(callback);
   }
 
   getConnectedBluetoothDevices(): Promise<{ name: string; address: string }[]> {

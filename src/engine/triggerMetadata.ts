@@ -14,7 +14,7 @@ export const TRIGGER_METADATA: Record<TriggerType, TriggerMetadata> = {
     canAllowRevert: true,
   },
   [TriggerType.DARK_MODE]: {
-    defaultStrategy: TriggerStrategy.EXISTING_STATE,
+    defaultStrategy: TriggerStrategy.NEW_CHANGE_ONLY,
     canAllowRevert: true,
   },
 

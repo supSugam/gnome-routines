@@ -3,11 +3,20 @@ import Gio from 'gi://Gio';
 // @ts-ignore
 import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
+import { SignalDispatcher } from '../../utils/signalDispatcher.js';
 
 const UPOWER_SERVICE = 'org.freedesktop.UPower';
 const UPOWER_DISPLAY_DEVICE = '/org/freedesktop/UPower/devices/DisplayDevice';
 
 export class PowerAdapter {
+  // Shared dispatchers
+  private _profileDispatcher: SignalDispatcher<
+    (profile: string) => void
+  > | null = null;
+  private _batteryDispatcher: SignalDispatcher<
+    (level: number, isCharging: boolean) => void
+  > | null = null;
+
   setBluetooth(enabled: boolean): void {
     // Stub
   }
@@ -73,45 +82,52 @@ export class PowerAdapter {
   }
 
   onPowerProfileChanged(callback: (profile: string) => void): () => void {
-    try {
-      debugLog('[PowerAdapter] Subscribing to power profile changes');
-      const signalId = Gio.DBus.system.signal_subscribe(
-        'net.hadess.PowerProfiles',
-        'org.freedesktop.DBus.Properties',
-        'PropertiesChanged',
-        '/net/hadess/PowerProfiles',
-        null,
-        0,
-        (
-          connection: any,
-          sender: any,
-          path: any,
-          iface: any,
-          signal: any,
-          params: any
-        ) => {
-          try {
-            const [interfaceName, changedProps] = params.deep_unpack();
-            if (
-              interfaceName === 'net.hadess.PowerProfiles' &&
-              changedProps.ActiveProfile !== undefined
-            ) {
-              const newProfile = changedProps.ActiveProfile.get_string()[0];
-              debugLog(`[PowerAdapter] Power profile changed: ${newProfile}`);
-              callback(newProfile);
-            }
-          } catch (e) {}
-        }
-      );
-
-      return () => {
+    if (!this._profileDispatcher) {
+      debugLog('[PowerAdapter] Creating shared power profile dispatcher');
+      const subscribeFactory = (
+        dispatch: (profile: string) => void
+      ): number => {
+        return Gio.DBus.system.signal_subscribe(
+          'net.hadess.PowerProfiles',
+          'org.freedesktop.DBus.Properties',
+          'PropertiesChanged',
+          '/net/hadess/PowerProfiles',
+          null,
+          0,
+          (
+            _conn: any,
+            _sender: any,
+            _path: any,
+            _iface: any,
+            _signal: any,
+            params: any
+          ) => {
+            try {
+              const [interfaceName, changedProps] = params.deep_unpack();
+              if (
+                interfaceName === 'net.hadess.PowerProfiles' &&
+                changedProps.ActiveProfile !== undefined
+              ) {
+                const newProfile = changedProps.ActiveProfile.get_string()[0];
+                debugLog(`[PowerAdapter] Power profile changed: ${newProfile}`);
+                dispatch(newProfile);
+              }
+            } catch (_e) {}
+          }
+        );
+      };
+      const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {}
+        } catch (_e) {}
       };
-    } catch (e) {
-      return () => {};
+      this._profileDispatcher = new SignalDispatcher(
+        'PowerProfile',
+        subscribeFactory,
+        unsubscribeFactory
+      );
     }
+    return this._profileDispatcher.addCallback(callback);
   }
 
   getBatteryLevel(): number {
@@ -163,49 +179,57 @@ export class PowerAdapter {
   onBatteryStateChanged(
     callback: (level: number, isCharging: boolean) => void
   ): () => void {
-    try {
-      debugLog('[PowerAdapter] Subscribing to UPower battery changes');
-      const signalId = Gio.DBus.system.signal_subscribe(
-        UPOWER_SERVICE,
-        'org.freedesktop.DBus.Properties',
-        'PropertiesChanged',
-        UPOWER_DISPLAY_DEVICE,
-        null,
-        0,
-        (
-          connection: any,
-          sender: any,
-          path: any,
-          iface: any,
-          signal: any,
-          params: any
-        ) => {
-          try {
-            const unpacked = params.deep_unpack();
-            const interfaceName = unpacked[0];
-            const changedProps = unpacked[1];
+    if (!this._batteryDispatcher) {
+      debugLog('[PowerAdapter] Creating shared battery state dispatcher');
+      const subscribeFactory = (
+        dispatch: (level: number, isCharging: boolean) => void
+      ): number => {
+        return Gio.DBus.system.signal_subscribe(
+          UPOWER_SERVICE,
+          'org.freedesktop.DBus.Properties',
+          'PropertiesChanged',
+          UPOWER_DISPLAY_DEVICE,
+          null,
+          0,
+          (
+            _conn: any,
+            _sender: any,
+            _path: any,
+            _iface: any,
+            _signal: any,
+            params: any
+          ) => {
+            try {
+              const unpacked = params.deep_unpack();
+              const interfaceName = unpacked[0];
+              const changedProps = unpacked[1];
 
-            if (interfaceName === 'org.freedesktop.UPower.Device') {
-              if (
-                changedProps.Percentage !== undefined ||
-                changedProps.State !== undefined
-              ) {
-                const level = this.getBatteryLevel();
-                const charging = this.isCharging();
-                callback(level, charging);
+              if (interfaceName === 'org.freedesktop.UPower.Device') {
+                if (
+                  changedProps.Percentage !== undefined ||
+                  changedProps.State !== undefined
+                ) {
+                  const level = this.getBatteryLevel();
+                  const charging = this.isCharging();
+                  dispatch(level, charging);
+                }
               }
-            }
-          } catch (err) {}
-        }
-      );
-
-      return () => {
+            } catch (_e) {}
+          }
+        );
+      };
+      const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
-        } catch (e) {}
+        } catch (_e) {}
       };
-    } catch (e) {
-      return () => {};
+      this._batteryDispatcher = new SignalDispatcher(
+        'Battery',
+        subscribeFactory,
+        unsubscribeFactory
+      );
     }
+    return this._batteryDispatcher.addCallback(callback);
   }
 }
+

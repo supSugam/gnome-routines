@@ -2,9 +2,13 @@
 import Gio from 'gi://Gio';
 import debugLog from '../../../utils/log.js';
 import { getMixerControl } from '../../utils/mixer.js';
+import { GObjectSignalDispatcher } from '../../utils/signalDispatcher.js';
 
 export class AudioAdapter {
   private _mixer: any;
+  private _headphoneDispatcher: GObjectSignalDispatcher<
+    (isConnected: boolean) => void
+  > | null = null;
 
   constructor() {
     this._mixer = getMixerControl();
@@ -112,26 +116,22 @@ export class AudioAdapter {
   onWiredHeadphonesStateChanged(
     callback: (isConnected: boolean) => void
   ): () => void {
-    debugLog('[AudioAdapter] Subscribing to Gvc headphone changes');
+    if (!this._headphoneDispatcher) {
+      debugLog('[AudioAdapter] Creating shared headphone state dispatcher');
+      this._headphoneDispatcher = new GObjectSignalDispatcher(
+        'HeadphoneState',
+        this._mixer,
+        'default-sink-changed'
+      );
+    }
 
-    const checkHeadphones = async () => {
-      const state = await this.getWiredHeadphonesState();
-      callback(state);
+    // Wrap the callback to check headphone state on sink change
+    const wrappedCallback = () => {
+      this.getWiredHeadphonesState().then((state) => {
+        callback(state);
+      });
     };
 
-    // Only listen to default-sink-changed - headphone connection changes the default sink
-    // stream-changed fires too frequently (on every volume change, app audio, etc.)
-    const idDefault = this._mixer.connect(
-      'default-sink-changed',
-      checkHeadphones
-    );
-
-    return () => {
-      try {
-        this._mixer.disconnect(idDefault);
-      } catch (e) {
-        debugLog('[AudioAdapter] Error disconnecting Gvc signals:', e);
-      }
-    };
+    return this._headphoneDispatcher.addCallback(wrappedCallback as any);
   }
 }

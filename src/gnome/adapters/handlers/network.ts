@@ -3,9 +3,15 @@ import Gio from 'gi://Gio';
 // @ts-ignore
 import NM from 'gi://NM';
 import debugLog from '../../../utils/log.js';
+import { GObjectSignalDispatcher } from '../../utils/signalDispatcher.js';
 
 export class NetworkAdapter {
   private _client: any; // NM.Client
+  // Shared dispatchers for WiFi signals
+  private _wifiStateDispatcher: GObjectSignalDispatcher<() => void> | null =
+    null;
+  private _wifiPowerDispatcher: GObjectSignalDispatcher<() => void> | null =
+    null;
 
   constructor() {
     try {
@@ -141,55 +147,48 @@ export class NetworkAdapter {
   }
 
   onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
-    // Monitor connection state changes (connected to network vs not)
     const client = this._ensureClient();
     if (!client) return () => {};
 
-    // Monitor primary connection changes to detect WiFi connect/disconnect
-    const id = client.connect('notify::primary-connection', () => {
+    // Use shared dispatcher for primary-connection signal
+    if (!this._wifiStateDispatcher) {
+      debugLog('[NetworkAdapter] Creating shared WiFi state dispatcher');
+      this._wifiStateDispatcher = new GObjectSignalDispatcher(
+        'WifiState',
+        client,
+        'notify::primary-connection'
+      );
+    }
+
+    const wrappedCallback = () => {
       const isConnected = this.getCurrentWifiSSID() !== null;
       debugLog(`[NetworkAdapter] WiFi connection changed: ${isConnected}`);
       callback(isConnected);
-    });
-
-    // Also monitor active connections
-    const id2 = client.connect('notify::active-connections', () => {
-      const isConnected = this.getCurrentWifiSSID() !== null;
-      debugLog(
-        `[NetworkAdapter] Active connections changed, WiFi connected: ${isConnected}`
-      );
-      callback(isConnected);
-    });
-
-    return () => {
-      if (this._client) {
-        try {
-          this._client.disconnect(id);
-        } catch (e) {}
-        try {
-          this._client.disconnect(id2);
-        } catch (e) {}
-      }
     };
+
+    return this._wifiStateDispatcher.addCallback(wrappedCallback as any);
   }
 
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     const client = this._ensureClient();
     if (!client) return () => {};
 
-    const id = client.connect('notify::wireless-enabled', () => {
+    if (!this._wifiPowerDispatcher) {
+      debugLog('[NetworkAdapter] Creating shared WiFi power dispatcher');
+      this._wifiPowerDispatcher = new GObjectSignalDispatcher(
+        'WifiPower',
+        client,
+        'notify::wireless-enabled'
+      );
+    }
+
+    const wrappedCallback = () => {
       const state = client.wireless_enabled;
       debugLog(`[NetworkAdapter] WiFi power state changed: ${state}`);
       callback(state);
-    });
-
-    return () => {
-      if (this._client) {
-        try {
-          this._client.disconnect(id);
-        } catch (e) {}
-      }
     };
+
+    return this._wifiPowerDispatcher.addCallback(wrappedCallback as any);
   }
 
   getCurrentWifiSSID(): string | null {
