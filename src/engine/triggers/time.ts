@@ -21,8 +21,8 @@ export class TimeTrigger extends BaseTrigger {
     const currentMinute = now.get_minute();
     const currentSecond = now.get_second();
 
-    let targetSeconds = targetHour * 3600 + targetMinute * 60;
-    let currentSeconds =
+    const targetSeconds = targetHour * 3600 + targetMinute * 60;
+    const currentSeconds =
       currentHour * 3600 + currentMinute * 60 + currentSecond;
 
     let diff = targetSeconds - currentSeconds;

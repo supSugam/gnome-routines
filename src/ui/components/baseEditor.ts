@@ -1,8 +1,3 @@
-// @ts-ignore
-import Adw from 'gi://Adw';
-// @ts-ignore
-import Gtk from 'gi://Gtk';
-
 export abstract class BaseEditor {
   protected config: any;
   protected onChange: () => void;

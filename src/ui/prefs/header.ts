@@ -1,6 +1,4 @@
 // @ts-ignore
-import Adw from 'gi://Adw';
-// @ts-ignore
 import Gtk from 'gi://Gtk';
 // @ts-ignore
 import Gio from 'gi://Gio';

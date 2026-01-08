@@ -1,15 +1,9 @@
 // @ts-ignore
-import Gio from 'gi://Gio';
-// @ts-ignore
 import Adw from 'gi://Adw';
 // @ts-ignore
 import Gtk from 'gi://Gtk';
-// @ts-ignore
-import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
-import { BluetoothDeviceActionConfig } from '../../../engine/types.js';
-import { UI_STRINGS } from '../../utils/constants.js';
-import debugLog from '../../../utils/log.js';
+
 import { ActionOperation } from '../../../engine/types.js';
 import { BluetoothAdapter } from '../../../gnome/adapters/handlers/bluetooth.js';
 

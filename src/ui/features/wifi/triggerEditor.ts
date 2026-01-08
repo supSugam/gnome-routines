@@ -5,12 +5,7 @@ import Gtk from 'gi://Gtk';
 // @ts-ignore
 import NM from 'gi://NM';
 import { BaseEditor } from '../../components/baseEditor.js';
-import {
-  ConnectionState,
-  TriggerType,
-  WifiTriggerConfig,
-} from '../../../engine/types.js';
-import { UI_STRINGS } from '../../utils/constants.js';
+import { ConnectionState, WifiTriggerConfig } from '../../../engine/types.js';
 import debugLog from '../../../utils/log.js';
 
 export class WifiTriggerEditor extends BaseEditor {
@@ -86,7 +81,7 @@ export class WifiTriggerEditor extends BaseEditor {
   }
 
   private loadNetworks(row: any) {
-    let availableNetworks: string[] = [];
+    const availableNetworks: string[] = [];
     try {
       const client = NM.Client.new(null);
       if (client) {

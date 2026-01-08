@@ -8,13 +8,8 @@ import GLib from 'gi://GLib';
 import { TriggerEditorFactory } from '../components/triggerEditorFactory.js';
 import { getTriggerSummary, getTriggerTitle } from '../utils/summaryHelpers.js';
 import { UI_STRINGS } from '../utils/constants.js';
-import {
-  getSystemType,
-  hasBattery,
-  hasWifi,
-  hasBluetooth,
-} from '../../utils/system.js';
-import { TriggerType, SystemType } from '../../engine/types.js';
+import { hasBattery, hasWifi, hasBluetooth } from '../../utils/system.js';
+import { TriggerType } from '../../engine/types.js';
 
 export class TriggerManager {
   private parentWindow: any;
@@ -151,7 +146,7 @@ export class TriggerManager {
     const group = new Adw.PreferencesGroup();
     content.add(group);
 
-    let tempConfig = JSON.parse(JSON.stringify(trigger.config));
+    const tempConfig = JSON.parse(JSON.stringify(trigger.config));
     let currentType = trigger.type;
 
     // Types

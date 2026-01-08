@@ -3,3 +3,4 @@ dist/
 .*/
 !.github/
 todo*
+*GUIDELINE*.md

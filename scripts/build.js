@@ -55,8 +55,6 @@ function postBuild() {
         path.join('schemas', schemaFile),
         path.join(schemasDir, schemaFile)
       );
-
-
     }
   }
 

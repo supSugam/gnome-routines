@@ -8,18 +8,8 @@ import GLib from 'gi://GLib';
 import { ActionEditorFactory } from '../components/actionEditorFactory.js';
 import { getActionSummary, getActionTitle } from '../utils/summaryHelpers.js';
 import { UI_STRINGS } from '../utils/constants.js';
-import {
-  getSystemType,
-  hasBattery,
-  hasWifi,
-  hasBluetooth,
-} from '../../utils/system.js';
-import {
-  ActionType,
-  DeactivateStrategy,
-  SystemType,
-  TriggerType,
-} from '../../engine/types.js';
+import { hasBattery, hasWifi, hasBluetooth } from '../../utils/system.js';
+import { ActionType, TriggerType } from '../../engine/types.js';
 import { ACTION_METADATA } from '../../engine/actionMetadata.js';
 import { TRIGGER_METADATA } from '../../engine/triggerMetadata.js';
 import debugLog from '../../utils/log.js';
@@ -271,7 +261,7 @@ export class ActionManager {
     const group = new Adw.PreferencesGroup();
     content.add(group);
 
-    let tempConfig = JSON.parse(JSON.stringify(action.config));
+    const tempConfig = JSON.parse(JSON.stringify(action.config));
     let currentType = action.type;
 
     let actionTypes = [

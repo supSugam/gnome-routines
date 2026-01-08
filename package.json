@@ -1,6 +1,6 @@
 {
   "name": "gnome-routines",
-  "version": "2",
+  "version": "4",
   "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more. This extension interacts with the clipboard.",
   "scripts": {
     "build": "node scripts/build.js && npm run package",
@@ -11,7 +11,11 @@
     "disable": "gnome-extensions disable gnome-routines@supSugam.com",
     "reload": "dbus-send --session --type=method_call --dest=org.gnome.Shell /org/gnome/Shell org.gnome.Shell.Eval string:'Main.extensionManager.reloadExtension(\"gnome-routines@supSugam.com\")'",
     "reinstall": "./scripts/reinstall.sh",
-    "test": "jest"
+    "test": "jest",
+    "version:bump": "node scripts/bump-version.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "fix": "eslint . --fix"
   },
   "keywords": [
     "gnome",
@@ -26,8 +30,13 @@
     "@types/node": "^20.0.0",
     "esbuild": "^0.20.0",
     "jest": "^29.0.0",
-    "prettier": "^3.7.4",
     "ts-jest": "^29.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "typescript-eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5"
   }
 }

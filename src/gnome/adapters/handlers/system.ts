@@ -161,7 +161,7 @@ export class SystemAdapter {
       if (!dirFile.query_exists(null)) {
         dirFile.make_directory_with_parents(null);
       }
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
 

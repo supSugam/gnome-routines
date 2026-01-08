@@ -68,7 +68,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
   }
 
   private loadNetworks(row: any) {
-    let availableNetworks: string[] = [];
+    const availableNetworks: string[] = [];
     try {
       const client = NM.Client.new(null);
       if (client) {

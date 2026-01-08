@@ -31,12 +31,12 @@ function getLogStream() {
           const tempFile = dir.get_child(name);
           try {
             tempFile.delete(null);
-          } catch (e) {
+          } catch (_e) {
             // Ignore delete
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Ignore cleanup
     }
 
@@ -96,7 +96,7 @@ export function startFreshLog() {
   if (stream) {
     try {
       stream.truncate(0, null);
-    } catch (e) {
+    } catch (_e) {
       // Ignore fail
     }
   }

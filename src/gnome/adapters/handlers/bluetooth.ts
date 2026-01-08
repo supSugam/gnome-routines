@@ -23,7 +23,7 @@ export class BluetoothAdapter {
   private async _findAdapterPath(): Promise<string | null> {
     if (this._adapterPath) return this._adapterPath;
 
-    let path = '/org/bluez/hci0';
+    const path = '/org/bluez/hci0';
 
     return new Promise((resolve) => {
       Gio.DBus.system.call(

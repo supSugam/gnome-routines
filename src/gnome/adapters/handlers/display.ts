@@ -77,7 +77,7 @@ export class DisplayAdapter {
 
     const signalId = this._wallpaperSettings.connect(
       'changed',
-      (settings: any, key: string) => {
+      (_settings: any, key: string) => {
         if (key === 'picture-uri' || key === 'picture-uri-dark') {
           const newUri = this._wallpaperSettings.get_string('picture-uri');
           callback(newUri);
@@ -96,7 +96,7 @@ export class DisplayAdapter {
       );
       fileMonitor.connect(
         'changed',
-        (monitor: any, file: any, otherFile: any, eventType: any) => {
+        (_monitor: any, _file: any, _otherFile: any, eventType: any) => {
           if (
             eventType === Gio.FileMonitorEvent.CHANGES_DONE_HINT ||
             eventType === Gio.FileMonitorEvent.CREATED
@@ -149,9 +149,9 @@ export class DisplayAdapter {
       return () => {
         try {
           settings.disconnect(signalId);
-        } catch (e) {}
+        } catch (_e) {}
       };
-    } catch (e) {
+    } catch (_e) {
       return () => {};
     }
   }
@@ -243,7 +243,7 @@ export class DisplayAdapter {
     try {
       // Get current state
       const state = await this._callDisplayConfig('GetCurrentState', null);
-      const [serial, monitors, logicalMonitors] = state.deep_unpack();
+      const [serial, _monitors, logicalMonitors] = state.deep_unpack();
 
       // 1. Find primary logical monitor
       let primaryMonitorIdx = -1;
@@ -328,10 +328,12 @@ export class DisplayAdapter {
         (connection: any, res: any) => {
           try {
             connection.call_finish(res);
-          } catch (e) {}
+          } catch (_e) {
+            // Empty
+          }
         }
       );
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   getKeyboardBrightness(): Promise<number> {
@@ -356,12 +358,12 @@ export class DisplayAdapter {
               const variant = result.get_child_value(0);
               const value = variant.get_variant().get_int32();
               resolve(value);
-            } catch (e) {
+            } catch (_e) {
               resolve(0);
             }
           }
         );
-      } catch (e) {
+      } catch (_e) {
         resolve(0);
       }
     });

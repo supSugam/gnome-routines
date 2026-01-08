@@ -92,7 +92,7 @@ export class SystemTrigger extends BaseTrigger {
       }
     });
 
-    const callback = async (state: boolean) => {
+    const callback = async (_state: boolean) => {
       // Re-evaluate condition
       const isMatch = await this.check();
 
@@ -133,7 +133,7 @@ export class SystemTrigger extends BaseTrigger {
           debugLog(`[SystemTrigger] Condition lost (FALSE). Not emitting.`);
         }
       }
-    };;
+    };
 
     switch (this.type) {
       case TriggerType.POWER_SAVER:

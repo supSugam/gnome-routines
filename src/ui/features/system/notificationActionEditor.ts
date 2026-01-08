@@ -8,7 +8,6 @@ import {
   NotificationActionConfig,
   NotificationUrgency,
 } from '../../../engine/types.js';
-import { UI_STRINGS } from '../../utils/constants.js';
 
 export class NotificationActionEditor extends BaseEditor {
   private get notifConfig(): NotificationActionConfig {

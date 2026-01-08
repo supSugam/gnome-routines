@@ -17,12 +17,13 @@ export class PowerAdapter {
     (level: number, isCharging: boolean) => void
   > | null = null;
 
-  setBluetooth(enabled: boolean): void {
+  setBluetooth(_enabled: boolean): void {
     // Stub
   }
 
-  setPowerSaver(enabled: boolean): void {
-    this.setPowerProfile(enabled ? 'power-saver' : 'balanced');
+  async setPowerSaver(_enabled: boolean): Promise<boolean> {
+    this.setPowerProfile(_enabled ? 'power-saver' : 'balanced');
+    return true; // Assuming success for now
   }
 
   setPowerProfile(profile: string): void {
@@ -232,4 +233,3 @@ export class PowerAdapter {
     return this._batteryDispatcher.addCallback(callback);
   }
 }
-

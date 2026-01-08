@@ -1,6 +1,4 @@
 // @ts-ignore
-import Gio from 'gi://Gio';
-// @ts-ignore
 import NM from 'gi://NM';
 import debugLog from '../../../utils/log.js';
 import { GObjectSignalDispatcher } from '../../utils/signalDispatcher.js';
@@ -19,9 +17,9 @@ export class NetworkAdapter {
     } catch (e) {
       debugLog('[NetworkAdapter] Failed to simple-init NM Client:', e);
       // Async fallback
-      NM.Client.new_async(null, (obj: any, result: any) => {
+      NM.Client.new_async(null, (_obj: any, _result: any) => {
         try {
-          this._client = NM.Client.new_finish(result);
+          this._client = NM.Client.new_finish(_result);
           debugLog('[NetworkAdapter] NM Client initialized async');
         } catch (err) {
           debugLog('[NetworkAdapter] NM Client async init failed:', err);
@@ -34,7 +32,7 @@ export class NetworkAdapter {
     if (!this._client) {
       try {
         this._client = NM.Client.new(null);
-      } catch (e) {
+      } catch (_e) {
         // Sync init failed
         debugLog('[NetworkAdapter] Warning: NM Client re-init attempted');
       }
@@ -59,7 +57,7 @@ export class NetworkAdapter {
       null,
       null,
       null,
-      (client: any, result: any) => {
+      (client: any, _result: any) => {
         // Complex connection logic
         try {
           const connections = client.get_connections();

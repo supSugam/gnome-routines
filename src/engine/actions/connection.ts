@@ -12,7 +12,6 @@ import {
 } from '../types.js';
 import { RETRY_DEFAULTS } from '../constants.js';
 
-
 export class WifiAction extends BaseAction {
   private initialState: boolean | null = null;
   private initialSsid: string | null = null;

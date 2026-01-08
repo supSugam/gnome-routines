@@ -1,6 +1,4 @@
 // @ts-ignore
-import Adw from 'gi://Adw';
-// @ts-ignore
 import Gtk from 'gi://Gtk';
 import { BaseEditor } from '../../components/baseEditor.js';
 import { ExecuteCommandActionConfig } from '../../../engine/types.js';

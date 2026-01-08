@@ -1,22 +1,20 @@
 export class EventEmitter {
-  private listeners: Record<string, Function[]> = {};
+  private events: Record<string, ((...args: any[]) => void)[]> = {};
 
-  on(event: string, callback: Function) {
-    if (!this.listeners[event]) {
-      this.listeners[event] = [];
+  on(event: string, callback: (...args: any[]) => void): void {
+    if (!this.events[event]) {
+      this.events[event] = [];
     }
-    this.listeners[event].push(callback);
+    this.events[event].push(callback);
   }
 
-  off(event: string, callback: Function) {
-    if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(
-      (cb) => cb !== callback
-    );
+  off(event: string, callback: (...args: any[]) => void): void {
+    if (!this.events[event]) return;
+    this.events[event] = this.events[event].filter((cb) => cb !== callback);
   }
 
   emit(event: string, ...args: any[]) {
-    if (!this.listeners[event]) return;
-    this.listeners[event].forEach((cb) => cb(...args));
+    if (!this.events[event]) return;
+    this.events[event].forEach((cb) => cb(...args));
   }
 }

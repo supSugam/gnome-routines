@@ -24,7 +24,6 @@ import {
   ConnectionState,
   BatteryTriggerMode,
   LevelComparison,
-  BatteryStatus,
   ExecuteCommandActionConfig,
 } from '../../engine/types.js';
 

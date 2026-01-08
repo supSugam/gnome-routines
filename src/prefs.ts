@@ -1,14 +1,4 @@
 // @ts-ignore
-import Adw from 'gi://Adw';
-// @ts-ignore
-import Gtk from 'gi://Gtk';
-// @ts-ignore
-import Gio from 'gi://Gio';
-// @ts-ignore
-import GObject from 'gi://GObject';
-// @ts-ignore
-import GLib from 'gi://GLib';
-// @ts-ignore
 import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import { RoutinesPage } from './ui/prefs/RoutinesPage.js';

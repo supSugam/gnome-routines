@@ -2,8 +2,6 @@
 import Adw from 'gi://Adw';
 // @ts-ignore
 import Gtk from 'gi://Gtk';
-// @ts-ignore
-import GLib from 'gi://GLib';
 import { BaseEditor } from '../../components/baseEditor.js';
 import {
   ConnectionState,

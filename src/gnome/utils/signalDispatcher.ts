@@ -1,5 +1,4 @@
 // @ts-ignore
-import Gio from 'gi://Gio';
 import debugLog from '../../utils/log.js';
 
 /** SignalDispatcher: Shared D-Bus signals */
@@ -130,7 +129,9 @@ export class GObjectSignalDispatcher<T extends (...args: any[]) => void> {
       this.connect();
     }
 
-    debugLog(`[GObjectDispatcher:${this.name}] Callback added. Total: ${this.callbacks.size}`);
+    debugLog(
+      `[GObjectDispatcher:${this.name}] Callback added. Total: ${this.callbacks.size}`
+    );
 
     return () => {
       this.removeCallback(callback);
@@ -139,7 +140,9 @@ export class GObjectSignalDispatcher<T extends (...args: any[]) => void> {
 
   private removeCallback(callback: T): void {
     this.callbacks.delete(callback);
-    debugLog(`[GObjectDispatcher:${this.name}] Callback removed. Total: ${this.callbacks.size}`);
+    debugLog(
+      `[GObjectDispatcher:${this.name}] Callback removed. Total: ${this.callbacks.size}`
+    );
 
     if (this.callbacks.size === 0 && this.isConnected) {
       this.disconnect();
@@ -160,7 +163,9 @@ export class GObjectSignalDispatcher<T extends (...args: any[]) => void> {
         }
       });
       this.isConnected = true;
-      debugLog(`[GObjectDispatcher:${this.name}] Connected to '${this.signalName}'`);
+      debugLog(
+        `[GObjectDispatcher:${this.name}] Connected to '${this.signalName}'`
+      );
     } catch (e) {
       debugLog(`[GObjectDispatcher:${this.name}] Connect failed:`, e);
     }
@@ -171,7 +176,9 @@ export class GObjectSignalDispatcher<T extends (...args: any[]) => void> {
 
     try {
       this.object.disconnect(this.signalId);
-      debugLog(`[GObjectDispatcher:${this.name}] Disconnected from '${this.signalName}'`);
+      debugLog(
+        `[GObjectDispatcher:${this.name}] Disconnected from '${this.signalName}'`
+      );
     } catch (e) {
       debugLog(`[GObjectDispatcher:${this.name}] Disconnect failed:`, e);
     }
