@@ -20,7 +20,7 @@ export default class GnomeRoutinesExt extends Extension {
 
   enable() {
     startFreshLog();
-    debugLog('[GnomeRoutines] Enabling extension version 3.');
+    debugLog('[GnomeRoutines] Enabling extension.');
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);

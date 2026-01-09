@@ -65,38 +65,53 @@ _Events that start a routine:_
 
 ![Triggers Selection](docs/images/small/gnome-routines_triggers.png)
 
-- **Time**: Specific time, time range, or days of the week.
-- **App Opened**: When one or more specific applications are running.
-- **Network**:
-  - **WiFi**: Connect/Disconnect from any or specific network.
-  - **Bluetooth**: Device connected/disconnected.
-- **Power**:
-  - **Battery Level**: Below/Above a percentage.
-  - **Charging Status**: Charging or Discharging.
-  - **Power Saver**: When system power saver turns on/off.
-- **System**:
-  - **Airplane Mode**: On/Off.
-  - **Dark Mode**: On/Off.
-  - **Headphones**: Wired headphones plugged in/out.
-- **Clipboard**: When clipboard content changes (supports regex matching).
+| Category | Trigger | Description |
+|----------|---------|-------------|
+| **Time** | Time / Time Range | Specific time, time range, or days of the week |
+| **Time** | Interval | Repeat every X minutes/hours |
+| **Time** | Startup | When GNOME Shell starts |
+| **App** | App Opened | When specific applications are running |
+| **Network** | WiFi | Connect/Disconnect from any or specific network |
+| **Network** | Bluetooth | Device connected/disconnected, power on/off |
+| **Network** | Airplane Mode | When airplane mode turns on/off |
+| **Power** | Battery Level | Below/Above a percentage |
+| **Power** | Charging Status | Charging or Discharging |
+| **Power** | Power Saver | When system power saver turns on/off |
+| **System** | Dark Mode | When dark mode turns on/off |
+| **System** | Do Not Disturb | When DND turns on/off |
+| **System** | Headphones | Wired headphones plugged in/out |
+| **Clipboard** | Clipboard Changed | When clipboard content changes (supports regex) |
+| **Display** | Wallpaper Changed | When wallpaper is changed |
 
 ### Actions
 
 _What happens when a routine runs:_
 
-- **Connectivity**:
-  - Toggle **WiFi** / **Bluetooth** / **Airplane Mode**.
-  - **Connect/Disconnect** specific WiFi networks or Bluetooth devices.
-- **Display**:
-  - Toggle **Dark Mode** / **Night Light**.
-  - Set **Brightness**, **Screen Timeout**, **Screen Orientation**, **Refresh Rate**.
-  - Change **Wallpaper**.
-- **Audio**: Set **Volume** level.
-- **Productivity**:
-  - Toggle **Do Not Disturb**.
-  - **Open Apps** or **Web Links**.
-  - **Take Screenshot**.
-  - **Manage Clipboard** (Clear or Sanitize URLs).
+| Category | Action | Description |
+|----------|--------|-------------|
+| **Connectivity** | WiFi Toggle | Turn WiFi on/off |
+| **Connectivity** | Connect to WiFi | Connect to a specific network |
+| **Connectivity** | Bluetooth Toggle | Turn Bluetooth on/off |
+| **Connectivity** | Connect Bluetooth | Connect to a specific device |
+| **Connectivity** | Disconnect Bluetooth | Disconnect from a specific device |
+| **Connectivity** | Airplane Mode | Turn airplane mode on/off |
+| **Display** | Dark Mode | Toggle dark mode |
+| **Display** | Night Light | Toggle night light |
+| **Display** | Brightness | Set screen brightness level |
+| **Display** | Keyboard Brightness | Set keyboard backlight level |
+| **Display** | Screen Timeout | Set screen timeout duration |
+| **Display** | Screen Orientation | Change screen orientation |
+| **Display** | Refresh Rate | Set display refresh rate |
+| **Display** | Wallpaper | Change desktop wallpaper |
+| **Audio** | Volume | Set system volume level |
+| **Power** | Power Saver | Toggle power saver mode |
+| **System** | Do Not Disturb | Toggle DND mode |
+| **System** | Notification | Show a custom notification |
+| **System** | Open App | Launch one or more applications |
+| **System** | Open Link | Open one or more URLs in browser |
+| **System** | Take Screenshot | Capture screenshot |
+| **System** | Execute Command | Run a shell command |
+| **Clipboard** | Clipboard Action | Clear clipboard or sanitize URLs |
 
 ---
 

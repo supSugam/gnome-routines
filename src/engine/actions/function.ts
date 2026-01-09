@@ -18,7 +18,31 @@ export class OpenLinkAction extends BaseAction {
   }
 
   async execute(): Promise<void> {
-    this.adapter.openLink(this.config.url);
+    const urlsToOpen: string[] = [];
+
+    // Migrate/Support legacy single URL
+    if (this.config.url) {
+      urlsToOpen.push(this.config.url);
+    }
+
+    // Support new multiple URLs
+    if (this.config.urls && Array.isArray(this.config.urls)) {
+      urlsToOpen.push(...this.config.urls);
+    }
+
+    // Deduplicate and open
+    const uniqueUrls = [...new Set(urlsToOpen)];
+
+    if (uniqueUrls.length === 0) {
+      debugLog(
+        `[OpenLinkAction] No URLs configured to open for action ${this.id}`
+      );
+      return;
+    }
+
+    for (const url of uniqueUrls) {
+      this.adapter.openLink(url);
+    }
   }
 
   async revert(): Promise<void> {

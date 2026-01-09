@@ -1,16 +1,20 @@
 # Changelog
 
-## [V2] - 2024-12-12
+## V3 - 2026-01-09
 
-### Changed
+- Audio volume control now uses `getMixerControl()` instead of subprocess commands
+- Updated extension description to declare clipboard usage as per review guidelines
+- Refactored RoutineManager into multiple service classes
+- Triggers and actions are now conditionally rendered based on machine capabilities
+- Removed spawn/subprocess commands from audio and bluetooth handlers in favor of D-Bus
+- Iimeout cleanup on disable/destroy and before creating new timeouts
+- Fixed various bugs and general stability improvements
 
-- Switched to modular file structure (removed monolithic bundle).
-- Improved code formatting (empty lines between functions/classes).
-- Fixed JSON import assertions issue.
+---
 
-### Added
+## V2 - 2024-12-12
 
-- Initial release of Gnome Routines.
-- Automation with triggers (Time, App, Network, Power, etc.) and actions.
-- Preferences window for managing routines.
-- Background service for monitoring triggers.
+- Initial release with modular file structure
+- Automation with triggers (Time, App, Network, Power, etc.) and actions
+- Preferences window for managing routines
+- Background service for monitoring triggers

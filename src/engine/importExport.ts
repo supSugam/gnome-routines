@@ -1,4 +1,4 @@
-import { Routine, RoutineExport, RoutineExportData } from './types.js';
+import { Routine, RoutineExport } from './types.js';
 import debugLog from '../utils/log.js';
 
 // @ts-ignore
@@ -8,7 +8,6 @@ export class ImportExportManager {
   static exportRoutines(routines: Routine[]): string {
     try {
       const exportData: RoutineExport = {
-        version: 2,
         timestamp: Date.now(),
         source: 'gnome-routines',
         routines: routines.map((r) => {

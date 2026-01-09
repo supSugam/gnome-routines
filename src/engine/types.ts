@@ -232,7 +232,8 @@ export interface BluetoothDeviceActionConfig {
 }
 
 export interface OpenLinkActionConfig {
-  url: string;
+  url?: string;
+  urls?: string[];
 }
 
 export enum SanitizationMode {
@@ -414,7 +415,6 @@ export interface RoutineState {
 // Import/Export Types
 
 export interface RoutineExport {
-  version: number;
   timestamp: number;
   source: 'gnome-routines';
   routines: RoutineExportData[];

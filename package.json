@@ -1,7 +1,7 @@
 {
   "name": "gnome-routines",
-  "version": "4",
-  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, App, and more. This extension interacts with the clipboard.",
+  "version": "3",
+  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, apps, and more. This extension can read and write to your clipboard when using clipboard triggers or actions.",
   "scripts": {
     "build": "node scripts/build.js && npm run package",
     "watch": "node scripts/build.js --watch",
