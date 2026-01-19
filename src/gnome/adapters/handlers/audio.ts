@@ -134,4 +134,66 @@ export class AudioAdapter {
 
     return this._headphoneDispatcher.addCallback(wrappedCallback as any);
   }
+
+  onVolumeChanged(callback: (percentage: number) => void): () => void {
+    let streamSignalId: number | null = null;
+    let lastStream: any = null;
+
+    const updateVolume = () => {
+      const stream = this._mixer.get_default_sink();
+      if (!stream) return;
+      const max = this._mixer.get_vol_max_norm();
+      const current = stream.volume;
+      const percentage = Math.round((current / max) * 100);
+      callback(percentage);
+    };
+
+    const attachToStream = () => {
+      if (lastStream && streamSignalId) {
+        try {
+          lastStream.disconnect(streamSignalId);
+        } catch (e) {
+          // invalid signal
+        }
+        streamSignalId = null;
+      }
+
+      const stream = this._mixer.get_default_sink();
+      lastStream = stream;
+
+      if (stream) {
+        streamSignalId = stream.connect('notify::volume', () => {
+          updateVolume();
+        });
+        // Initial call
+        updateVolume();
+      }
+    };
+
+    // Listen to sink changes (e.g. bluetooth connected)
+    const sinkDispatcher = new GObjectSignalDispatcher(
+      'VolumeMonitor',
+      this._mixer,
+      'default-sink-changed'
+    );
+
+    const cleanup = sinkDispatcher.addCallback(() => {
+      attachToStream();
+    });
+
+    // Attach initially
+    this._ensureMixerReady().then(() => {
+      attachToStream();
+    });
+
+    return () => {
+      cleanup();
+      if (lastStream && streamSignalId) {
+        try {
+          lastStream.disconnect(streamSignalId);
+        } catch (e) {}
+      }
+      sinkDispatcher.destroy();
+    };
+  }
 }

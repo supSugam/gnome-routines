@@ -69,6 +69,10 @@ export class GnomeShellAdapter implements ISystemAdapter {
     return this._audio.getVolume();
   }
 
+  onVolumeChanged(callback: (percentage: number) => void): () => void {
+    return this._audio.onVolumeChanged(callback);
+  }
+
   setBluetoothVolume(percentage: number): Promise<boolean> {
     return this._audio.setBluetoothVolume(percentage);
   }

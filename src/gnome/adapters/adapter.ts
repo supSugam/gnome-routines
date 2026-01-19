@@ -9,6 +9,7 @@ export interface SystemAdapter {
   getBrightness(): number;
   setVolume(percentage: number): Promise<void>;
   getVolume(): Promise<number>;
+  onVolumeChanged(callback: (percentage: number) => void): () => void;
   setBluetoothVolume(percentage: number): Promise<boolean>;
   setSinkVolume(sinkName: string, percentage: number): void;
   getBluetoothAudioSinkName(): string | null;
