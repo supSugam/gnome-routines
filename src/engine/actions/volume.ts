@@ -36,8 +36,15 @@ export class VolumeAction extends BaseAction {
       // Set volume immediately
       await this.setVolumeAll(targetLevel);
 
-      // Enforce for 5 seconds (event-driven)
-      this.monitorAndEnforce(targetLevel, 5000);
+      // Enforce if requested (typically for Bluetooth-triggered routines)
+      if (this.config.enforce) {
+        debugLog('[VolumeAction] Active enforcement requested');
+        // Enforce for 10 seconds
+        this.adapter.enforceVolume(targetLevel, 10000);
+      } else {
+        // Fallback or standard retry (fight system override)
+        this.retryWithVerification(targetLevel, 3);
+      }
     } catch (e) {
       debugLog(`[VolumeAction] Failed to execute:`, e);
     }
@@ -50,68 +57,39 @@ export class VolumeAction extends BaseAction {
     await this.adapter.setVolume(level);
   }
 
-  private monitorAndEnforce(targetLevel: number, durationMs: number): void {
-    debugLog(
-      `[VolumeAction] Enforcing volume at ${targetLevel}% for ${durationMs}ms`
-    );
+  private retryWithVerification(
+    targetLevel: number,
+    retriesLeft: number
+  ): void {
+    if (retriesLeft <= 0) {
+      debugLog('[VolumeAction] Max retries reached, giving up');
+      return;
+    }
 
-    // Clean up previous enforcement
-    this.destroy();
-
-    const startTime = Date.now();
-    let isEnforcing = false;
-
-    const cleanupSignal = this.adapter.onVolumeChanged((currentVolume) => {
-      // Check expiration
-      if (Date.now() - startTime > durationMs) {
-        this.destroy();
-        return;
-      }
-
-      // Avoid feedback loop during restoration
-      if (isEnforcing) return;
-
-      // Check deviation (tolerance 2%)
-      if (Math.abs(currentVolume - targetLevel) > 2) {
-        debugLog(
-          `[VolumeAction] Volume deviation DETECTED: ${currentVolume}% (Target: ${targetLevel}%)`
-        );
-        debugLog(`[VolumeAction] Consistently forcing volume restoration...`);
-
-        isEnforcing = true;
-        this.setVolumeAll(targetLevel).then(() => {
-          isEnforcing = false;
-        });
-      }
-    });
-
-    // Hard stop timer
-    const timerId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, durationMs, () => {
-      debugLog(`[VolumeAction] Enforcement period ended.`);
-      cleanupSignal();
+    // Wait & Verify
+    this.retryTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
       this.retryTimeoutId = null;
+
+      this.adapter.getVolume().then((currentVolume) => {
+        // 2% tolerance
+        if (Math.abs(currentVolume - targetLevel) <= 2) {
+          debugLog(
+            `[VolumeAction] Volume verified at ${currentVolume}% (target: ${targetLevel}%)`
+          );
+          return;
+        }
+
+        debugLog(
+          `[VolumeAction] Volume drifted to ${currentVolume}%, re-setting to ${targetLevel}% (${retriesLeft - 1} retries left)`
+        );
+
+        this.setVolumeAll(targetLevel).then(() => {
+          this.retryWithVerification(targetLevel, retriesLeft - 1);
+        });
+      });
+
       return GLib.SOURCE_REMOVE;
     });
-
-    // Store cleanup (hijacking retryTimeoutId to store the timer ID, signal is separate)
-    // To strictly stick to the existing class structure, we'll store the timer ID.
-    // Ideally we would store the cleanup callback too, but let's wrap it.
-
-    this.retryTimeoutId = timerId;
-
-    // Overwrite destroy to clean up both
-    const originalDestroy = this.destroy.bind(this);
-    this.destroy = () => {
-      cleanupSignal();
-      // Call original to clear timer
-      if (this.retryTimeoutId) {
-        GLib.source_remove(this.retryTimeoutId);
-        this.retryTimeoutId = null;
-      }
-      // Restore original destroy for next time? No, this instance is short lived usually or reused.
-      // Better pattern:
-      this.destroy = originalDestroy;
-    };
   }
 
   async revert(): Promise<void> {

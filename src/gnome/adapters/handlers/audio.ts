@@ -1,5 +1,7 @@
 // @ts-ignore
 import Gio from 'gi://Gio';
+// @ts-ignore
+import GLib from 'gi://GLib';
 import debugLog from '../../../utils/log.js';
 import { getMixerControl } from '../../utils/mixer.js';
 import { GObjectSignalDispatcher } from '../../utils/signalDispatcher.js';
@@ -9,6 +11,8 @@ export class AudioAdapter {
   private _headphoneDispatcher: GObjectSignalDispatcher<
     (isConnected: boolean) => void
   > | null = null;
+  private _enforcementSignalIds: Map<any, number> = new Map();
+  private _enforcementTimeoutId: number | null = null;
 
   constructor() {
     this._mixer = getMixerControl();
@@ -135,65 +139,86 @@ export class AudioAdapter {
     return this._headphoneDispatcher.addCallback(wrappedCallback as any);
   }
 
-  onVolumeChanged(callback: (percentage: number) => void): () => void {
-    let streamSignalId: number | null = null;
-    let lastStream: any = null;
-
-    const updateVolume = () => {
-      const stream = this._mixer.get_default_sink();
-      if (!stream) return;
-      const max = this._mixer.get_vol_max_norm();
-      const current = stream.volume;
-      const percentage = Math.round((current / max) * 100);
-      callback(percentage);
-    };
-
-    const attachToStream = () => {
-      if (lastStream && streamSignalId) {
-        try {
-          lastStream.disconnect(streamSignalId);
-        } catch (e) {
-          // invalid signal
-        }
-        streamSignalId = null;
-      }
-
-      const stream = this._mixer.get_default_sink();
-      lastStream = stream;
-
-      if (stream) {
-        streamSignalId = stream.connect('notify::volume', () => {
-          updateVolume();
-        });
-        // Initial call
-        updateVolume();
-      }
-    };
-
-    // Listen to sink changes (e.g. bluetooth connected)
-    const sinkDispatcher = new GObjectSignalDispatcher(
-      'VolumeMonitor',
-      this._mixer,
-      'default-sink-changed'
+  enforceVolume(percentage: number, durationMs: number): void {
+    debugLog(
+      `[AudioAdapter] Starting volume enforcement: ${percentage}% for ${durationMs}ms`
     );
 
-    const cleanup = sinkDispatcher.addCallback(() => {
-      attachToStream();
-    });
+    // Clear existing enforcement if any
+    this._stopEnforcement();
 
-    // Attach initially
-    this._ensureMixerReady().then(() => {
-      attachToStream();
-    });
+    const applyToSink = (stream: any) => {
+      const max = this._mixer.get_vol_max_norm();
+      const vol = Math.floor((percentage / 100) * max);
 
-    return () => {
-      cleanup();
-      if (lastStream && streamSignalId) {
-        try {
-          lastStream.disconnect(streamSignalId);
-        } catch (e) {}
+      if (Math.abs(stream.volume - vol) > max * 0.02) {
+        debugLog(
+          `[AudioAdapter] Enforcing volume on sink: ${stream.get_name()}`
+        );
+        stream.volume = vol;
+        stream.push_volume();
+        if (stream.is_muted) stream.change_is_muted(false);
       }
-      sinkDispatcher.destroy();
     };
+
+    const attachToSink = (stream: any) => {
+      const port = stream.get_port();
+      const isBluetooth =
+        stream.get_icon_name().includes('bluetooth') ||
+        (port && port.port.includes('bluetooth'));
+
+      if (isBluetooth) {
+        applyToSink(stream);
+
+        // Listen for volume changes on this sink
+        if (!this._enforcementSignalIds.has(stream)) {
+          const id = stream.connect('notify::volume', () =>
+            applyToSink(stream)
+          );
+          this._enforcementSignalIds.set(stream, id);
+        }
+      }
+    };
+
+    // 1. Check existing sinks
+    const sinks = this._mixer.get_sinks();
+    sinks.forEach((s: any) => attachToSink(s));
+
+    // 2. Listen for new sinks (e.g. slow BT handshake)
+    const streamAddedId = this._mixer.connect(
+      'stream-added',
+      (_: any, id: number) => {
+        const stream = this._mixer.lookup_stream_id(id);
+        if (stream) attachToSink(stream);
+      }
+    );
+    this._enforcementSignalIds.set(this._mixer, streamAddedId);
+
+    // 3. Stop after duration
+    this._enforcementTimeoutId = GLib.timeout_add(
+      GLib.PRIORITY_DEFAULT,
+      durationMs,
+      () => {
+        this._stopEnforcement();
+        debugLog('[AudioAdapter] Volume enforcement period ended');
+        return GLib.SOURCE_REMOVE;
+      }
+    );
+  }
+
+  private _stopEnforcement(): void {
+    if (this._enforcementTimeoutId) {
+      GLib.source_remove(this._enforcementTimeoutId);
+      this._enforcementTimeoutId = null;
+    }
+
+    for (const [obj, id] of this._enforcementSignalIds.entries()) {
+      try {
+        obj.disconnect(id);
+      } catch (_e) {
+        // Object might be gone
+      }
+    }
+    this._enforcementSignalIds.clear();
   }
 }

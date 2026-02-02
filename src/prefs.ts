@@ -1,5 +1,5 @@
 // @ts-ignore
-import { ExtensionPreferences } from 'resource:///org/gnome/shell/extensions/prefs.js';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import { RoutinesPage } from './ui/prefs/RoutinesPage.js';
 

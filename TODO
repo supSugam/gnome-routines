@@ -3,3 +3,6 @@ delay time period keyboard brightness
 time period keyboard brightness trigger the action in revert (when the routine ends) when the condition meets on extension init
 
 see how clipboard change is avoiding trigger on simple gnome shell refresh/login/ wakeup from sleep/init and only triggering on real true change. We do not want to rely on timer or any other clunk unreliable approach This trigger should only trigger ON true event change. ie. when we know the clipboard content changed from something to something.
+
+
+why the hell is it removing empty lines on built extension code, the entire world develops in typescript now and i dont think they have to do this mess just to have their build output properly formatted, research how they have consistent prettier formatting on both source code and js output first on web to meet the standards

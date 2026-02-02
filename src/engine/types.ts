@@ -173,6 +173,7 @@ export interface NotificationActionConfig {
 
 export interface VolumeActionConfig {
   level: number;
+  enforce?: boolean;
 }
 
 export interface BrightnessActionConfig {
