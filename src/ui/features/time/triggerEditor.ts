@@ -20,6 +20,7 @@ export class TimeTriggerEditor extends BaseEditor {
       }),
       selected: this.config.startTime ? 1 : 0,
     });
+
     group.add(timeTypeRow);
 
     // Pickers
@@ -31,6 +32,7 @@ export class TimeTriggerEditor extends BaseEditor {
         this.onChange();
       }
     );
+
     timeRow.add_suffix(timePicker.widget);
     group.add(timeRow);
 
@@ -42,6 +44,7 @@ export class TimeTriggerEditor extends BaseEditor {
         this.onChange();
       }
     );
+
     startRow.add_suffix(startPicker.widget);
     group.add(startRow);
 
@@ -53,12 +56,14 @@ export class TimeTriggerEditor extends BaseEditor {
         this.onChange();
       }
     );
+
     endRow.add_suffix(endPicker.widget);
     group.add(endRow);
 
     // Visibility
     const refreshTimeFields = () => {
       const isPeriod = timeTypeRow.selected === 1;
+
       timeRow.visible = !isPeriod;
       startRow.visible = isPeriod;
       endRow.visible = isPeriod;
@@ -73,8 +78,10 @@ export class TimeTriggerEditor extends BaseEditor {
         delete this.config.startTime;
         delete this.config.endTime;
       }
+
       this.onChange();
     };
+
     // @ts-ignore
     timeTypeRow.connect('notify::selected', refreshTimeFields);
     refreshTimeFields();
@@ -98,6 +105,7 @@ export class TimeTriggerEditor extends BaseEditor {
       label: `Repeat: ${this.getDaysSummary(this.config.days)}`,
       xalign: 0,
     });
+
     repeatLabel.add_css_class('heading'); // or 'title-4'
     repeatContainer.append(repeatLabel);
 
@@ -111,6 +119,7 @@ export class TimeTriggerEditor extends BaseEditor {
       orientation: Gtk.Orientation.HORIZONTAL,
       valign: Gtk.Align.CENTER,
     });
+
     daysBox.add_css_class('linked');
 
     const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -132,6 +141,7 @@ export class TimeTriggerEditor extends BaseEditor {
             (d: number) => d !== index
           );
         }
+
         this.config.days.sort((a: number, b: number) => a - b);
 
         updateLabel();
@@ -149,6 +159,7 @@ export class TimeTriggerEditor extends BaseEditor {
       icon_name: 'view-more-symbolic',
       tooltip_text: 'Presets',
     });
+
     menuBtn.add_css_class('flat');
 
     const popover = new Gtk.Popover();
@@ -170,6 +181,7 @@ export class TimeTriggerEditor extends BaseEditor {
 
     presets.forEach((preset) => {
       const btn = new Gtk.Button({ label: preset.label });
+
       btn.add_css_class('flat');
       // @ts-ignore
       btn.connect('clicked', () => {
@@ -220,6 +232,7 @@ export class TimeTriggerEditor extends BaseEditor {
     if (isWeekends) return 'Weekends';
 
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
     return days.map((d) => dayNames[d]).join(', ');
   }
 
@@ -235,22 +248,27 @@ export class TimeTriggerEditor extends BaseEditor {
     });
 
     let [h, m] = initialTime24h.split(':').map(Number);
+
     if (isNaN(h)) h = 9;
     if (isNaN(m)) m = 0;
 
     let isPm = h >= 12;
+
     if (h > 12) h -= 12;
     if (h === 0) h = 12;
 
     const hourSpin = Gtk.SpinButton.new_with_range(1, 12, 1);
+
     hourSpin.value = h;
 
     const label = new Gtk.Label({ label: ':' });
 
     const minuteSpin = Gtk.SpinButton.new_with_range(0, 59, 1);
+
     minuteSpin.value = m;
 
     const amPmBtn = new Gtk.Button({ label: isPm ? 'PM' : 'AM' });
+
     // @ts-ignore
     amPmBtn.connect('clicked', () => {
       isPm = !isPm;
@@ -276,6 +294,7 @@ export class TimeTriggerEditor extends BaseEditor {
       if (!isPm && hour === 12) hour = 0;
 
       const timeStr = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
       onUpdate(timeStr);
     };
 

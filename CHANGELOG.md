@@ -1,5 +1,12 @@
 # Changelog
 
+## V4 - 2026-02-03
+
+- Fixed a race condition where volume settings were not applying correctly upon Bluetooth connection
+- Improved build process to ensure consistent line breaks and formatting in compiled output files
+
+---
+
 ## V3 - 2026-01-09
 
 - Audio volume control now uses `getMixerControl()` instead of subprocess commands

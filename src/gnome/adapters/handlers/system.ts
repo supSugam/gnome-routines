@@ -18,7 +18,9 @@ export class SystemAdapter {
   }): void {
     const title = notification.title || 'GNOME Routines';
     const message = notification.message || '';
+
     debugLog(`[SystemAdapter] Creating notification: ${title} - ${message}`);
+
     try {
       // Use Main.notify
       (Main as any).notify(title, message);
@@ -39,6 +41,7 @@ export class SystemAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.notifications',
     });
+
     settings.set_boolean('show-banners', !enabled);
   }
 
@@ -46,6 +49,7 @@ export class SystemAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.notifications',
     });
+
     return !settings.get_boolean('show-banners');
   }
 
@@ -60,6 +64,7 @@ export class SystemAdapter {
 
     const id = settingsRef.connect('changed::show-banners', () => {
       const dnd = !settingsRef.get_boolean('show-banners');
+
       debugLog(`[SystemAdapter] DND state changed: ${dnd}`);
       callback(dnd);
     });
@@ -76,6 +81,7 @@ export class SystemAdapter {
 
   executeCommand(command: string): void {
     debugLog(`[SystemAdapter] Executing command (shell): ${command}`);
+
     try {
       // Interactive bash
       const homeDir = GLib.get_home_dir();
@@ -97,9 +103,11 @@ export class SystemAdapter {
       );
       launcher.setenv('XDG_RUNTIME_DIR', GLib.get_user_runtime_dir(), true);
       const dbusAddr = GLib.getenv('DBUS_SESSION_BUS_ADDRESS');
+
       if (dbusAddr) {
         launcher.setenv('DBUS_SESSION_BUS_ADDRESS', dbusAddr, true);
       }
+
       // Inherit HOME for proper shell initialization
       launcher.setenv('HOME', GLib.get_home_dir(), true);
 
@@ -110,6 +118,7 @@ export class SystemAdapter {
         try {
           proc.wait_finish(res);
           const exitCode = proc.get_exit_status();
+
           debugLog(
             `[SystemAdapter] Command finished with exit code: ${exitCode}`
           );
@@ -126,6 +135,7 @@ export class SystemAdapter {
     debugLog(`[SystemAdapter] Opening app: ${appId}`);
     const appSys = Shell.AppSystem.get_default();
     const app = appSys.lookup_app(appId);
+
     if (app) {
       app.activate();
     } else {
@@ -136,6 +146,7 @@ export class SystemAdapter {
 
   openLink(url: string): void {
     debugLog(`[SystemAdapter] Opening link: ${url}`);
+
     try {
       Gio.AppInfo.launch_default_for_uri(url, null);
     } catch (e) {
@@ -149,14 +160,17 @@ export class SystemAdapter {
       `${GLib.get_home_dir()}/Pictures`;
 
     let finalFilename = filename;
+
     if (!finalFilename) {
       const now = GLib.DateTime.new_now_local();
+
       finalFilename = `Screenshot from ${now.format('%Y-%m-%d %H-%M-%S')}.png`;
     }
 
     const fullPath = `${targetDir}/Screenshots/${finalFilename}`;
     // Ensure dir exists
     const dirFile = Gio.File.new_for_path(`${targetDir}/Screenshots`);
+
     try {
       if (!dirFile.query_exists(null)) {
         dirFile.make_directory_with_parents(null);

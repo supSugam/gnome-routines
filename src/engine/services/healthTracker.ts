@@ -21,6 +21,7 @@ export class HealthTracker {
 
   getHealth(id: string): RoutineState {
     let state = this.states.get(id);
+
     if (!state) {
       state = {
         health: RoutineHealth.UNKNOWN,
@@ -31,6 +32,7 @@ export class HealthTracker {
       };
       this.states.set(id, state);
     }
+
     return state;
   }
 
@@ -52,6 +54,7 @@ export class HealthTracker {
         status: log.status || ExecutionStatus.SUCCESS,
         message: log.message,
       });
+
       // Keep history capped at 50 entries
       if (state.history.length > 50) {
         state.history.pop();
@@ -63,6 +66,7 @@ export class HealthTracker {
 
   recordSuccess(id: string, message?: string): void {
     const state = this.getHealth(id);
+
     state.lastRun = Date.now();
     state.runCount++;
 
@@ -75,6 +79,7 @@ export class HealthTracker {
 
   recordFailure(id: string, error: string): void {
     const state = this.getHealth(id);
+
     state.failureCount++;
     state.lastError = error;
 

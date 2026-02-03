@@ -17,6 +17,7 @@ export class PowerSaverTriggerEditor extends BaseEditor {
         'The service must be installed and running for this trigger to work',
       icon_name: 'dialog-information-symbolic',
     });
+
     infoRow.add_css_class('dim-label');
     group.add(infoRow);
 
@@ -39,6 +40,7 @@ export class PowerSaverTriggerEditor extends BaseEditor {
       model: profileModel,
       selected: selectedIndex >= 0 ? selectedIndex : 2, // Default to Power Saver
     });
+
     group.add(profileRow);
 
     // @ts-ignore
@@ -50,6 +52,7 @@ export class PowerSaverTriggerEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.profile) return 'Please select a power profile';
+
     return true;
   }
 }

@@ -11,10 +11,12 @@ export class OpenAppActionEditor extends BaseEditor {
     const appSearch = new Gtk.SearchEntry({
       placeholder_text: 'Search Apps...',
     });
+
     appSearch.margin_bottom = 10;
     group.add(appSearch);
 
     const appScroll = new Gtk.ScrolledWindow();
+
     appScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
     appScroll.min_content_height = 300;
     appScroll.propagate_natural_height = true;
@@ -22,6 +24,7 @@ export class OpenAppActionEditor extends BaseEditor {
     const appList = new Gtk.ListBox({
       selection_mode: Gtk.SelectionMode.NONE,
     });
+
     appList.add_css_class('boxed-list');
     appScroll.child = appList;
     group.add(appScroll);
@@ -29,6 +32,7 @@ export class OpenAppActionEditor extends BaseEditor {
     if (!this.config.appIds) {
       this.config.appIds = [];
     }
+
     const selectedAppIds = new Set(this.config.appIds);
 
     const allApps = Gio.AppInfo.get_all().filter((app: any) =>
@@ -42,8 +46,10 @@ export class OpenAppActionEditor extends BaseEditor {
       const row = new Adw.ActionRow({ title: app.get_name() });
 
       const icon = app.get_icon();
+
       if (icon) {
         const img = Gtk.Image.new_from_gicon(icon);
+
         img.pixel_size = 32;
         row.add_prefix(img);
       }
@@ -51,6 +57,7 @@ export class OpenAppActionEditor extends BaseEditor {
       const toggle = new Gtk.Switch({
         active: selectedAppIds.has(app.get_id()),
       });
+
       toggle.valign = Gtk.Align.CENTER;
 
       // @ts-ignore
@@ -70,6 +77,7 @@ export class OpenAppActionEditor extends BaseEditor {
     // @ts-ignore
     appSearch.connect('search-changed', () => {
       const query = appSearch.text.toLowerCase();
+
       appRows.forEach((item) => {
         item.row.visible = item.name.includes(query);
       });
@@ -80,6 +88,7 @@ export class OpenAppActionEditor extends BaseEditor {
     if (!this.config.appIds || this.config.appIds.length === 0) {
       return 'Select at least one app';
     }
+
     return true;
   }
 }

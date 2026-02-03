@@ -8,6 +8,7 @@ export class NetworkAdapter {
   // Shared dispatchers for WiFi signals
   private _wifiStateDispatcher: GObjectSignalDispatcher<() => void> | null =
     null;
+
   private _wifiPowerDispatcher: GObjectSignalDispatcher<() => void> | null =
     null;
 
@@ -37,11 +38,13 @@ export class NetworkAdapter {
         debugLog('[NetworkAdapter] Warning: NM Client re-init attempted');
       }
     }
+
     return this._client;
   }
 
   setWifi(enabled: boolean): void {
     const client = this._ensureClient();
+
     if (client) {
       debugLog(`[NetworkAdapter] Setting WiFi enabled: ${enabled}`);
       client.wireless_enabled = enabled;
@@ -50,6 +53,7 @@ export class NetworkAdapter {
 
   connectToWifi(ssid: string): void {
     const client = this._ensureClient();
+
     if (!client) return;
 
     client.activate_connection_async(
@@ -61,15 +65,20 @@ export class NetworkAdapter {
         // Complex connection logic
         try {
           const connections = client.get_connections();
+
           for (const conn of connections) {
             const s_wireless = conn.get_setting_wireless();
+
             if (s_wireless && s_wireless.get_ssid()) {
               const ssidBytes = s_wireless.get_ssid();
               let connSsid = '';
+
               if (ssidBytes) {
                 const data = ssidBytes.get_data();
+
                 if (data) {
                   const decoder = new TextDecoder('utf-8');
+
                   connSsid = decoder.decode(new Uint8Array(data));
                 }
               }
@@ -82,6 +91,7 @@ export class NetworkAdapter {
                 // Find compatible device
                 const devices = client.get_devices();
                 let device = null;
+
                 for (const dev of devices) {
                   if (dev.device_type === NM.DeviceType.WIFI) {
                     device = dev;
@@ -109,6 +119,7 @@ export class NetworkAdapter {
                     }
                   );
                 }
+
                 return;
               }
             }
@@ -127,21 +138,25 @@ export class NetworkAdapter {
   getWifiState(): boolean {
     // Connected check
     const client = this._ensureClient();
+
     if (!client) return false;
 
     // Check if there's an active WiFi connection
     const ssid = this.getCurrentWifiSSID();
+
     return ssid !== null;
   }
 
   getWifiPowerState(): boolean {
     // Enabled check
     const client = this._ensureClient();
+
     return client ? client.wireless_enabled : false;
   }
 
   onWifiStateChanged(callback: (isConnected: boolean) => void): () => void {
     const client = this._ensureClient();
+
     if (!client) return () => {};
 
     // Primary connection signal
@@ -156,6 +171,7 @@ export class NetworkAdapter {
 
     const wrappedCallback = () => {
       const isConnected = this.getCurrentWifiSSID() !== null;
+
       debugLog(`[NetworkAdapter] WiFi connection changed: ${isConnected}`);
       callback(isConnected);
     };
@@ -165,6 +181,7 @@ export class NetworkAdapter {
 
   onWifiPowerStateChanged(callback: (isEnabled: boolean) => void): () => void {
     const client = this._ensureClient();
+
     if (!client) return () => {};
 
     if (!this._wifiPowerDispatcher) {
@@ -178,6 +195,7 @@ export class NetworkAdapter {
 
     const wrappedCallback = () => {
       const state = client.wireless_enabled;
+
       debugLog(`[NetworkAdapter] WiFi power state changed: ${state}`);
       callback(state);
     };
@@ -187,26 +205,34 @@ export class NetworkAdapter {
 
   getCurrentWifiSSID(): string | null {
     const client = this._ensureClient();
+
     if (!client) return null;
 
     try {
       const activeConn = client.get_primary_connection();
+
       if (activeConn) {
         const conn = activeConn.get_connection();
+
         if (conn) {
           const s_wireless = conn.get_setting_wireless();
+
           if (s_wireless) {
             const ssidBytes = s_wireless.get_ssid();
+
             if (ssidBytes) {
               // Extract SSID data
               const data = ssidBytes.get_data();
+
               if (data) {
                 // Convert to string
                 const decoder = new TextDecoder('utf-8');
+
                 return decoder.decode(new Uint8Array(data));
               }
             }
           }
+
           // Fallback: use connection ID (usually matches SSID for WiFi)
           return conn.get_id() || null;
         }
@@ -216,23 +242,31 @@ export class NetworkAdapter {
         `[NetworkAdapter] Error getting current SSID: ${e?.message || e}`
       );
     }
+
     return null;
   }
 
   getSavedWifiNetworks(): string[] {
     const client = this._ensureClient();
+
     if (!client) return [];
     const networks: string[] = [];
+
     try {
       const connections = client.get_connections();
+
       for (const conn of connections) {
         const s_wireless = conn.get_setting_wireless();
+
         if (s_wireless) {
           const ssidBytes = s_wireless.get_ssid();
+
           if (ssidBytes) {
             const data = ssidBytes.get_data();
+
             if (data) {
               const decoder = new TextDecoder('utf-8');
+
               networks.push(decoder.decode(new Uint8Array(data)));
             }
           }
@@ -243,11 +277,13 @@ export class NetworkAdapter {
         `[NetworkAdapter] Error getting saved networks: ${e?.message || e}`
       );
     }
+
     return networks;
   }
 
   setAirplaneMode(enabled: boolean): void {
     const client = this._ensureClient();
+
     if (client) {
       debugLog(
         `[NetworkAdapter] Setting Airplane Mode to: ${enabled} (Radios: ${!enabled})`
@@ -265,15 +301,20 @@ export class NetworkAdapter {
 
   getAirplaneModeState(): boolean {
     const client = this._ensureClient();
+
     if (!client) {
       debugLog('[NetworkAdapter] No client for airplane mode check');
+
       return false;
     }
+
     // GNOME airplane mode logic
     const isAirplane = !client.wireless_enabled;
+
     debugLog(
       `[NetworkAdapter] Airplane mode check: wifi_enabled=${client.wireless_enabled}, result=${isAirplane}`
     );
+
     return isAirplane;
   }
 
@@ -281,8 +322,10 @@ export class NetworkAdapter {
     callback: (isEnabled: boolean) => void
   ): () => void {
     const client = this._ensureClient();
+
     if (!client) {
       debugLog('[NetworkAdapter] No client for airplane mode listener');
+
       return () => {};
     }
 
@@ -291,6 +334,7 @@ export class NetworkAdapter {
     // Listen for wireless state changes (GNOME airplane mode)
     const checkAirplaneMode = () => {
       const isAirplane = !client.wireless_enabled;
+
       debugLog(`[NetworkAdapter] Airplane mode changed: ${isAirplane}`);
       callback(isAirplane);
     };

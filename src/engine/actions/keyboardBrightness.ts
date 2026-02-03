@@ -15,6 +15,7 @@ export class KeyboardBrightnessAction extends BaseAction {
         this.config.level
       }% (Type: ${typeof this.config.level})`
     );
+
     try {
       this.previousBrightness = await this.adapter.getKeyboardBrightness();
       debugLog(
@@ -35,6 +36,7 @@ export class KeyboardBrightnessAction extends BaseAction {
       debugLog(
         `[KeyboardBrightnessAction] Reverting keyboard brightness to: ${this.previousBrightness}%`
       );
+
       try {
         this.adapter.setKeyboardBrightness(this.previousBrightness);
         debugLog(

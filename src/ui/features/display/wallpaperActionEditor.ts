@@ -13,6 +13,7 @@ export class WallpaperActionEditor extends BaseEditor {
       title: 'Image Path/URI',
       text: this.config.uri || '',
     });
+
     group.add(entryRow);
 
     // @ts-ignore
@@ -24,6 +25,7 @@ export class WallpaperActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.uri) return 'Image URI is required';
+
     return true;
   }
 }

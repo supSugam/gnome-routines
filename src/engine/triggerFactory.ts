@@ -24,31 +24,44 @@ export class TriggerFactory {
     switch (data.type) {
       case TriggerType.APP:
         return new AppTrigger(data.id, data.config);
+
       case TriggerType.TIME:
         return new TimeTrigger(data.id, data.config);
+
       case TriggerType.WIFI:
         return new WifiTrigger(data.id, data.config, adapter);
+
       case TriggerType.BLUETOOTH:
         return new BluetoothTrigger(data.id, data.config, adapter);
+
       case TriggerType.BATTERY:
         return new BatteryTrigger(data.id, data.config, adapter);
+
       case TriggerType.POWER_SAVER:
+
       case TriggerType.AIRPLANE_MODE:
+
       case TriggerType.HEADPHONES:
-      case 'system':
+
+      case TriggerType.SYSTEM:
         return new SystemTrigger(
           data.id,
           { ...data.config, type: data.type },
           adapter
         );
+
       case TriggerType.DARK_MODE:
         return new DarkModeTrigger(data.id, data.config, adapter);
+
       case TriggerType.DND:
         return new DndTrigger(data.id, data.config, adapter);
+
       case TriggerType.CLIPBOARD:
         return new ClipboardTrigger(data.id, data.config, adapter);
+
       case TriggerType.STARTUP:
         return new StartupTrigger(data.id, data.config, adapter);
+
       case TriggerType.INTERVAL:
         return new IntervalTrigger(
           data.id,
@@ -57,11 +70,13 @@ export class TriggerFactory {
           stateManager,
           routineId
         );
+
       case TriggerType.WALLPAPER:
         return new WallpaperTrigger(data.id, data.config, adapter);
 
       default:
         debugLog(`Unknown trigger type: ${data.type}`);
+
         return null;
     }
   }

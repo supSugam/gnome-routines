@@ -24,6 +24,7 @@ export class NotificationActionEditor extends BaseEditor {
       title: 'Title',
       text: this.notifConfig.title || '',
     });
+
     group.add(titleRow);
 
     // Message
@@ -31,6 +32,7 @@ export class NotificationActionEditor extends BaseEditor {
       title: 'Message',
       text: this.notifConfig.message || '',
     });
+
     group.add(messageRow);
 
     // Icon
@@ -38,6 +40,7 @@ export class NotificationActionEditor extends BaseEditor {
       title: 'Icon Name (Optional)',
       text: this.notifConfig.iconName || '',
     });
+
     iconRow.set_tooltip_text(
       'Enter a valid icon name (e.g. dialog-information, weather-clear)'
     );
@@ -58,23 +61,28 @@ export class NotificationActionEditor extends BaseEditor {
       model: urgencyModel,
       selected: urgencies.indexOf(this.notifConfig.urgency),
     });
+
     group.add(urgencyRow);
 
     const updateUrgencySubtitle = () => {
       const selected = urgencies[urgencyRow.selected];
+
       switch (selected) {
         case NotificationUrgency.LOW:
           urgencyRow.subtitle = 'Silent. Appears in notification list only.';
           break;
+
         case NotificationUrgency.NORMAL:
           urgencyRow.subtitle =
             'Standard. Appears as a pop-up banner and in list.';
           break;
+
         case NotificationUrgency.CRITICAL:
           urgencyRow.subtitle = 'Persistent. Stays on screen until dismissed.';
           break;
       }
     };
+
     updateUrgencySubtitle(); // Init
 
     // Bindings
@@ -106,6 +114,7 @@ export class NotificationActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.notifConfig.title) return 'Title is required';
+
     return true;
   }
 }

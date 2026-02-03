@@ -12,6 +12,7 @@ export class BluetoothAdapter {
   private _powerDispatcher: SignalDispatcher<
     (enabled: boolean) => void
   > | null = null;
+
   private _deviceDispatcher: SignalDispatcher<() => void> | null = null;
 
   constructor() {
@@ -40,12 +41,15 @@ export class BluetoothAdapter {
           try {
             const result = connection.call_finish(res);
             const [objects] = result.deep_unpack();
+
             for (const objectPath in objects) {
               if ('org.bluez.Adapter1' in objects[objectPath]) {
                 resolve(objectPath);
+
                 return;
               }
             }
+
             resolve(path);
           } catch (e) {
             resolve(path);
@@ -58,10 +62,12 @@ export class BluetoothAdapter {
   async setBluetooth(enabled: boolean): Promise<void> {
     debugLog(`[BluetoothAdapter] Setting Bluetooth to: ${enabled}`);
     const path = await this._findAdapterPath();
+
     if (!path) return;
 
     try {
       const current = await this.getBluetooth();
+
       if (current === enabled) return;
 
       Gio.DBus.system.call(
@@ -94,6 +100,7 @@ export class BluetoothAdapter {
 
   async getBluetooth(): Promise<boolean> {
     const path = await this._findAdapterPath();
+
     if (!path) return false;
 
     try {
@@ -111,6 +118,7 @@ export class BluetoothAdapter {
           (conn: any, res: any) => {
             try {
               const ret = conn.call_finish(res);
+
               resolve(ret);
             } catch (e) {
               reject(e);
@@ -120,9 +128,11 @@ export class BluetoothAdapter {
       });
 
       const child = result.get_child_value(0);
+
       return child.get_variant().get_boolean();
     } catch (e) {
       debugLog('[BluetoothAdapter] Failed to get Bluetooth state:', e);
+
       return false;
     }
   }
@@ -151,15 +161,19 @@ export class BluetoothAdapter {
 
             for (const objectPath in objects) {
               const ifaces = objects[objectPath];
+
               if ('org.bluez.Device1' in ifaces) {
                 const props = ifaces['org.bluez.Device1'];
                 const addr = unpack(props.Address);
+
                 if (addr === address) {
                   resolve(objectPath);
+
                   return;
                 }
               }
             }
+
             resolve(null);
           } catch (e) {
             resolve(null);
@@ -172,8 +186,10 @@ export class BluetoothAdapter {
   async connectBluetoothDevice(id: string): Promise<void> {
     debugLog(`[BluetoothAdapter] Connecting to ${id}`);
     const path = await this._getDevicePath(id);
+
     if (!path) {
       debugLog(`[BluetoothAdapter] Device ${id} not found`);
+
       return;
     }
 
@@ -195,6 +211,7 @@ export class BluetoothAdapter {
           } catch (e) {
             debugLog(`[BluetoothAdapter] Failed to connect to ${id}:`, e);
           }
+
           resolve();
         }
       );
@@ -204,6 +221,7 @@ export class BluetoothAdapter {
   async disconnectBluetoothDevice(id: string): Promise<void> {
     debugLog(`[BluetoothAdapter] Disconnecting from ${id}`);
     const path = await this._getDevicePath(id);
+
     if (!path) return;
 
     return new Promise((resolve) => {
@@ -224,6 +242,7 @@ export class BluetoothAdapter {
           } catch (e) {
             debugLog(`[BluetoothAdapter] Failed to disconnect ${id}:`, e);
           }
+
           resolve();
         }
       );
@@ -255,11 +274,13 @@ export class BluetoothAdapter {
           ) => {
             try {
               const [interfaceName, changedProps] = params.deep_unpack();
+
               if (
                 interfaceName === 'org.bluez.Adapter1' &&
                 changedProps.Powered !== undefined
               ) {
                 const newState = changedProps.Powered.get_boolean();
+
                 debugLog(`[BluetoothAdapter] Bluetooth Powered: ${newState}`);
                 dispatch(newState);
               }
@@ -267,17 +288,20 @@ export class BluetoothAdapter {
           }
         );
       };
+
       const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (_e) {}
       };
+
       this._powerDispatcher = new SignalDispatcher(
         'BT-Power',
         subscribeFactory,
         unsubscribeFactory
       );
     }
+
     return this._powerDispatcher.addCallback(callback);
   }
 
@@ -302,6 +326,7 @@ export class BluetoothAdapter {
           ) => {
             try {
               const [interfaceName, changedProps] = params.deep_unpack();
+
               if (
                 interfaceName === 'org.bluez.Device1' &&
                 changedProps.Connected !== undefined
@@ -313,17 +338,20 @@ export class BluetoothAdapter {
           }
         );
       };
+
       const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (_e) {}
       };
+
       this._deviceDispatcher = new SignalDispatcher(
         'BT-Device',
         subscribeFactory,
         unsubscribeFactory
       );
     }
+
     return this._deviceDispatcher.addCallback(callback);
   }
 
@@ -343,8 +371,10 @@ export class BluetoothAdapter {
           (connection: any, res: any) => {
             try {
               const result = connection.call_finish(res);
+
               if (!result) {
                 resolve([]);
+
                 return;
               }
 
@@ -355,11 +385,13 @@ export class BluetoothAdapter {
                 if (val instanceof GLib.Variant) {
                   return val.deep_unpack();
                 }
+
                 return val;
               };
 
               for (const objectPath in objects) {
                 const interfaces = objects[objectPath];
+
                 if ('org.bluez.Device1' in interfaces) {
                   const deviceProps = interfaces['org.bluez.Device1'];
                   const connected = unpackVariant(deviceProps.Connected);
@@ -370,6 +402,7 @@ export class BluetoothAdapter {
                       unpackVariant(deviceProps.Alias) ||
                       'Unknown Device';
                     const address = unpackVariant(deviceProps.Address);
+
                     devices.push({ name, address });
                   }
                 }
@@ -405,8 +438,10 @@ export class BluetoothAdapter {
           (connection: any, res: any) => {
             try {
               const result = connection.call_finish(res);
+
               if (!result) {
                 resolve([]);
+
                 return;
               }
 
@@ -417,11 +452,13 @@ export class BluetoothAdapter {
                 if (val instanceof GLib.Variant) {
                   return val.deep_unpack();
                 }
+
                 return val;
               };
 
               for (const objectPath in objects) {
                 const interfaces = objects[objectPath];
+
                 if ('org.bluez.Device1' in interfaces) {
                   const deviceProps = interfaces['org.bluez.Device1'];
                   const paired = unpackVariant(deviceProps.Paired);
@@ -433,6 +470,7 @@ export class BluetoothAdapter {
                       unpackVariant(deviceProps.Alias) ||
                       'Unknown Device';
                     const address = unpackVariant(deviceProps.Address);
+
                     devices.push({ name, address });
                   }
                 }

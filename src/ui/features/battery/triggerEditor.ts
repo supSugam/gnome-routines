@@ -34,6 +34,7 @@ export class BatteryTriggerEditor extends BaseEditor {
       model: battModeModel,
       selected: this.batteryConfig.mode === BatteryTriggerMode.LEVEL ? 1 : 0,
     });
+
     group.add(battModeRow);
 
     // Status
@@ -45,6 +46,7 @@ export class BatteryTriggerEditor extends BaseEditor {
       model: battStatusModel,
       selected: this.batteryConfig.status === BatteryStatus.DISCHARGING ? 1 : 0,
     });
+
     group.add(battStatusRow);
 
     // Level
@@ -56,6 +58,7 @@ export class BatteryTriggerEditor extends BaseEditor {
       model: battLevelTypeModel,
       selected: this.batteryConfig.levelType === LevelComparison.ABOVE ? 1 : 0,
     });
+
     group.add(battLevelTypeRow);
 
     const battLevelRow = new Adw.SpinRow({
@@ -67,11 +70,13 @@ export class BatteryTriggerEditor extends BaseEditor {
         value: this.batteryConfig.level || 50,
       }),
     });
+
     group.add(battLevelRow);
 
     // Visibility logic
     const updateBattVisibility = () => {
       const isLevel = battModeRow.selected === 1;
+
       battStatusRow.visible = !isLevel;
       battLevelTypeRow.visible = isLevel;
       battLevelRow.visible = isLevel;
@@ -81,6 +86,7 @@ export class BatteryTriggerEditor extends BaseEditor {
         : BatteryTriggerMode.STATUS;
       this.onChange();
     };
+
     // @ts-ignore
     battModeRow.connect('notify::selected', updateBattVisibility);
     updateBattVisibility();

@@ -43,6 +43,7 @@ export class RoutineEditor {
       height_request: 540,
       destroy_with_parent: true,
     };
+
     if (parentWindow) {
       winConfig.transient_for = parentWindow;
     }
@@ -51,6 +52,7 @@ export class RoutineEditor {
 
     // Main Navigation View
     const navView = new Adw.NavigationView();
+
     this.window.content = navView;
 
     // Main page
@@ -58,29 +60,35 @@ export class RoutineEditor {
       title: this.isNew ? UI_STRINGS.editor.titleNew : UI_STRINGS.editor.title,
       tag: 'main',
     });
+
     navView.add(mainPage);
 
     const toolbarView = new Adw.ToolbarView();
+
     mainPage.child = toolbarView;
 
     const headerBar = new Adw.HeaderBar();
+
     toolbarView.add_top_bar(headerBar);
 
     this.setupHeaderActions(headerBar);
 
     const content = new Adw.PreferencesPage();
+
     toolbarView.content = content;
 
     // General Section
     const group = new Adw.PreferencesGroup({
       title: UI_STRINGS.editor.general,
     });
+
     content.add(group);
 
     const nameEntry = new Adw.EntryRow({
       title: UI_STRINGS.editor.name,
       text: this.routine.name,
     });
+
     // @ts-ignore
     nameEntry.connect('notify::text', () => {
       this.routine.name = nameEntry.text;
@@ -96,6 +104,7 @@ export class RoutineEditor {
       actionManager.refresh();
     });
     const triggerGroup = triggerManager.createGroup();
+
     content.add(triggerGroup);
 
     actionManager.createGroups(content);
@@ -108,6 +117,7 @@ export class RoutineEditor {
       label: UI_STRINGS.editor.save,
       css_classes: ['suggested-action'],
     });
+
     // @ts-ignore
     saveBtn.connect('clicked', () => {
       debugLog('[Editor] Save clicked');
@@ -115,8 +125,10 @@ export class RoutineEditor {
       // Name is updated via notify signal on entry
       if (!this.routine.name) {
         debugLog('[Editor] Name is empty');
+
         return;
       }
+
       try {
         debugLog('[Editor] Calling onSave', JSON.stringify(this.routine));
         this.onSave(this.routine);
@@ -133,6 +145,7 @@ export class RoutineEditor {
       icon_name: 'security-high-symbolic',
       tooltip_text: UI_STRINGS.editor.safety.title,
     });
+
     safetyBtn.add_css_class('flat');
     // @ts-ignore
     safetyBtn.connect('clicked', () => {
@@ -141,6 +154,7 @@ export class RoutineEditor {
         this.settings,
         this.routine.id
       );
+
       safetyPage.show();
     });
     headerBar.pack_end(safetyBtn);

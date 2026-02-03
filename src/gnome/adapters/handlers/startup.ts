@@ -31,6 +31,7 @@ export class StartupAdapter {
         // Lock file
         try {
           const stream = file.create(Gio.FileCreateFlags.NONE, null);
+
           stream.close(null);
           debugLog(
             `[StartupAdapter] Created session lock file at ${lockFilePath}`

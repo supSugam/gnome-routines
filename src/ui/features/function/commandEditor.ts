@@ -28,6 +28,7 @@ export class ExecuteCommandEditor extends BaseEditor {
       xalign: 0,
       css_classes: ['heading'],
     });
+
     box.append(label);
 
     // Scrollable Text Area
@@ -68,6 +69,7 @@ export class ExecuteCommandEditor extends BaseEditor {
     if (!this.config.command || this.config.command.trim() === '') {
       return 'Command cannot be empty';
     }
+
     return true;
   }
 }

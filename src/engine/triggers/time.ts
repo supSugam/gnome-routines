@@ -40,9 +40,11 @@ export class TimeTrigger extends BaseTrigger {
     if (!this.config.days || this.config.days.length === 0) {
       return true; // No day restriction
     }
+
     const now = GLib.DateTime.new_now_local();
     const glibDay = now.get_day_of_week(); // 1 = Mon, 7 = Sun
     const jsDay = glibDay === 7 ? 0 : glibDay; // Convert to JS (0-6, Sun-Sat)
+
     return this.config.days.includes(jsDay);
   }
 
@@ -77,6 +79,7 @@ export class TimeTrigger extends BaseTrigger {
         .split(':')
         .map(Number);
       const targetMinutes = targetHour * 60 + targetMinute;
+
       return currentMinutes === targetMinutes;
     }
 
@@ -108,6 +111,7 @@ export class TimeTrigger extends BaseTrigger {
     if (!this.config.time) return;
 
     const secondsUntil = this.getSecondsUntilTime(this.config.time);
+
     debugLog(
       `[TimeTrigger] Scheduling ${this.id} to fire in ${secondsUntil}s (at ${this.config.time})`
     );
@@ -133,6 +137,7 @@ export class TimeTrigger extends BaseTrigger {
 
         // Reschedule for next occurrence (tomorrow or next valid day)
         this.scheduleExactTime();
+
         return false; // Don't repeat, we reschedule manually
       }
     );
@@ -168,6 +173,7 @@ export class TimeTrigger extends BaseTrigger {
 
     // Calculate next boundary to watch
     let nextBoundary: string;
+
     if (isCurrentlyInside) {
       // Currently inside - schedule for end time
       nextBoundary = this.config.endTime;
@@ -177,6 +183,7 @@ export class TimeTrigger extends BaseTrigger {
     }
 
     const secondsUntil = this.getSecondsUntilTime(nextBoundary);
+
     debugLog(
       `[TimeTrigger] Scheduling period boundary check in ${secondsUntil}s (at ${nextBoundary}). Currently ${
         isCurrentlyInside ? 'inside' : 'outside'
@@ -203,6 +210,7 @@ export class TimeTrigger extends BaseTrigger {
 
         // Reschedule for next boundary
         this.schedulePeriodCheck();
+
         return false;
       }
     );

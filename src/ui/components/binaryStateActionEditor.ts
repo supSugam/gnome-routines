@@ -23,6 +23,7 @@ export abstract class BinaryStateActionEditor extends BaseEditor {
       model: model,
       selected: this.config.enabled === false ? 1 : 0,
     });
+
     group.add(row);
 
     // @ts-ignore

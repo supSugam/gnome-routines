@@ -16,6 +16,7 @@ export class WallpaperAction extends BaseAction {
 
   execute(): void {
     debugLog(`[WallpaperAction] Executing with URI: ${this.config.uri}`);
+
     // Capture initial state
     if (!this.previousWallpaper) {
       this.previousWallpaper = this.adapter.getWallpaper();
@@ -23,6 +24,7 @@ export class WallpaperAction extends BaseAction {
         `[WallpaperAction] Captured original wallpaper: ${this.previousWallpaper}`
       );
     }
+
     this.adapter.setWallpaper(this.config.uri);
   }
 

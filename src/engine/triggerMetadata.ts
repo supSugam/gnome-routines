@@ -17,6 +17,10 @@ export const TRIGGER_METADATA: Record<TriggerType, TriggerMetadata> = {
     defaultStrategy: TriggerStrategy.NEW_CHANGE_ONLY,
     canAllowRevert: true,
   },
+  [TriggerType.SYSTEM]: {
+    defaultStrategy: TriggerStrategy.NEW_CHANGE_ONLY,
+    canAllowRevert: true,
+  },
 
   // Connectivity
   [TriggerType.WIFI]: {
@@ -44,6 +48,7 @@ export const TRIGGER_METADATA: Record<TriggerType, TriggerMetadata> = {
       if (config?.mode === BatteryTriggerMode.LEVEL) {
         return TriggerStrategy.EXISTING_STATE;
       }
+
       return TriggerStrategy.NEW_CHANGE_ONLY;
     },
   },

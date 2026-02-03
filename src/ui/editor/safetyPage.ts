@@ -28,21 +28,27 @@ export class SafetyPage {
     });
 
     const toolbarView = new Adw.ToolbarView();
+
     safetyWindow.content = toolbarView;
 
     const headerBar = new Adw.HeaderBar();
+
     toolbarView.add_top_bar(headerBar);
 
     const content = new Adw.PreferencesPage();
+
     toolbarView.content = content;
 
     // Load state
     let state: RoutineState | null = null;
+
     try {
       const json = this.settings.get_string('routine-states');
+
       if (json) {
         const parsed = JSON.parse(json);
         const routineData = parsed[this.routineId];
+
         if (routineData && routineData.health_status) {
           state = routineData.health_status as RoutineState;
         }
@@ -65,6 +71,7 @@ export class SafetyPage {
     const statusGroup = new Adw.PreferencesGroup({
       title: UI_STRINGS.editor.safety.health,
     });
+
     content.add(statusGroup);
 
     const healthRow = new Adw.ActionRow({
@@ -78,6 +85,7 @@ export class SafetyPage {
     // Icon
     let iconName = 'dialog-question-symbolic';
     let cssClass = '';
+
     if (state.health === RoutineHealth.OK) {
       iconName = 'emblem-ok-symbolic';
       cssClass = 'success';
@@ -93,12 +101,14 @@ export class SafetyPage {
       icon_name: iconName,
       pixel_size: 24,
     });
+
     if (cssClass) icon.add_css_class(cssClass);
     healthRow.add_prefix(icon);
     statusGroup.add(healthRow);
 
     // Stats
     const statsGroup = new Adw.PreferencesGroup({ title: 'Statistics' });
+
     content.add(statsGroup);
     statsGroup.add(
       new Adw.ActionRow({
@@ -106,6 +116,7 @@ export class SafetyPage {
         subtitle: state.runCount.toString(),
       })
     );
+
     if (state.lastRun > 0) {
       statsGroup.add(
         new Adw.ActionRow({
@@ -119,6 +130,7 @@ export class SafetyPage {
     const historyGroup = new Adw.PreferencesGroup({
       title: UI_STRINGS.editor.safety.history,
     });
+
     content.add(historyGroup);
 
     if (state.history.length === 0) {
@@ -133,13 +145,16 @@ export class SafetyPage {
             log.message || 'No details'
           }`,
         });
+
         if (log.status === 'failure') {
           row.add_css_class('error');
           const warnIcon = new Gtk.Image({
             icon_name: 'dialog-error-symbolic',
           });
+
           row.add_suffix(warnIcon);
         }
+
         historyGroup.add(row);
       });
     }

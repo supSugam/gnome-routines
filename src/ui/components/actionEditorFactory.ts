@@ -34,52 +34,76 @@ export class ActionEditorFactory {
     switch (type) {
       case ActionType.OPEN_APP:
         return new OpenAppActionEditor(config, onChange);
+
       case ActionType.WIFI:
         return new WifiActionEditor(config, onChange);
+
       case ActionType.CONNECT_WIFI:
         return new ConnectWifiActionEditor(config, onChange);
+
       case ActionType.BLUETOOTH:
         return new BluetoothActionEditor(config, onChange);
+
       case ActionType.CONNECT_BLUETOOTH:
         return new ConnectBluetoothActionEditor(config, onChange);
+
       case ActionType.DISCONNECT_BLUETOOTH:
         return new DisconnectBluetoothActionEditor(config, onChange);
+
       case ActionType.DND:
         return new DndActionEditor(config, onChange);
+
       case ActionType.AIRPLANE_MODE:
         return new AirplaneModeActionEditor(config, onChange);
+
       case ActionType.VOLUME:
         return new VolumeActionEditor(config, onChange);
+
       case ActionType.BRIGHTNESS:
         return new BrightnessActionEditor(config, onChange);
+
       case ActionType.KEYBOARD_BRIGHTNESS:
         return new KeyboardBrightnessActionEditor(config, onChange);
+
       case ActionType.WALLPAPER:
         return new WallpaperActionEditor(config, onChange);
+
       case ActionType.DARK_MODE:
         return new DarkModeActionEditor(config, onChange);
+
       case ActionType.NIGHT_LIGHT:
         return new NightLightActionEditor(config, onChange);
+
       case ActionType.POWER_SAVER:
         return new PowerSaverActionEditor(config, onChange);
+
       case ActionType.SCREEN_TIMEOUT:
         return new ScreenTimeoutActionEditor(config, onChange);
+
       case ActionType.SCREEN_ORIENTATION:
         return new ScreenOrientationActionEditor(config, onChange);
+
       case ActionType.REFRESH_RATE:
         return new RefreshRateActionEditor(config, onChange);
+
       case ActionType.TAKE_SCREENSHOT:
         return new ScreenshotActionEditor(config, onChange);
+
       case ActionType.NOTIFICATION:
         return new NotificationActionEditor(config, onChange);
+
       case ActionType.CLIPBOARD:
         return new ClipboardActionEditor(config, onChange);
+
       case ActionType.OPEN_LINK:
         return new OpenLinkActionEditor(config, onChange);
+
       case ActionType.EXECUTE_COMMAND:
         return new ExecuteCommandEditor(config, onChange);
+
       default:
         debugLog(`No editor found for action type: ${type}`);
+
         return null;
     }
   }

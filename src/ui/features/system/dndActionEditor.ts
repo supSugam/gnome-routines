@@ -4,9 +4,11 @@ export class DndActionEditor extends BinaryStateActionEditor {
   protected getTitle(): string {
     return 'Do Not Disturb';
   }
+
   protected getTrueLabel(): string {
     return 'Enable';
   }
+
   protected getFalseLabel(): string {
     return 'Disable';
   }
@@ -15,6 +17,7 @@ export class DndActionEditor extends BinaryStateActionEditor {
     if (this.config.enabled === undefined) {
       this.config.enabled = true;
     }
+
     super.render(group);
   }
 }

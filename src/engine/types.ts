@@ -13,6 +13,7 @@ export enum TriggerType {
   DND = 'dnd',
   INTERVAL = 'interval',
   WALLPAPER = 'wallpaper',
+  SYSTEM = 'system',
 }
 
 export enum SystemType {

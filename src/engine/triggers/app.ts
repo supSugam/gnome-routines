@@ -54,6 +54,7 @@ export class AppTrigger extends BaseTrigger {
     // Check running apps
     const match = runningApps.some((app: any) => {
       const appId = app.get_id().replace('.desktop', '');
+
       return (this.config as AppTriggerConfig).appIds.some(
         (id) => id === appId || id === `${appId}.desktop`
       );
@@ -69,6 +70,7 @@ export class AppTrigger extends BaseTrigger {
     if (this._lastMatch === null) {
       const shouldIgnoreInitial =
         this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
       debugLog(
         `[AppTrigger] Initial Check: ${match} -> Strategy: ${this.strategy}`
       );
@@ -78,17 +80,20 @@ export class AppTrigger extends BaseTrigger {
       if (!shouldIgnoreInitial && match) {
         this.emit('triggered');
       }
+
       return match;
     }
 
     if (this._lastMatch !== match) {
       debugLog(`[AppTrigger] State changed: ${this._lastMatch} -> ${match}`);
       this._lastMatch = match;
+
       if (match) {
         debugLog(`[AppTrigger] Condition met (TRUE). Emitting 'triggered'.`);
       } else {
         debugLog(`[AppTrigger] Condition lost (FALSE). Emitting 'triggered'.`);
       }
+
       this.emit('triggered');
     }
 

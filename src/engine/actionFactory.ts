@@ -38,6 +38,7 @@ export class ActionFactory {
     routineId: string
   ): Action | null {
     let action: Action | null = null;
+
     debugLog(`[ActionFactory] Creating action type: ${data.type}`);
 
     switch (data.type) {
@@ -48,6 +49,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.DND:
         action = new DndAction(
           data.id,
@@ -57,7 +59,9 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
+
       case ActionType.WIFI:
+
       case ActionType.CONNECT_WIFI:
         action = new WifiAction(
           data.id,
@@ -65,6 +69,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.BLUETOOTH:
         action = new BluetoothAction(
           data.id,
@@ -72,7 +77,9 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.CONNECT_BLUETOOTH:
+
       case ActionType.DISCONNECT_BLUETOOTH:
         action = new BluetoothDeviceAction(
           data.id,
@@ -80,6 +87,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.AIRPLANE_MODE:
         action = new AirplaneModeAction(
           data.id,
@@ -87,6 +95,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.DARK_MODE:
         action = new DarkModeAction(
           data.id,
@@ -96,6 +105,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
+
       case ActionType.NIGHT_LIGHT:
         action = new NightLightAction(
           data.id,
@@ -105,6 +115,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
+
       case ActionType.SCREEN_TIMEOUT:
         action = new ScreenTimeoutAction(
           data.id,
@@ -114,6 +125,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
+
       case ActionType.SCREEN_ORIENTATION:
         action = new ScreenOrientationAction(
           data.id,
@@ -121,6 +133,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.REFRESH_RATE:
         action = new RefreshRateAction(
           data.id,
@@ -130,6 +143,7 @@ export class ActionFactory {
           routineId
         ) as unknown as Action;
         break;
+
       case ActionType.POWER_SAVER:
         action = new PowerSaverAction(
           data.id,
@@ -137,6 +151,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.OPEN_LINK:
         action = new OpenLinkAction(
           data.id,
@@ -144,6 +159,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.TAKE_SCREENSHOT:
         action = new ScreenshotAction(
           data.id,
@@ -151,6 +167,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.OPEN_APP:
         action = new OpenAppAction(
           data.id,
@@ -158,6 +175,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.NOTIFICATION:
         action = new NotificationAction(
           data.id,
@@ -165,6 +183,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.VOLUME:
         action = new VolumeAction(
           data.id,
@@ -172,6 +191,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.BRIGHTNESS:
         action = new BrightnessAction(
           data.id,
@@ -179,6 +199,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.KEYBOARD_BRIGHTNESS:
         action = new KeyboardBrightnessAction(
           data.id,
@@ -186,6 +207,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.CLIPBOARD:
         return new ClipboardAction(
           data.id,
@@ -193,6 +215,7 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       case ActionType.EXECUTE_COMMAND:
         action = new ExecuteCommandAction(
           data.id,
@@ -200,8 +223,10 @@ export class ActionFactory {
           adapter
         ) as unknown as Action;
         break;
+
       default:
         debugLog(`Unknown action type: ${data.type}`);
+
         return null;
     }
 

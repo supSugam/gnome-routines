@@ -8,6 +8,7 @@ let logStream: any = null;
 
 function getLogStream() {
   if (logStream) return logStream;
+
   try {
     const cacheDir = GLib.get_user_cache_dir();
     const logDir = GLib.build_filenamev([cacheDir, EXTENSION_DEFAULTS.log.dir]);
@@ -25,10 +26,13 @@ function getLogStream() {
         null
       );
       let fileInfo;
+
       while ((fileInfo = enumerator.next_file(null))) {
         const name = fileInfo.get_name();
+
         if (name.startsWith('.goutputstream')) {
           const tempFile = dir.get_child(name);
+
           try {
             tempFile.delete(null);
           } catch (_e) {
@@ -48,9 +52,11 @@ function getLogStream() {
 
     // Append
     logStream = file.append_to(Gio.FileCreateFlags.NONE, null);
+
     return logStream;
   } catch (e) {
     debugLog('[GnomeRoutines] Failed to create log stream:', e);
+
     return null;
   }
 }
@@ -81,6 +87,7 @@ export default function debugLog(message: string, ...args: any[]) {
   if (EXTENSION_DEFAULTS.log.saveToFile) {
     try {
       const stream = getLogStream();
+
       if (stream) {
         stream.write_all(fullMessage + '\n', null);
         stream.flush(null); // Ensure write
@@ -93,6 +100,7 @@ export default function debugLog(message: string, ...args: any[]) {
 
 export function startFreshLog() {
   const stream = getLogStream();
+
   if (stream) {
     try {
       stream.truncate(0, null);
@@ -109,6 +117,7 @@ export function closeLog() {
     } catch (e) {
       debugLog('Failed to close log stream:', e);
     }
+
     logStream = null;
   }
 }

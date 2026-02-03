@@ -30,10 +30,12 @@ export class RoutineRepository {
   async load(): Promise<void> {
     debugLog('[RoutineRepository] Loading routines from storage...');
     const rawRoutines = await this.storage.loadRoutines();
+
     debugLog(`[RoutineRepository] Loaded ${rawRoutines.length} raw routines`);
 
     rawRoutines.forEach((raw) => {
       const routine = this.hydrate(raw);
+
       if (routine) {
         this.routines.set(routine.id, routine);
         debugLog(`[RoutineRepository] Hydrated: ${routine.name}`);
@@ -48,6 +50,7 @@ export class RoutineRepository {
   /** Save all routines */
   async save(): Promise<void> {
     const list = Array.from(this.routines.values());
+
     await this.storage.saveRoutines(list);
   }
 
@@ -119,6 +122,7 @@ export class RoutineRepository {
       };
     } catch (e) {
       debugLog(`[RoutineRepository] Hydration failed for ${rawRoutine.id}:`, e);
+
       return null;
     }
   }
@@ -138,6 +142,7 @@ export class RoutineRepository {
     for (let i = 0; i < r1.triggers.length; i++) {
       const t1 = r1.triggers[i];
       const t2 = r2.triggers[i];
+
       if (
         t1.type !== t2.type ||
         t1.id !== t2.id ||
@@ -152,6 +157,7 @@ export class RoutineRepository {
     for (let i = 0; i < r1.actions.length; i++) {
       const a1 = r1.actions[i];
       const a2 = r2.actions[i];
+
       if (
         a1.type !== a2.type ||
         a1.id !== a2.id ||
@@ -168,14 +174,17 @@ export class RoutineRepository {
   private isConfigEqual(c1: any, c2: any): boolean {
     if (c1 === undefined && c2 === undefined) return true;
     if (c1 === undefined || c2 === undefined) return false;
+
     return JSON.stringify(c1) === JSON.stringify(c2);
   }
 
   getEnabledCount(): number {
     let count = 0;
+
     for (const routine of this.routines.values()) {
       if (routine.enabled) count++;
     }
+
     return count;
   }
 }

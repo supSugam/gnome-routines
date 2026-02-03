@@ -40,6 +40,7 @@ export class PreferencesHeader {
     const searchEntry = new Gtk.SearchEntry({
       placeholder_text: 'Search routines...',
     });
+
     searchEntry.hexpand = true;
     // @ts-ignore
     searchEntry.connect('search-changed', (entry) => {
@@ -52,6 +53,7 @@ export class PreferencesHeader {
       label: 'Add Routine',
       valign: Gtk.Align.CENTER,
     });
+
     // @ts-ignore
     addButton.connect('clicked', () => {
       this.openAddDialog();
@@ -60,6 +62,7 @@ export class PreferencesHeader {
 
     // Menu
     const menuBtn = this.createGlobalMenu();
+
     headerBox.append(menuBtn);
 
     return headerBox;
@@ -72,11 +75,13 @@ export class PreferencesHeader {
         const routines = JSON.parse(
           this.settings.get_string('routines') || '[]'
         );
+
         routines.push(newRoutine);
         this.settings.set_string('routines', JSON.stringify(routines));
         debugLog('Routine saved', newRoutine);
         this.onRefresh();
       });
+
       editor.show(this.parentWindow);
     } catch (e) {
       debugLog('Failed to open Routine Editor:', e);
@@ -85,6 +90,7 @@ export class PreferencesHeader {
 
   private createGlobalMenu() {
     const globalMenu = new Gio.Menu();
+
     globalMenu.append('Import Routines...', 'global.import');
     globalMenu.append('Export All Routines', 'global.export');
 
@@ -92,12 +98,14 @@ export class PreferencesHeader {
 
     // Import
     const importAction = new Gio.SimpleAction({ name: 'import' });
+
     // @ts-ignore
     importAction.connect('activate', () => this.handleImport());
     globalActionGroup.add_action(importAction);
 
     // Export
     const exportAllAction = new Gio.SimpleAction({ name: 'export' });
+
     // @ts-ignore
     exportAllAction.connect('activate', () => this.handleExport());
     globalActionGroup.add_action(exportAllAction);
@@ -107,7 +115,9 @@ export class PreferencesHeader {
       valign: Gtk.Align.CENTER,
       menu_model: globalMenu,
     });
+
     globalMenuBtn.insert_action_group('global', globalActionGroup);
+
     return globalMenuBtn;
   }
 
@@ -118,6 +128,7 @@ export class PreferencesHeader {
       transient_for: this.parentWindow,
     });
     const filter = new Gtk.FileFilter();
+
     filter.set_name('JSON Files');
     filter.add_mime_type('application/json');
     picker.add_filter(filter);
@@ -129,6 +140,7 @@ export class PreferencesHeader {
           const file = picker.get_file();
           // @ts-ignore
           const [success, contents] = file.load_contents(null);
+
           if (success) {
             const decoder = new TextDecoder('utf-8');
             const json = decoder.decode(contents);
@@ -137,6 +149,7 @@ export class PreferencesHeader {
             const currentRoutines = JSON.parse(
               this.settings.get_string('routines') || '[]'
             );
+
             currentRoutines.push(...newRoutines);
 
             this.settings.set_string(
@@ -150,6 +163,7 @@ export class PreferencesHeader {
           debugLog('Import failed', e);
         }
       }
+
       picker.destroy();
     });
     picker.show();
@@ -157,6 +171,7 @@ export class PreferencesHeader {
 
   private handleExport() {
     const routines = JSON.parse(this.settings.get_string('routines') || '[]');
+
     if (routines.length === 0) return;
     exportRoutinesUI(routines, 'routines_export.json', this.parentWindow);
   }

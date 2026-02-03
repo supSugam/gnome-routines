@@ -25,9 +25,11 @@ export class WifiTrigger extends BaseTrigger {
       this.config.state === ConnectionState.DISABLED
     ) {
       const isEnabled = this.adapter.getWifiPowerState();
+
       debugLog(
         `[WifiTrigger] Checking power state. Current: ${isEnabled}, Target: ${this.config.state}`
       );
+
       return this.config.state === ConnectionState.ENABLED
         ? isEnabled
         : !isEnabled;
@@ -68,6 +70,7 @@ export class WifiTrigger extends BaseTrigger {
 
   activate(): void {
     debugLog(`[WifiTrigger] Activating listener for ${this.config.state}`);
+
     try {
       this._initialized = false;
       this._lastState = null;
@@ -94,6 +97,7 @@ export class WifiTrigger extends BaseTrigger {
           debugLog(
             `[WifiTrigger] Initial Power State: ${this._lastState} (Checking immediate)`
           );
+
           // Check immediate trigger for persistent
           if (
             this.config.state === ConnectionState.ENABLED &&
@@ -107,6 +111,7 @@ export class WifiTrigger extends BaseTrigger {
             this.emit('triggered');
           }
         }
+
         this._initialized = true;
 
         this.cleanup = this.adapter.onWifiPowerStateChanged(
@@ -114,12 +119,14 @@ export class WifiTrigger extends BaseTrigger {
             debugLog(
               `[WifiTrigger] Power callback received: ${isEnabled}, _initialized: ${this._initialized}, _lastState: ${this._lastState}`
             );
+
             if (!this._initialized) return;
 
             if (this._lastState === isEnabled) {
               // Duplicate event / No change
               return;
             }
+
             this._lastState = isEnabled;
             debugLog(
               `[WifiTrigger] Wifi power changed: ${!isEnabled} -> ${isEnabled}`
@@ -156,6 +163,7 @@ export class WifiTrigger extends BaseTrigger {
             this._lastState
           ) {
             const currentSSID = this.adapter.getCurrentWifiSSID();
+
             // Always emit on state change so manager can re-evaluate
             this.emit('triggered');
           }
@@ -171,6 +179,7 @@ export class WifiTrigger extends BaseTrigger {
               // Ignore duplicate
               return;
             }
+
             this._lastState = isConnected;
             debugLog(
               `[WifiTrigger] Wifi connection changed: ${!isConnected} -> ${isConnected}`
@@ -181,6 +190,7 @@ export class WifiTrigger extends BaseTrigger {
               if (isConnected) {
                 // ... (Logic for specific SSIDs remains same - triggered check)
                 const currentSSID = this.adapter.getCurrentWifiSSID();
+
                 if (this.config.ssids && this.config.ssids.length > 0) {
                   if (currentSSID && this.config.ssids.includes(currentSSID)) {
                     this.emit('triggered');
@@ -193,10 +203,12 @@ export class WifiTrigger extends BaseTrigger {
               if (!isConnected) {
                 // Ignore disconnect if power off
                 const isPowerOn = this.adapter.getWifiPowerState();
+
                 if (!isPowerOn) {
                   debugLog(
                     `[WifiTrigger] Ignored Disconnect event because Wi-Fi Power is OFF.`
                   );
+
                   return;
                 }
 
@@ -226,10 +238,12 @@ export class WifiTrigger extends BaseTrigger {
   deactivate(): void {
     if (!this._isActivated) return;
     debugLog(`[WifiTrigger] Deactivating listener`);
+
     if (this.cleanup) {
       this.cleanup();
       this.cleanup = null;
     }
+
     this._isActivated = false;
   }
 }

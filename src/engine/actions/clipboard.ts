@@ -13,6 +13,7 @@ export class ClipboardAction extends BaseAction {
     value: string;
     params: Set<string>;
   }[] = [];
+
   private globalParams: Set<string> = new Set();
   private customRules: { domain: string; params: Set<string> }[] = [];
   private rulesCompiled: boolean = false;
@@ -97,6 +98,7 @@ export class ClipboardAction extends BaseAction {
     if (this.config.operation === ClipboardOperation.CLEAR) {
       this.adapter.clearClipboard();
       debugLog(`[ClipboardAction] Clipboard cleared.`);
+
       return;
     }
 
@@ -106,9 +108,12 @@ export class ClipboardAction extends BaseAction {
       this.config.sanitize
     ) {
       const content = await this.adapter.getClipboardContent();
+
       debugLog(`[ClipboardAction] Current clipboard type: ${content.type}`);
+
       if (content.type === 'text' && content.content) {
         let text = content.content;
+
         debugLog(`[ClipboardAction] Content length: ${text.length}`);
         let dirty = false;
 
@@ -139,6 +144,7 @@ export class ClipboardAction extends BaseAction {
               'g'
             );
             const replaced = text.replace(regex, this.config.replace);
+
             if (replaced !== text) {
               text = replaced;
               dirty = true;
@@ -159,6 +165,7 @@ export class ClipboardAction extends BaseAction {
 
           const sanitizedText = text.replace(urlRegex, (matchedUrl) => {
             debugLog(`[ClipboardAction] Found URL candidate: ${matchedUrl}`);
+
             try {
               // Parse URI using GLib
               const uri = GLib.Uri.parse(matchedUrl, GLib.UriFlags.NONE);
@@ -169,6 +176,7 @@ export class ClipboardAction extends BaseAction {
 
               if (!query) {
                 debugLog(`[ClipboardAction] No query params found.`);
+
                 return matchedUrl;
               }
 
@@ -184,11 +192,13 @@ export class ClipboardAction extends BaseAction {
                 const rawKey = parts[0];
                 // Decode key for matching (safe for standard params)
                 let decodedKey = rawKey;
+
                 try {
                   decodedKey = decodeURIComponent(rawKey);
                 } catch (_e) {}
 
                 currentParamsKeys.add(decodedKey);
+
                 return { raw: pair, key: decodedKey };
               });
 
@@ -232,6 +242,7 @@ export class ClipboardAction extends BaseAction {
                   // Check if any predefined rules apply to this hostname
                   for (const rule of this.predefinedRules) {
                     let match = false;
+
                     if (rule.type === 'suffix') {
                       // Suffix match
                       match =
@@ -274,12 +285,15 @@ export class ClipboardAction extends BaseAction {
                 );
 
                 const finalUrl = newUri.to_string();
+
                 debugLog(`[ClipboardAction] Sanitized URL: ${finalUrl}`);
+
                 return finalUrl;
               }
             } catch (e) {
               debugLog(`[ClipboardAction] URL parse error (GLib): ${e}`);
             }
+
             return matchedUrl;
           });
 

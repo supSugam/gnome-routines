@@ -24,8 +24,6 @@ fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2) + '\n');
 // Update package.json
 const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
 pkg.version = String(newVersion);
-// Copy metadata.json's description to package.json
-pkg.description = metadata.description;
 fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + '\n');
 
 console.log('Version updated successfully.');

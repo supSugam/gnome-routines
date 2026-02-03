@@ -16,6 +16,7 @@ export class PowerSaverActionEditor extends BaseEditor {
       subtitle: 'Install and enable the service for this action to work',
       icon_name: 'dialog-information-symbolic',
     });
+
     infoRow.add_css_class('dim-label');
     group.add(infoRow);
 
@@ -38,6 +39,7 @@ export class PowerSaverActionEditor extends BaseEditor {
       model: profileModel,
       selected: selectedIndex >= 0 ? selectedIndex : 1, // Default to Balanced
     });
+
     group.add(profileRow);
 
     // @ts-ignore
@@ -49,6 +51,7 @@ export class PowerSaverActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.profile) return 'Please select a power profile';
+
     return true;
   }
 }

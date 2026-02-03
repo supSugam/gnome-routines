@@ -13,16 +13,19 @@ export class ClipboardTriggerEditor extends BaseEditor {
       title: 'Content Type',
       model: clipboardTypeModel,
     });
+
     group.add(clipboardTypeRow);
 
     const clipboardRegexEntry = new Adw.EntryRow({
       title: 'Regex Pattern',
       text: this.config.regex || '',
     });
+
     group.add(clipboardRegexEntry);
 
     // Init selection
     const cbTypes = ['any', 'text', 'image', 'regex'];
+
     if (this.config.contentType && cbTypes.includes(this.config.contentType)) {
       clipboardTypeRow.selected = cbTypes.indexOf(this.config.contentType);
     } else {
@@ -31,11 +34,13 @@ export class ClipboardTriggerEditor extends BaseEditor {
 
     const updateClipboardTriggerUI = () => {
       const isRegex = clipboardTypeRow.selected === 3;
+
       clipboardRegexEntry.visible = isRegex;
 
       this.config.contentType = cbTypes[clipboardTypeRow.selected];
       this.onChange();
     };
+
     // @ts-ignore
     clipboardTypeRow.connect('notify::selected', updateClipboardTriggerUI);
 
@@ -53,6 +58,7 @@ export class ClipboardTriggerEditor extends BaseEditor {
     if (this.config.contentType === 'regex' && !this.config.regex) {
       return 'Regex pattern is required';
     }
+
     return true;
   }
 }

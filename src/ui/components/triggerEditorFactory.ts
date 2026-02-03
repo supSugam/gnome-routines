@@ -25,35 +25,49 @@ export class TriggerEditorFactory {
     switch (type) {
       case TriggerType.TIME:
         return new TimeTriggerEditor(config, onChange);
+
       case TriggerType.BLUETOOTH:
         return new BluetoothTriggerEditor(config, onChange);
+
       case TriggerType.WIFI:
         return new WifiTriggerEditor(config, onChange);
+
       case TriggerType.APP:
         return new AppTriggerEditor(config, onChange);
+
       case TriggerType.BATTERY:
         return new BatteryTriggerEditor(config, onChange);
+
       case TriggerType.CLIPBOARD:
         return new ClipboardTriggerEditor(config, onChange);
+
       case TriggerType.AIRPLANE_MODE:
         return new AirplaneModeTriggerEditor(config, onChange);
+
       case TriggerType.DARK_MODE:
         return new DarkModeTriggerEditor(config, onChange);
+
       case TriggerType.POWER_SAVER:
         return new PowerSaverTriggerEditor(config, onChange);
+
       case TriggerType.HEADPHONES:
         return new HeadphonesTriggerEditor(config, onChange);
+
       case TriggerType.STARTUP:
         return new StartupTriggerEditor(config, onChange);
+
       case TriggerType.DND:
         return new DndTriggerEditor(config, onChange);
+
       case TriggerType.INTERVAL:
         return new IntervalTriggerEditor(config, onChange);
+
       case TriggerType.WALLPAPER:
         return new WallpaperTriggerEditor(config, onChange);
 
       default:
         debugLog(`No editor found for trigger type: ${type}`);
+
         return null;
     }
   }

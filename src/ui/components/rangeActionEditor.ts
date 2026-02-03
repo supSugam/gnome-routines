@@ -21,6 +21,7 @@ export abstract class RangeActionEditor extends BaseEditor {
         value: this.config[this.getConfigKey()] || this.getMin(),
       }),
     });
+
     group.add(row);
 
     // @ts-ignore

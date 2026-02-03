@@ -11,6 +11,7 @@ export class BrightnessAction extends BaseAction {
 
   execute(): void {
     debugLog(`[BrightnessAction] Setting brightness to: ${this.config.level}%`);
+
     try {
       this.previousBrightness = this.adapter.getBrightness();
       debugLog(
@@ -29,6 +30,7 @@ export class BrightnessAction extends BaseAction {
       debugLog(
         `[BrightnessAction] Reverting brightness to: ${this.previousBrightness}%`
       );
+
       try {
         this.adapter.setBrightness(this.previousBrightness);
         debugLog(`[BrightnessAction] Brightness reverted successfully`);

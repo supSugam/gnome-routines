@@ -12,10 +12,12 @@ export class AppTriggerEditor extends BaseEditor {
     const appSearch = new Gtk.SearchEntry({
       placeholder_text: 'Search Apps...',
     });
+
     appSearch.margin_bottom = 10;
     group.add(appSearch);
 
     const appScroll = new Gtk.ScrolledWindow();
+
     appScroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
     appScroll.min_content_height = 300; // Fixed height
     appScroll.propagate_natural_height = true;
@@ -23,6 +25,7 @@ export class AppTriggerEditor extends BaseEditor {
     const appList = new Gtk.ListBox({
       selection_mode: Gtk.SelectionMode.NONE,
     });
+
     appList.add_css_class('boxed-list');
     appScroll.child = appList;
     group.add(appScroll);
@@ -32,6 +35,7 @@ export class AppTriggerEditor extends BaseEditor {
     if (!this.config.appIds) {
       this.config.appIds = this.config.appId ? [this.config.appId] : [];
     }
+
     const selectedAppIds = new Set(this.config.appIds);
 
     const allApps = Gio.AppInfo.get_all().filter((app: any) =>
@@ -45,8 +49,10 @@ export class AppTriggerEditor extends BaseEditor {
 
       // Icon
       const icon = app.get_icon();
+
       if (icon) {
         const img = Gtk.Image.new_from_gicon(icon);
+
         img.pixel_size = 32;
         row.add_prefix(img);
       }
@@ -55,6 +61,7 @@ export class AppTriggerEditor extends BaseEditor {
       const toggle = new Gtk.Switch({
         active: selectedAppIds.has(app.get_id()),
       });
+
       toggle.valign = Gtk.Align.CENTER;
 
       // @ts-ignore
@@ -75,6 +82,7 @@ export class AppTriggerEditor extends BaseEditor {
     // @ts-ignore
     appSearch.connect('search-changed', () => {
       const query = appSearch.text.toLowerCase();
+
       appRows.forEach((item) => {
         item.row.visible = item.name.includes(query);
       });
@@ -85,6 +93,7 @@ export class AppTriggerEditor extends BaseEditor {
     if (!this.config.appIds || this.config.appIds.length === 0) {
       return 'Select at least one app';
     }
+
     return true;
   }
 }

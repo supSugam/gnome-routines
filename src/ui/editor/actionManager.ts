@@ -71,6 +71,7 @@ export class ActionManager {
         icon_name: 'user-trash-symbolic',
         valign: Gtk.Align.CENTER,
       });
+
       deleteBtn.add_css_class('flat');
       // @ts-ignore
       deleteBtn.connect('clicked', () => {
@@ -87,6 +88,7 @@ export class ActionManager {
       label: UI_STRINGS.editor.then.addBtn,
       margin_top: 10,
     });
+
     addActionBtn.add_css_class('pill');
     // @ts-ignore
     addActionBtn.connect('clicked', () => {
@@ -100,6 +102,7 @@ export class ActionManager {
         type: defaultType,
         config: {},
       };
+
       this.editAction(newAction, true, () => this.refresh());
     });
     this.actionGroup.add(addActionBtn);
@@ -113,6 +116,7 @@ export class ActionManager {
 
     const hasRevertible = this.routine.actions.some((action: any) => {
       const meta = ACTION_METADATA[action.type as ActionType];
+
       return meta?.canRevert;
     });
 
@@ -121,6 +125,7 @@ export class ActionManager {
       const meta = TRIGGER_METADATA[t.type as TriggerType];
 
       let allow = meta?.canAllowRevert;
+
       if (typeof allow === 'function') {
         allow = allow(t.config);
       }
@@ -134,21 +139,26 @@ export class ActionManager {
 
     this.routine.actions.forEach((action: any) => {
       const meta = ACTION_METADATA[action.type as ActionType];
+
       if (!meta?.canRevert) return;
 
       const getEndSummary = () => {
         const type = action.onDeactivate?.type || 'revert';
+
         if (type === 'revert') return UI_STRINGS.editor.end.revert;
         if (type === 'keep') return UI_STRINGS.editor.end.keep;
         if (type === 'custom') {
           if (action.onDeactivate?.config) {
             const dummy = { ...action, config: action.onDeactivate.config };
+
             return `${UI_STRINGS.editor.end.customPrefix}${getActionSummary(
               dummy
             )}`;
           }
+
           return UI_STRINGS.editor.end.custom;
         }
+
         return '';
       };
 
@@ -166,6 +176,7 @@ export class ActionManager {
       });
 
       const currentType = action.onDeactivate?.type || 'revert';
+
       if (currentType === 'keep') combo.selected = 1;
       else if (currentType === 'custom') combo.selected = 2;
       else combo.selected = 0;
@@ -176,12 +187,14 @@ export class ActionManager {
         tooltip_text: UI_STRINGS.editor.end.configureCustom,
         visible: currentType === 'custom',
       });
+
       configBtn.add_css_class('flat');
 
       // @ts-ignore
       combo.connect('notify::selected', () => {
         const selected = combo.selected;
         let type: 'revert' | 'keep' | 'custom' = 'revert';
+
         if (selected === 1) type = 'keep';
         else if (selected === 2) type = 'custom';
 
@@ -219,6 +232,7 @@ export class ActionManager {
       });
 
       const box = new Gtk.Box({ spacing: 10 });
+
       box.append(configBtn);
       box.append(combo);
       row.add_suffix(box);
@@ -244,21 +258,26 @@ export class ActionManager {
     });
 
     const toolbarView = new Adw.ToolbarView();
+
     actionWindow.content = toolbarView;
 
     const headerBar = new Adw.HeaderBar();
+
     toolbarView.add_top_bar(headerBar);
 
     const addBtn = new Gtk.Button({
       label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
       css_classes: ['suggested-action'],
     });
+
     headerBar.pack_end(addBtn);
 
     const content = new Adw.PreferencesPage();
+
     toolbarView.content = content;
 
     const group = new Adw.PreferencesGroup();
+
     content.add(group);
 
     const tempConfig = JSON.parse(JSON.stringify(action.config));
@@ -343,18 +362,22 @@ export class ActionManager {
       selected: actionTypes.findIndex((t) => t.id === currentType),
       visible: !isCustomConfigMode, // Hide selector
     });
+
     group.add(typeRow);
 
     let editorGroup = new Adw.PreferencesGroup();
+
     content.add(editorGroup);
 
     const updateEditor = () => {
       content.remove(editorGroup);
       const newEditorGroup = new Adw.PreferencesGroup();
+
       content.add(newEditorGroup);
       editorGroup = newEditorGroup;
 
       const selectedType = actionTypes[typeRow.selected].id;
+
       currentType = selectedType;
 
       const editor = ActionEditorFactory.create(
@@ -362,6 +385,7 @@ export class ActionManager {
         tempConfig,
         () => {
           const isValid = editor ? editor.validate() : false;
+
           if (isValid === true) {
             addBtn.sensitive = true;
             addBtn.tooltip_text = '';
@@ -378,11 +402,13 @@ export class ActionManager {
       if (editor) {
         editor.render(newEditorGroup);
         const isValid = editor.validate();
+
         addBtn.sensitive = isValid === true;
       } else {
         const errorRow = new Adw.ActionRow({
           title: UI_STRINGS.editor.errors.noEditor,
         });
+
         newEditorGroup.add(errorRow);
         addBtn.sensitive = false;
       }

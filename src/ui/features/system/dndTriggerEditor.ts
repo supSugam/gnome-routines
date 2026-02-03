@@ -5,15 +5,19 @@ export class DndTriggerEditor extends BinaryStateTriggerEditor {
   protected getTitle(): string {
     return 'Trigger when DND is';
   }
+
   protected getTrueLabel(): string {
     return 'Enabled';
   }
+
   protected getFalseLabel(): string {
     return 'Disabled';
   }
+
   protected getTrueValue(): any {
     return 'on';
   }
+
   protected getFalseValue(): any {
     return 'off';
   }
@@ -23,6 +27,7 @@ export class DndTriggerEditor extends BinaryStateTriggerEditor {
     if (this.config.state === undefined) {
       this.config.state = this.getTrueValue();
     }
+
     super.render(group);
   }
 }

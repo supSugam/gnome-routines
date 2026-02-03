@@ -29,6 +29,7 @@ export class TriggerManager {
       description: UI_STRINGS.editor.if.description,
     });
     this.refresh();
+
     return this.group;
   }
 
@@ -37,6 +38,7 @@ export class TriggerManager {
     if (this._children) {
       this._children.forEach((c) => this.group.remove(c));
     }
+
     this._children = [];
 
     // Match Type
@@ -47,6 +49,7 @@ export class TriggerManager {
       }),
       selected: this.routine.matchType === 'any' ? 1 : 0,
     });
+
     // @ts-ignore
     matchTypeRow.connect('notify::selected', () => {
       this.routine.matchType = matchTypeRow.selected === 1 ? 'any' : 'all';
@@ -72,6 +75,7 @@ export class TriggerManager {
         icon_name: 'user-trash-symbolic',
         valign: Gtk.Align.CENTER,
       });
+
       deleteBtn.add_css_class('flat');
       // @ts-ignore
       deleteBtn.connect('clicked', () => {
@@ -94,6 +98,7 @@ export class TriggerManager {
         label: UI_STRINGS.editor.if.addBtn,
         margin_top: 10,
       });
+
       addTriggerBtn.add_css_class('pill');
       // @ts-ignore
       addTriggerBtn.connect('clicked', () => {
@@ -107,6 +112,7 @@ export class TriggerManager {
           type: defaultType,
           config: {},
         };
+
         this.editTrigger(newTrigger, true, () => this.refresh());
       });
       this.group.add(addTriggerBtn);
@@ -129,21 +135,26 @@ export class TriggerManager {
     });
 
     const toolbarView = new Adw.ToolbarView();
+
     triggerWindow.content = toolbarView;
 
     const headerBar = new Adw.HeaderBar();
+
     toolbarView.add_top_bar(headerBar);
 
     const addBtn = new Gtk.Button({
       label: isNew ? UI_STRINGS.editor.add : UI_STRINGS.editor.done,
       css_classes: ['suggested-action'],
     });
+
     headerBar.pack_end(addBtn);
 
     const content = new Adw.PreferencesPage();
+
     toolbarView.content = content;
 
     const group = new Adw.PreferencesGroup();
+
     content.add(group);
 
     const tempConfig = JSON.parse(JSON.stringify(trigger.config));
@@ -192,6 +203,7 @@ export class TriggerManager {
     const otherTriggers = this.routine.triggers.filter(
       (t: any) => t !== trigger
     );
+
     if (otherTriggers.length > 0) {
       triggerTypes = triggerTypes.filter((t) => t.id !== TriggerType.INTERVAL);
     }
@@ -204,18 +216,22 @@ export class TriggerManager {
       model: typeModel,
       selected: triggerTypes.findIndex((t) => t.id === currentType),
     });
+
     group.add(typeRow);
 
     let editorGroup = new Adw.PreferencesGroup();
+
     content.add(editorGroup);
 
     const updateEditor = () => {
       content.remove(editorGroup);
       const newEditorGroup = new Adw.PreferencesGroup();
+
       content.add(newEditorGroup);
       editorGroup = newEditorGroup;
 
       const selectedType = triggerTypes[typeRow.selected].id;
+
       currentType = selectedType;
 
       const editor = TriggerEditorFactory.create(
@@ -223,6 +239,7 @@ export class TriggerManager {
         tempConfig,
         () => {
           const isValid = editor ? editor.validate() : false;
+
           if (isValid === true) {
             addBtn.sensitive = true;
             addBtn.tooltip_text = '';
@@ -239,11 +256,13 @@ export class TriggerManager {
       if (editor) {
         editor.render(newEditorGroup);
         const isValid = editor.validate();
+
         addBtn.sensitive = isValid === true;
       } else {
         const errorRow = new Adw.ActionRow({
           title: UI_STRINGS.editor.errors.noEditor,
         });
+
         newEditorGroup.add(errorRow);
         addBtn.sensitive = false;
       }

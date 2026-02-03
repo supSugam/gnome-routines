@@ -31,6 +31,7 @@ export class IntervalTrigger extends BaseTrigger {
     }
 
     let intervalSeconds = this.config.interval;
+
     if (this.config.unit === 'hours') {
       intervalSeconds *= 3600;
     } else {
@@ -39,6 +40,7 @@ export class IntervalTrigger extends BaseTrigger {
 
     // 1 min min
     if (intervalSeconds < 60) intervalSeconds = 60;
+
     return intervalSeconds;
   }
 
@@ -59,6 +61,7 @@ export class IntervalTrigger extends BaseTrigger {
         STATE_KEY_LAST_TRIGGER
       );
     }
+
     return null;
   }
 
@@ -69,8 +72,10 @@ export class IntervalTrigger extends BaseTrigger {
     }
 
     const intervalSeconds = this.getIntervalSeconds();
+
     if (intervalSeconds <= 0) {
       debugLog('[IntervalTrigger] Invalid interval, not activating.');
+
       return;
     }
 
@@ -119,9 +124,11 @@ export class IntervalTrigger extends BaseTrigger {
             () => {
               this.saveLastTriggerTime();
               this.emit('triggered');
+
               return GLib.SOURCE_CONTINUE;
             }
           );
+
           return GLib.SOURCE_REMOVE; // Remove this one-shot timer
         }
 

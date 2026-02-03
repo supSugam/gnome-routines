@@ -17,6 +17,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
         this.config.deviceName || this.config.deviceId || 'No device selected',
       expanded: true,
     });
+
     group.add(row);
 
     this.loadDevices(row);
@@ -26,12 +27,14 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
     const loadingRow = new Adw.ActionRow({
       title: 'Checking Bluetooth status...',
     });
+
     row.add_row(loadingRow);
 
     const isPowered = await this._adapter.getBluetooth();
 
     if (isPowered) {
       const devices = await this._adapter.getKnownDevices();
+
       if (loadingRow.get_parent()) row.remove(loadingRow);
       this.renderDeviceList(row, devices, true);
     } else {
@@ -42,6 +45,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
       const devices = await this._adapter.getKnownDevices();
 
       await this._adapter.setBluetooth(false);
+
       if (loadingRow.get_parent()) row.remove(loadingRow);
       this.renderDeviceList(row, devices, true);
     }
@@ -59,6 +63,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
         ? 'No known devices found'
         : 'No known devices found. Auto-toggle failed.';
       const noDevRow = new Adw.ActionRow({ title });
+
       row.add_row(noDevRow);
     } else {
       devices.forEach((dev) => {
@@ -88,6 +93,7 @@ export class DisconnectBluetoothActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.config.deviceId) return 'Select a device';
+
     return true;
   }
 }

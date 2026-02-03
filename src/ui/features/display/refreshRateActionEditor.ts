@@ -18,6 +18,7 @@ export class RefreshRateActionEditor extends BaseEditor {
   constructor(config: any, onChange: () => void) {
     super(config, onChange);
     this._adapter = new DisplayAdapter();
+
     if (!this.config.rate) {
       this.config.rate = 60; // Default
     }
@@ -52,6 +53,7 @@ export class RefreshRateActionEditor extends BaseEditor {
 
   private async loadRates() {
     this._spinner.start();
+
     try {
       this._rates = await this._adapter.getAvailableRefreshRates();
       debugLog(
@@ -99,6 +101,7 @@ export class RefreshRateActionEditor extends BaseEditor {
     // @ts-ignore
     this._combo.connect('notify::selected', () => {
       const selectedIndex = this._combo.selected;
+
       if (selectedIndex >= 0 && selectedIndex < this._rates.length) {
         this.config.rate = this._rates[selectedIndex];
         debugLog(`[RefreshRateEditor] Selected rate: ${this.config.rate}`);

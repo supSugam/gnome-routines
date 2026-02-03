@@ -19,6 +19,7 @@ export class ClipboardActionEditor extends BaseEditor {
   constructor(config: any, onValidationChanged: () => void) {
     super(config, onValidationChanged);
     this.config = config as ClipboardActionConfig;
+
     if (!this.config.operation) {
       this.config.operation = ClipboardOperation.CLEAR;
     }
@@ -45,6 +46,7 @@ export class ClipboardActionEditor extends BaseEditor {
       ClipboardOperation.REPLACE,
       ClipboardOperation.NONE,
     ];
+
     opRow.selected = ops.indexOf(this.config.operation);
 
     // Content group
@@ -71,6 +73,7 @@ export class ClipboardActionEditor extends BaseEditor {
     if ((this as any)._rows) {
       (this as any)._rows.forEach((row: any) => group.remove(row));
     }
+
     (this as any)._rows = [];
 
     if (this.config.operation === ClipboardOperation.REPLACE) {
@@ -78,6 +81,7 @@ export class ClipboardActionEditor extends BaseEditor {
         title: UI_STRINGS.clipboard.find,
         text: this.config.find || '',
       });
+
       // @ts-ignore
       findRow.connect('changed', () => {
         this.config.find = findRow.text;
@@ -90,6 +94,7 @@ export class ClipboardActionEditor extends BaseEditor {
         title: UI_STRINGS.clipboard.replaceWith,
         text: this.config.replace || '',
       });
+
       // @ts-ignore
       replaceRow.connect('changed', () => {
         this.config.replace = replaceRow.text;
@@ -104,6 +109,7 @@ export class ClipboardActionEditor extends BaseEditor {
       const sanitizeGroup = new Adw.PreferencesGroup({
         title: UI_STRINGS.clipboard.sanitize,
       });
+
       group.add(sanitizeGroup);
       (this as any)._sanitizeGroup = sanitizeGroup;
       (this as any)._rows.push(sanitizeGroup);
@@ -113,6 +119,7 @@ export class ClipboardActionEditor extends BaseEditor {
         subtitle: UI_STRINGS.clipboard.sanitizeDescription,
         active: this.config.sanitize || false,
       });
+
       // @ts-ignore
       sanitizeSwitch.connect('notify::active', () => {
         this.config.sanitize = sanitizeSwitch.active;
@@ -129,6 +136,7 @@ export class ClipboardActionEditor extends BaseEditor {
     if ((this as any)._sanitizeRows) {
       (this as any)._sanitizeRows.forEach((row: any) => group.remove(row));
     }
+
     (this as any)._sanitizeRows = [];
 
     if (!visible) return;
@@ -158,6 +166,7 @@ export class ClipboardActionEditor extends BaseEditor {
       SanitizationMode.MERGE,
       SanitizationMode.CUSTOM,
     ];
+
     modeRow.selected = modes.indexOf(this.config.sanitizeConfig.mode);
 
     // @ts-ignore
@@ -183,6 +192,7 @@ export class ClipboardActionEditor extends BaseEditor {
         valign: Gtk.Align.CENTER,
         css_classes: ['flat'],
       });
+
       // @ts-ignore
       addRuleBtn.connect('clicked', () => this.editRule());
       rulesHeader.add_suffix(addRuleBtn);
@@ -192,11 +202,13 @@ export class ClipboardActionEditor extends BaseEditor {
 
       // Rule List
       const rules = this.config.sanitizeConfig.domainRules || [];
+
       if (rules.length === 0) {
         const noRulesRow = new Adw.ActionRow({
           title: UI_STRINGS.clipboard.noParams,
           css_classes: ['dim-label'],
         });
+
         group.add(noRulesRow);
         (this as any)._sanitizeRows.push(noRulesRow);
       } else {
@@ -217,6 +229,7 @@ export class ClipboardActionEditor extends BaseEditor {
             valign: Gtk.Align.CENTER,
             css_classes: ['flat'],
           });
+
           // @ts-ignore
           delBtn.connect('clicked', () => {
             this.config.sanitizeConfig!.domainRules!.splice(index, 1);
@@ -249,15 +262,19 @@ export class ClipboardActionEditor extends BaseEditor {
 
     const page = new Adw.PreferencesPage();
     const group = new Adw.PreferencesGroup();
+
     page.add(group);
 
     const toolbar = new Adw.ToolbarView();
+
     toolbar.content = page;
 
     const header = new Adw.HeaderBar();
+
     toolbar.add_top_bar(header);
 
     const cancelBtn = new Gtk.Button({ label: UI_STRINGS.editor.cancel });
+
     // @ts-ignore
     cancelBtn.connect('clicked', () => win.close());
     header.pack_start(cancelBtn);
@@ -267,6 +284,7 @@ export class ClipboardActionEditor extends BaseEditor {
       css_classes: ['suggested-action'],
       sensitive: false,
     });
+
     header.pack_end(saveBtn);
 
     win.content = toolbar;
@@ -276,6 +294,7 @@ export class ClipboardActionEditor extends BaseEditor {
       title: `${UI_STRINGS.clipboard.paramDomain} (e.g. ${UI_STRINGS.clipboard.paramDomainPlaceholder})`,
       text: rule.domain,
     });
+
     domainEntry.tooltip_text = UI_STRINGS.clipboard.paramDomainPlaceholder;
     group.add(domainEntry);
 
@@ -283,12 +302,14 @@ export class ClipboardActionEditor extends BaseEditor {
       title: `${UI_STRINGS.clipboard.paramsToRemove} (e.g. ${UI_STRINGS.clipboard.paramsToRemovePlaceholder})`,
       text: rule.params.join(', '),
     });
+
     paramsEntry.tooltip_text = UI_STRINGS.clipboard.paramsToRemovePlaceholder;
     group.add(paramsEntry);
 
     // Domain Utils
     const normalizeDomain = (input: string): string | null => {
       let domainInput = input.trim();
+
       if (
         domainInput.length > 0 &&
         !domainInput.startsWith('http://') &&
@@ -300,17 +321,20 @@ export class ClipboardActionEditor extends BaseEditor {
       try {
         const uri = GLib.Uri.parse(domainInput, GLib.UriFlags.NONE);
         const host = uri.get_host();
+
         if (!host) return null;
 
         if (domainInput.includes(' ')) return null;
 
         const domainRegex =
           /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
         if (!domainRegex.test(host)) return null;
 
         if (host.split('.').pop()!.length < 2) return null;
 
         let path = uri.get_path();
+
         if (!path || path === '') {
           path = '/';
         }
@@ -325,9 +349,11 @@ export class ClipboardActionEditor extends BaseEditor {
         let normalized = `${scheme}://${host}${path}`;
 
         const query = uri.get_query();
+
         if (query) {
           normalized += `?${query}`;
         }
+
         return normalized;
       } catch (e) {
         return null;
@@ -349,6 +375,7 @@ export class ClipboardActionEditor extends BaseEditor {
 
         // Normalize rule
         const existingNormalized = normalizeDomain(r.domain);
+
         // Fallback
         return (
           (existingNormalized && existingNormalized === normalizedDomain) ||
@@ -419,6 +446,7 @@ export class ClipboardActionEditor extends BaseEditor {
     if (this.config.operation === ClipboardOperation.REPLACE) {
       if (!this.config.find) return 'Find pattern is required';
     }
+
     return true;
   }
 }

@@ -5,30 +5,48 @@ const path = require('path');
 const isWatch = process.argv.includes('--watch');
 
 async function build() {
-  console.log('Cleaning dist...');
+  console.log('🧹 Cleaning dist...');
+
   if (fs.existsSync('dist')) {
     fs.rmSync('dist', { recursive: true, force: true });
   }
 
-  console.log('Compiling with tsc...');
+  console.log('🔍 Type-checking and compiling with tsc...');
+
   try {
     execSync('npx tsc -p tsconfig.build.json' + (isWatch ? ' --watch' : ''), {
       stdio: 'inherit',
     });
   } catch (e) {
     if (!isWatch) {
-      console.log('TypeScript compilation failed.');
+      console.error('❌ TypeScript compilation failed.');
       process.exit(1);
     }
   }
 
   if (!isWatch) {
+    console.log('✨ Formatting output with Prettier...');
+
+    try {
+      execSync('npx prettier --write "dist/**/*.js"', { stdio: 'inherit' });
+    } catch (e) {
+      console.error('⚠️  Prettier formatting failed (non-fatal):', e.message);
+    }
+
+    console.log('📐 Adding padding rules with ESLint...');
+
+    try {
+      execSync('npx eslint "dist/**/*.js" --fix', { stdio: 'inherit' });
+    } catch (e) {
+      console.error('⚠️  ESLint formatting failed (non-fatal):', e.message);
+    }
+
     postBuild();
   }
 }
 
 function postBuild() {
-  console.log('Copying assets...');
+  console.log('📦 Copying assets...');
 
   // Copy metadata.json
   if (fs.existsSync('metadata.json')) {
@@ -45,11 +63,13 @@ function postBuild() {
   // Copy schemas
   if (fs.existsSync('schemas')) {
     const schemasDir = path.join('dist', 'schemas');
+
     if (!fs.existsSync(schemasDir)) {
       fs.mkdirSync(schemasDir, { recursive: true });
     }
 
     const schemaFile = 'org.gnome.shell.extensions.gnome-routines.gschema.xml';
+
     if (fs.existsSync(path.join('schemas', schemaFile))) {
       fs.copyFileSync(
         path.join('schemas', schemaFile),
@@ -58,7 +78,7 @@ function postBuild() {
     }
   }
 
-  console.log('Build complete.');
+  console.log('✅ Build complete!');
 }
 
 build().catch((e) => {

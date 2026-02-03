@@ -25,6 +25,7 @@ export class RoutinesPage {
 
     // Header Group
     const headerGroup = new Adw.PreferencesGroup({ title: 'Routines' });
+
     this.header = new PreferencesHeader(
       this.settings,
       this.parentWindow,
@@ -53,6 +54,7 @@ export class RoutinesPage {
 
     const routinesJson = this.settings.get_string('routines');
     let routines = [];
+
     try {
       routines = JSON.parse(routinesJson || '[]');
     } catch (e) {

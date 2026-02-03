@@ -77,6 +77,7 @@ export class DndTrigger extends BaseTrigger {
             );
             this._lastMatchState = isMatch;
             this._initialized = true;
+
             return;
           } else {
             debugLog(
@@ -84,9 +85,11 @@ export class DndTrigger extends BaseTrigger {
             );
             this._lastMatchState = isMatch;
             this._initialized = true;
+
             if (isMatch) {
               this.emit('triggered');
             }
+
             return;
           }
         }
@@ -106,6 +109,7 @@ export class DndTrigger extends BaseTrigger {
               `[DndTrigger] Condition lost (FALSE). Emitting 'triggered' to signal update.`
             );
           }
+
           this.emit('triggered');
         }
       });
@@ -119,6 +123,7 @@ export class DndTrigger extends BaseTrigger {
     this._isActivated = false;
     this._lastMatchState = null;
     this._initialized = false;
+
     if (this.cleanup) {
       this.cleanup();
       this.cleanup = null;

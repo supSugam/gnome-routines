@@ -13,10 +13,13 @@ export class StateManager {
   private loadStates(): void {
     try {
       const json = this.settings.get_string('routine-states');
+
       if (json) {
         const parsed = JSON.parse(json);
+
         Object.keys(parsed).forEach((routineId) => {
           const routineStates = new Map<string, any>();
+
           Object.keys(parsed[routineId]).forEach((key) => {
             routineStates.set(key, parsed[routineId][key]);
           });
@@ -31,6 +34,7 @@ export class StateManager {
   private saveStates(): void {
     try {
       const obj: any = {};
+
       this.states.forEach((routineStates, routineId) => {
         obj[routineId] = {};
         routineStates.forEach((value, key) => {
@@ -47,6 +51,7 @@ export class StateManager {
     if (!this.states.has(routineId)) {
       this.states.set(routineId, new Map());
     }
+
     const routineStates = this.states.get(routineId)!;
 
     // Persist initial state
@@ -60,16 +65,20 @@ export class StateManager {
     if (!this.states.has(routineId)) {
       this.states.set(routineId, new Map());
     }
+
     const routineStates = this.states.get(routineId)!;
+
     routineStates.set(setting, value);
     this.saveStates();
   }
 
   restoreState(routineId: string, setting: string): any | null {
     const routineStates = this.states.get(routineId);
+
     if (routineStates) {
       return routineStates.get(setting) ?? null;
     }
+
     return null;
   }
 
@@ -80,6 +89,7 @@ export class StateManager {
 
   hasState(routineId: string, setting: string): boolean {
     const routineStates = this.states.get(routineId);
+
     return routineStates ? routineStates.has(setting) : false;
   }
 }

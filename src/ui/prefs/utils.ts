@@ -16,6 +16,7 @@ export const exportRoutinesUI = (
     transient_for: parentWindow,
   });
   const filter = new Gtk.FileFilter();
+
   filter.set_name('JSON Files');
   filter.add_mime_type('application/json');
   picker.add_filter(filter);
@@ -27,6 +28,7 @@ export const exportRoutinesUI = (
       try {
         const json = ImportExportManager.exportRoutines(routinesToExport);
         const file = picker.get_file();
+
         // @ts-ignore
         file.replace_contents(
           json,
@@ -40,6 +42,7 @@ export const exportRoutinesUI = (
         debugLog('Export failed', e);
       }
     }
+
     picker.destroy();
   });
   picker.show();

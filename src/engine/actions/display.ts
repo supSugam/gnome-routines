@@ -26,6 +26,7 @@ export class DarkModeAction extends BaseAction {
     debugLog(`[DarkModeAction] Executing: enabled=${this.config.enabled}`);
     // Save to stateManager for persistence
     const currentState = this.adapter.getDarkMode();
+
     this.stateManager.saveState(
       this.routineId,
       ActionType.DARK_MODE,
@@ -40,7 +41,9 @@ export class DarkModeAction extends BaseAction {
       this.routineId,
       ActionType.DARK_MODE
     );
+
     debugLog(`[DarkModeAction] Reverting. Saved state: ${savedState}`);
+
     if (savedState !== null) {
       this.adapter.setDarkMode(savedState);
     }
@@ -66,6 +69,7 @@ export class NightLightAction extends BaseAction {
   async execute(): Promise<void> {
     debugLog(`[NightLightAction] Executing: enabled=${this.config.enabled}`);
     const currentState = this.adapter.getNightLight();
+
     this.stateManager.saveState(
       this.routineId,
       ActionType.NIGHT_LIGHT,
@@ -79,7 +83,9 @@ export class NightLightAction extends BaseAction {
       this.routineId,
       ActionType.NIGHT_LIGHT
     );
+
     debugLog(`[NightLightAction] Reverting. Saved state: ${savedState}`);
+
     if (savedState !== null) {
       this.adapter.setNightLight(savedState);
     }
@@ -105,6 +111,7 @@ export class ScreenTimeoutAction extends BaseAction {
   async execute(): Promise<void> {
     debugLog(`[ScreenTimeoutAction] Executing: seconds=${this.config.seconds}`);
     const currentTimeout = this.adapter.getScreenTimeout();
+
     this.stateManager.saveState(
       this.routineId,
       ActionType.SCREEN_TIMEOUT,
@@ -118,7 +125,9 @@ export class ScreenTimeoutAction extends BaseAction {
       this.routineId,
       ActionType.SCREEN_TIMEOUT
     );
+
     debugLog(`[ScreenTimeoutAction] Reverting. Saved timeout: ${savedTimeout}`);
+
     if (savedTimeout !== null) {
       this.adapter.setScreenTimeout(savedTimeout);
     }

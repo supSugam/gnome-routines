@@ -39,6 +39,7 @@ export class WifiTriggerEditor extends BaseEditor {
       model: wifiModel,
       selected: selectedIndex >= 0 ? selectedIndex : 0,
     });
+
     group.add(wifiRow);
 
     // Networks
@@ -47,10 +48,12 @@ export class WifiTriggerEditor extends BaseEditor {
       subtitle: this.getNetworksSubtitle(),
       expanded: this.wifiConfig.ssids.length > 0,
     });
+
     group.add(wifiNetworksRow);
 
     const updateVisibilityAndSubtitle = () => {
       const isPowerState = wifiRow.selected >= 2; // 2=enabled, 3=disabled
+
       wifiNetworksRow.visible = !isPowerState;
       wifiNetworksRow.subtitle = this.getNetworksSubtitle();
     };
@@ -77,24 +80,31 @@ export class WifiTriggerEditor extends BaseEditor {
     if (this.config.ssids.length === 1) {
       return this.config.ssids[0];
     }
+
     return `${this.config.ssids.length} networks selected`;
   }
 
   private loadNetworks(row: any) {
     const availableNetworks: string[] = [];
+
     try {
       const client = NM.Client.new(null);
+
       if (client) {
         const connections = client.get_connections();
+
         for (let i = 0; i < connections.length; i++) {
           const conn = connections[i];
+
           if (conn.get_connection_type() === '802-11-wireless') {
             const id = conn.get_id();
+
             if (id && !availableNetworks.includes(id)) {
               availableNetworks.push(id);
             }
           }
         }
+
         availableNetworks.sort();
       }
     } catch (e) {
@@ -108,6 +118,7 @@ export class WifiTriggerEditor extends BaseEditor {
       const noNetRow = new Adw.ActionRow({
         title: 'No saved networks found',
       });
+
       row.add_row(noNetRow);
     } else {
       availableNetworks.forEach((ssid) => {
@@ -116,6 +127,7 @@ export class WifiTriggerEditor extends BaseEditor {
           active: selectedNetworks.has(ssid),
           valign: Gtk.Align.CENTER,
         });
+
         // @ts-ignore
         check.connect('toggled', () => {
           if (check.active) selectedNetworks.add(ssid);
@@ -133,6 +145,7 @@ export class WifiTriggerEditor extends BaseEditor {
 
   validate(): boolean | string {
     if (!this.wifiConfig.state) return 'Invalid state';
+
     return true;
   }
 }

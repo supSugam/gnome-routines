@@ -24,11 +24,13 @@ export default class GnomeRoutinesExt extends Extension {
     this.adapter = new GnomeShellAdapter();
     const settings = this.getSettings();
     const storage = new GSettingsStorageAdapter(settings);
+
     this.manager = new RoutineManager(storage, this.adapter, settings);
 
     // Quick Settings
     try {
       const qs = createQuickSettingsToggle(this, this.manager);
+
       this.quickSettingsToggle = qs.toggle;
       this.quickSettingsUpdateFn = qs.updateState;
       // @ts-ignore
@@ -44,6 +46,7 @@ export default class GnomeRoutinesExt extends Extension {
       .load()
       .then(() => {
         debugLog('[GnomeRoutines] load() completed, updating Quick Settings');
+
         if (this.quickSettingsUpdateFn) {
           this.quickSettingsUpdateFn();
         }
@@ -54,6 +57,7 @@ export default class GnomeRoutinesExt extends Extension {
 
     this.settingsChangedId = settings.connect('changed::routines', () => {
       debugLog('[GnomeRoutines] Settings changed, reloading...');
+
       if (this.manager) {
         this.manager
           .reload()
@@ -61,6 +65,7 @@ export default class GnomeRoutinesExt extends Extension {
             debugLog(
               '[GnomeRoutines] Reload complete. Updating Quick Settings.'
             );
+
             if (this.quickSettingsUpdateFn) {
               this.quickSettingsUpdateFn();
             }
@@ -84,6 +89,7 @@ export default class GnomeRoutinesExt extends Extension {
 
     if (this.settingsChangedId !== null) {
       const settings = this.getSettings();
+
       settings.disconnect(this.settingsChangedId);
       this.settingsChangedId = null;
     }

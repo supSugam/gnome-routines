@@ -1,6 +1,6 @@
 {
   "name": "Gnome Routines",
-  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, apps, and more. This extension can read and write to your clipboard when using clipboard triggers or actions.",
+  "description": "If/then condition-based automation for GNOME. Create routines to automatically trigger actions based on time, battery, network, apps, and more. This extension can read and write to your clipboard when using clipboard triggers or actions.\n\nExample:\n(Trigger) • Bluetooth connected\n(Action)  → Set Volume to 60% + Open 'Spotify'",
   "uuid": "gnome-routines@supSugam.com",
   "shell-version": [
     "46",
@@ -8,7 +8,7 @@
   ],
   "url": "https://github.com/supSugam/gnome-routines",
   "settings-schema": "org.gnome.shell.extensions.gnome-routines",
-  "version": 3,
+  "version": 4,
   "donations": {
     "buymeacoffee": "supsugam"
   }

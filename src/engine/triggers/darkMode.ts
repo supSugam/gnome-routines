@@ -34,6 +34,7 @@ export class DarkModeTrigger extends BaseTrigger {
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
         if (shouldIgnoreInitial) {
           debugLog(
             `[DarkModeTrigger] Initial state: ${initialState} (Ignored)`
@@ -44,6 +45,7 @@ export class DarkModeTrigger extends BaseTrigger {
             `[DarkModeTrigger] Initial state: ${initialState} (Checking immediate)`
           );
           this._lastMatch = initialState;
+
           if (initialState) {
             this.emit('triggered');
           }
@@ -57,18 +59,22 @@ export class DarkModeTrigger extends BaseTrigger {
       if (this._lastMatch === null) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
         if (shouldIgnoreInitial) {
           debugLog(`[DarkModeTrigger] Initial Race: ${isMatch} (Ignored)`);
           this._lastMatch = isMatch;
+
           return;
         } else {
           debugLog(
             `[DarkModeTrigger] Initial Race: ${isMatch} (Checking immediate)`
           );
           this._lastMatch = isMatch;
+
           if (isMatch) {
             this.emit('triggered');
           }
+
           return;
         }
       }
@@ -78,6 +84,7 @@ export class DarkModeTrigger extends BaseTrigger {
           `[DarkModeTrigger] State changed: ${this._lastMatch} -> ${isMatch}`
         );
         this._lastMatch = isMatch;
+
         if (isMatch) {
           debugLog(
             `[DarkModeTrigger] Condition met (TRUE). Emitting 'triggered'.`
@@ -87,6 +94,7 @@ export class DarkModeTrigger extends BaseTrigger {
             `[DarkModeTrigger] Condition lost (FALSE). Emitting 'triggered' to signal update.`
           );
         }
+
         this.emit('triggered');
       }
     };
@@ -100,6 +108,7 @@ export class DarkModeTrigger extends BaseTrigger {
     if (!this._isActivated) return;
     this._isActivated = false;
     this._lastMatch = null;
+
     if (this.cleanup) {
       this.cleanup();
       this.cleanup = null;

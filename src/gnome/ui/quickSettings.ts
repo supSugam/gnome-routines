@@ -32,6 +32,7 @@ export function createQuickSettingsToggle(extension: Extension, manager: any) {
 
   // Set initial state
   const count = manager?.getEnabledRoutineCount() ?? 0;
+
   debugLog(`[QuickSettings] Initial count = ${count}`);
   // @ts-ignore
   toggle.checked = count > 0;
@@ -44,6 +45,7 @@ export function createQuickSettingsToggle(extension: Extension, manager: any) {
   toggle.connect('clicked', () => {
     Main.panel.closeQuickSettings();
     extension.openPreferences();
+
     return GLib.SOURCE_REMOVE;
   });
 
@@ -51,6 +53,7 @@ export function createQuickSettingsToggle(extension: Extension, manager: any) {
     toggle,
     updateState: () => {
       const c = manager?.getEnabledRoutineCount() ?? 0;
+
       debugLog(`[QuickSettings] updateState count = ${c}`);
       // @ts-ignore
       toggle.checked = c > 0;

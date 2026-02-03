@@ -29,11 +29,13 @@ export class StartupTrigger extends BaseTrigger {
   async check(): Promise<boolean> {
     if (!this.adapter) {
       debugLog('[StartupTrigger] No adapter available');
+
       return false;
     }
 
     if (this.strategy === TriggerStrategy.NEW_CHANGE_ONLY) {
       debugLog('[StartupTrigger] Ignored by strategy configuration.');
+
       return false;
     }
 
@@ -53,6 +55,7 @@ export class StartupTrigger extends BaseTrigger {
     if (isStartup && timeSinceInit < GRACE_PERIOD_MS) {
       debugLog(`[GnomeRoutines-DEBUG] Startup condition MET. Firing trigger.`);
       this.hasFired = true;
+
       return true;
     } else {
       if (!isStartup) {

@@ -17,6 +17,7 @@ export class ClipboardAdapter {
     return new Promise((resolve) => {
       try {
         const clipboard = St.Clipboard.get_default();
+
         clipboard.get_text(
           St.ClipboardType.CLIPBOARD,
           (clipboard: any, text: string) => {
@@ -39,6 +40,7 @@ export class ClipboardAdapter {
   setClipboardText(text: string): void {
     try {
       const clipboard = St.Clipboard.get_default();
+
       clipboard.set_text(St.ClipboardType.CLIPBOARD, text);
     } catch (e) {
       debugLog('[ClipboardAdapter] Failed to set clipboard:', e);
@@ -94,8 +96,10 @@ export class ClipboardAdapter {
             callback();
           }
         });
+
         return true;
       });
+
       return () => GLib.source_remove(id);
     }
   }

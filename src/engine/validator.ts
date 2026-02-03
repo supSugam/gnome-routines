@@ -23,6 +23,7 @@ export class RoutineValidator {
       const wifiTriggers = routine.triggers.filter(
         (t) => t.type === TriggerType.WIFI
       );
+
       if (wifiTriggers.length > 1) {
         const hasConnect = wifiTriggers.some(
           (t) =>
@@ -57,6 +58,7 @@ export class RoutineValidator {
               'A routine cannot match ALL triggers if it requires both Wi-Fi Enabled AND Disabled state simultaneously.',
           };
         }
+
         // Also Connected vs Disabled is impossible
         if (hasConnect && hasDisabled) {
           return {
@@ -71,6 +73,7 @@ export class RoutineValidator {
       const btTriggers = routine.triggers.filter(
         (t) => t.type === TriggerType.BLUETOOTH
       );
+
       if (btTriggers.length > 1) {
         // Bluetooth Logic is similar but allows multiple devices.
         // Connected to A AND Connected to B is valid.
@@ -112,20 +115,24 @@ export class RoutineValidator {
 
         for (const conn of connectConfigs) {
           const cConf = conn.config as BluetoothTriggerConfig;
+
           if (!cConf.deviceIds || cConf.deviceIds.length === 0) continue; // Any device
 
           for (const disc of disconnectConfigs) {
             const dConf = disc.config as BluetoothTriggerConfig;
+
             if (!dConf.deviceIds || dConf.deviceIds.length === 0) {
               return {
                 valid: false,
                 error: `Conflict: Must be connected to ${cConf.deviceIds.join(', ')} BUT also Disconnected from Any Bluetooth Device via ALL match.`,
               };
             }
+
             // Check intersection
             const conflict = cConf.deviceIds.some((id) =>
               dConf.deviceIds?.includes(id)
             );
+
             if (conflict) {
               return {
                 valid: false,

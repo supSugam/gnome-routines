@@ -33,6 +33,7 @@ export class ScreenOrientationActionEditor extends BaseEditor {
       model: model,
       selected: selected >= 0 ? selected : 0,
     });
+
     group.add(row);
 
     // @ts-ignore

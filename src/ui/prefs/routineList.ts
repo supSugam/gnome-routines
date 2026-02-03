@@ -31,7 +31,9 @@ export class RoutineList {
       const emptyRow = new Adw.ActionRow({
         title: filterText ? 'No matching routines' : 'No routines configured',
       });
+
       group.add(emptyRow);
+
       return group;
     }
 
@@ -39,6 +41,7 @@ export class RoutineList {
       // Find index in original array
       const index = routines.indexOf(routine);
       const row = this.createRow(routine, index, routines);
+
       group.add(row);
     });
 
@@ -62,11 +65,13 @@ export class RoutineList {
           this.save(allRoutines);
         }
       );
+
       editor.show(this.parentWindow);
     });
 
     // Toggle
     const toggle = new Gtk.Switch({ active: routine.enabled });
+
     toggle.valign = Gtk.Align.CENTER;
     // @ts-ignore
     toggle.connect('notify::active', () => {
@@ -78,6 +83,7 @@ export class RoutineList {
 
     // Menu
     const menuBtn = this.createRowMenu(routine, index, allRoutines);
+
     row.add_suffix(menuBtn);
 
     return row;
@@ -85,6 +91,7 @@ export class RoutineList {
 
   private createRowMenu(routine: any, index: number, allRoutines: any[]) {
     const menu = new Gio.Menu();
+
     menu.append('Restart Routine', 'routine.restart');
     menu.append('Export JSON', 'routine.export');
     menu.append('Delete', 'routine.delete');
@@ -93,6 +100,7 @@ export class RoutineList {
 
     // Restart
     const restartAction = new Gio.SimpleAction({ name: 'restart' });
+
     // @ts-ignore
     restartAction.connect('activate', () => {
       routine.enabled = false;
@@ -101,6 +109,7 @@ export class RoutineList {
       GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
         routine.enabled = true;
         this.save(allRoutines);
+
         return GLib.SOURCE_REMOVE;
       });
     });
@@ -108,6 +117,7 @@ export class RoutineList {
 
     // Export
     const exportAction = new Gio.SimpleAction({ name: 'export' });
+
     // @ts-ignore
     exportAction.connect('activate', () => {
       exportRoutinesUI(
@@ -120,6 +130,7 @@ export class RoutineList {
 
     // Delete
     const deleteAction = new Gio.SimpleAction({ name: 'delete' });
+
     // @ts-ignore
     deleteAction.connect('activate', () => {
       allRoutines.splice(index, 1);
@@ -132,6 +143,7 @@ export class RoutineList {
       valign: Gtk.Align.CENTER,
       menu_model: menu,
     });
+
     moreBtn.add_css_class('flat');
     moreBtn.insert_action_group('routine', actionGroup);
 

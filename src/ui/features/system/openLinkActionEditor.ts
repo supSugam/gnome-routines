@@ -11,9 +11,11 @@ export class OpenLinkActionEditor extends BaseEditor {
     super(originalConfig, onChange);
     // Initialize urls from config, handling migration from 'url'
     this.urls = [...(originalConfig.urls || [])];
+
     if (originalConfig.url && !this.urls.includes(originalConfig.url)) {
       this.urls.unshift(originalConfig.url);
     }
+
     // Ensure at least one empty slot if new
     if (this.urls.length === 0) {
       this.urls.push('');
@@ -38,8 +40,10 @@ export class OpenLinkActionEditor extends BaseEditor {
     // Clear existing rows (Adw 1.4+ has remove, older might need remove_network)
     // Safe GJS way: iterate children
     let child = this.group.get_first_child();
+
     while (child) {
       const next = child.get_next_sibling();
+
       this.group.remove(child);
       child = next;
     }
@@ -110,9 +114,11 @@ export class OpenLinkActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     const validUrls = this.urls.filter((u) => u && u.trim() !== '');
+
     if (validUrls.length === 0) {
       return 'At least one valid URL is required';
     }
+
     return true;
   }
 }

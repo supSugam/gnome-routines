@@ -17,6 +17,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
         this.config.deviceName || this.config.deviceId || 'No device selected',
       expanded: true,
     });
+
     group.add(row);
 
     this.loadDevices(row);
@@ -38,6 +39,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
       }),
       valign: Gtk.Align.CENTER,
     });
+
     // @ts-ignore
     timeoutSpin.connect('value-changed', () => {
       this.config.timeout = timeoutSpin.get_value();
@@ -60,6 +62,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
       }),
       valign: Gtk.Align.CENTER,
     });
+
     // @ts-ignore
     intervalSpin.connect('value-changed', () => {
       this.config.interval = intervalSpin.get_value();
@@ -73,6 +76,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     const loadingRow = new Adw.ActionRow({
       title: 'Checking Bluetooth status...',
     });
+
     row.add_row(loadingRow);
 
     const isPowered = await this._adapter.getBluetooth();
@@ -105,6 +109,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
       if (loadingRow.get_parent()) {
         row.remove(loadingRow);
       }
+
       this.renderDeviceList(row, devices, true);
     }
   }
@@ -123,6 +128,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
         ? 'No known devices found'
         : 'No known devices found. Auto-toggle failed.';
       const noDevRow = new Adw.ActionRow({ title });
+
       row.add_row(noDevRow);
     } else {
       devices.forEach((dev) => {
@@ -158,6 +164,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
               row.subtitle = 'No device selected';
             }
           }
+
           this.onChange();
         });
         devRow.add_suffix(check);
@@ -174,6 +181,7 @@ export class ConnectBluetoothActionEditor extends BaseEditor {
     ) {
       return 'Retry interval cannot be longer than timeout';
     }
+
     return true;
   }
 }

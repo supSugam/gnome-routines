@@ -17,6 +17,7 @@ export class ScreenshotActionEditor extends BaseEditor {
     const picturesDir = GLib.get_user_special_dir(
       GLib.UserDirectory.DIRECTORY_PICTURES
     );
+
     return picturesDir
       ? `${picturesDir}/Screenshots`
       : `${GLib.get_home_dir()}/Pictures/Screenshots`;
@@ -34,11 +35,13 @@ export class ScreenshotActionEditor extends BaseEditor {
 
     // Relative path
     let relativePath = '';
+
     if (this.screenConfig.directory.startsWith(prefixPath)) {
       relativePath = this.screenConfig.directory.substring(prefixPath.length);
     } else {
       // Fallback
       const def = this.getDefaultDir();
+
       this.screenConfig.directory = def;
       relativePath = def.substring(prefixPath.length);
     }
@@ -47,6 +50,7 @@ export class ScreenshotActionEditor extends BaseEditor {
       title: 'Save Directory (~/)',
       text: relativePath,
     });
+
     group.add(pathRow);
 
     // Reset Btn
@@ -56,9 +60,11 @@ export class ScreenshotActionEditor extends BaseEditor {
       has_frame: false,
       tooltip_text: 'Reset to default directory',
     });
+
     // @ts-ignore
     resetButton.connect('clicked', () => {
       const def = this.getDefaultDir();
+
       this.screenConfig.directory = def;
       // Update UI
       pathRow.text = def.substring(prefixPath.length);
@@ -70,6 +76,7 @@ export class ScreenshotActionEditor extends BaseEditor {
     // @ts-ignore
     pathRow.connect('changed', () => {
       const relative = pathRow.text;
+
       this.screenConfig.directory = prefixPath + relative;
       this.onChange();
     });
@@ -77,9 +84,11 @@ export class ScreenshotActionEditor extends BaseEditor {
 
   validate(): boolean | string {
     const dir = this.screenConfig.directory;
+
     if (!dir) return 'Directory is required';
 
     const homeDir = GLib.get_home_dir();
+
     if (!dir.startsWith(homeDir)) {
       return `Directory must be within ${homeDir}`;
     }

@@ -41,6 +41,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
       model: btModel,
       selected: selectedIndex >= 0 ? selectedIndex : 0,
     });
+
     group.add(btRow);
 
     const btDevicesRow = new Adw.ExpanderRow({
@@ -48,12 +49,14 @@ export class BluetoothTriggerEditor extends BaseEditor {
       subtitle: 'Leave empty for any device',
       expanded: true,
     });
+
     group.add(btDevicesRow);
 
     // Hide device selection
     // @ts-ignore
     btRow.connect('notify::selected', () => {
       const isPowerState = btRow.selected >= 2;
+
       btDevicesRow.visible = !isPowerState;
 
       this.btConfig.state = states[btRow.selected];
@@ -66,6 +69,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
 
   private async loadDevices(row: any) {
     let availableDevices: { name: string; address: string }[] = [];
+
     try {
       availableDevices = await this._adapter.getKnownDevices();
       availableDevices.sort((a, b) => a.name.localeCompare(b.name));
@@ -79,6 +83,7 @@ export class BluetoothTriggerEditor extends BaseEditor {
       const noDevRow = new Adw.ActionRow({
         title: 'No known devices found',
       });
+
       row.add_row(noDevRow);
     } else {
       availableDevices.forEach((dev) => {

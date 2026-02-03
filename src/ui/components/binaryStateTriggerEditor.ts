@@ -25,6 +25,7 @@ export abstract class BinaryStateTriggerEditor extends BaseEditor {
       model: model,
       selected: this.config.state === this.getFalseValue() ? 1 : 0,
     });
+
     group.add(row);
 
     // @ts-ignore

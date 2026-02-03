@@ -60,6 +60,7 @@ export async function captureScreenshot(): Promise<string> {
             result
           );
           reject(error || new Error('Unknown dbus error'));
+
           return;
         }
 
@@ -67,12 +68,14 @@ export async function captureScreenshot(): Promise<string> {
         // In GJS, single return values are often unwrapped.
 
         let handlePath = result;
+
         if (Array.isArray(result)) handlePath = result[0];
 
         debugLog(`[ScreenshotPortal] Request handle: ${handlePath}`);
 
         if (typeof handlePath !== 'string') {
           reject(new Error(`Invalid handle path type: ${typeof handlePath}`));
+
           return;
         }
 
@@ -108,6 +111,7 @@ export async function captureScreenshot(): Promise<string> {
               // uri is likely a Variant, need to unpack again or it acts as string?
               // unpackVariant logic
               let finalUri = uri;
+
               if (uri && uri.deep_unpack) finalUri = uri.deep_unpack();
               if (uri && uri.unpack) finalUri = uri.unpack();
 

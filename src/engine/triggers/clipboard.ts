@@ -58,6 +58,7 @@ export class ClipboardTrigger extends BaseTrigger {
     this.syncTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
       this.syncTimeoutId = null;
       this.processClipboardEvent();
+
       return GLib.SOURCE_REMOVE;
     });
   }
@@ -75,6 +76,7 @@ export class ClipboardTrigger extends BaseTrigger {
           debugLog(
             `[ClipboardTrigger] Baseline established: ${currentHash.substring(0, 50)}...`
           );
+
           return;
         }
 
@@ -83,6 +85,7 @@ export class ClipboardTrigger extends BaseTrigger {
           debugLog(
             '[ClipboardTrigger] No actual change (same hash). Ignoring.'
           );
+
           return;
         }
 
@@ -113,19 +116,24 @@ export class ClipboardTrigger extends BaseTrigger {
     switch (contentType) {
       case 'any':
         return true;
+
       case 'text':
         return res.type === 'text';
+
       case 'image':
         return res.type === 'image' || res.type === 'other';
+
       case 'regex':
         if (!this.config.regex || res.type !== 'text' || !res.content) {
           return false;
         }
+
         try {
           return new RegExp(this.config.regex).test(res.content);
         } catch {
           return false;
         }
+
       default:
         return false;
     }
@@ -150,9 +158,11 @@ export class ClipboardTrigger extends BaseTrigger {
 
   async check(): Promise<boolean> {
     const triggered = this._hasTriggered;
+
     if (triggered) {
       this._hasTriggered = false;
     }
+
     return triggered;
   }
 }

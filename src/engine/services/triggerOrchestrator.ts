@@ -31,6 +31,7 @@ export class TriggerOrchestrator {
   deactivateAll(routine: Routine): void {
     for (const trigger of routine.triggers) {
       const t = trigger as any;
+
       if (t.deactivate && t._isActivated) {
         t.deactivate();
         t._isActivated = false;

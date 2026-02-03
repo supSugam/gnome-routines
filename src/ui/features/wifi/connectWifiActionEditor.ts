@@ -15,6 +15,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
       subtitle: this.config.ssid || 'No network selected',
       expanded: true,
     });
+
     group.add(row);
 
     this.loadNetworks(row);
@@ -36,6 +37,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
       }),
       valign: Gtk.Align.CENTER,
     });
+
     // @ts-ignore
     timeoutSpin.connect('value-changed', () => {
       this.config.timeout = timeoutSpin.get_value();
@@ -58,6 +60,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
       }),
       valign: Gtk.Align.CENTER,
     });
+
     // @ts-ignore
     intervalSpin.connect('value-changed', () => {
       this.config.interval = intervalSpin.get_value();
@@ -69,19 +72,25 @@ export class ConnectWifiActionEditor extends BaseEditor {
 
   private loadNetworks(row: any) {
     const availableNetworks: string[] = [];
+
     try {
       const client = NM.Client.new(null);
+
       if (client) {
         const connections = client.get_connections();
+
         for (let i = 0; i < connections.length; i++) {
           const conn = connections[i];
+
           if (conn.get_connection_type() === '802-11-wireless') {
             const id = conn.get_id();
+
             if (id && !availableNetworks.includes(id)) {
               availableNetworks.push(id);
             }
           }
         }
+
         availableNetworks.sort();
       }
     } catch (e) {
@@ -92,7 +101,9 @@ export class ConnectWifiActionEditor extends BaseEditor {
       const noNetRow = new Adw.ActionRow({
         title: 'No saved networks found',
       });
+
       row.add_row(noNetRow);
+
       return;
     }
 
@@ -126,6 +137,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
             row.subtitle = 'No network selected';
           }
         }
+
         this.onChange();
       });
 
@@ -142,6 +154,7 @@ export class ConnectWifiActionEditor extends BaseEditor {
     ) {
       return 'Retry interval cannot be longer than timeout';
     }
+
     return true;
   }
 }

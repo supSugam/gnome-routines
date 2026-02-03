@@ -23,6 +23,7 @@ export class StartupTriggerEditor extends BaseEditor {
     const icon = new Gtk.Image({
       icon_name: 'system-log-out-symbolic', // or something indicating startup/session
     });
+
     row.add_prefix(icon);
 
     group.add(row);

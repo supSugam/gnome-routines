@@ -21,6 +21,7 @@ export abstract class BaseTrigger extends EventEmitter implements Trigger {
     this.config = config;
 
     const metadata = TRIGGER_METADATA[type];
+
     if (metadata?.getStrategy) {
       this.strategy = strategy || metadata.getStrategy(config);
     } else {

@@ -37,6 +37,7 @@ export class RoutineExecutor {
 
     routine.isActive = true;
     const state = this.healthTracker.getHealth(routine.id);
+
     state.lastRun = Date.now();
     state.runCount++;
 
@@ -75,6 +76,7 @@ export class RoutineExecutor {
     // Reversed order
     for (let i = routine.actions.length - 1; i >= 0; i--) {
       const action = routine.actions[i];
+
       await this.deactivateAction(action, routine.id);
     }
   }
@@ -88,6 +90,7 @@ export class RoutineExecutor {
     if (onDeactivate) {
       if (onDeactivate.type === 'keep') {
         debugLog(`[RoutineExecutor] Keeping state for ${action.id}`);
+
         return;
       }
 
@@ -114,6 +117,7 @@ export class RoutineExecutor {
             );
           }
         }
+
         return;
       }
     }

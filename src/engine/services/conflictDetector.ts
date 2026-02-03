@@ -32,6 +32,7 @@ export class ConflictDetector {
 
     for (const action of routine.actions) {
       const actionResources = ACTION_RESOURCE_MAP[action.type];
+
       if (actionResources) {
         actionResources.forEach((r) => resources.add(r));
       }

@@ -32,6 +32,7 @@ export class BluetoothTrigger extends BaseTrigger {
         this.config.state === ConnectionState.DISABLED
       ) {
         const isEnabled = await this.adapter.getBluetoothPowerState();
+
         return this.config.state === ConnectionState.ENABLED
           ? isEnabled
           : !isEnabled;
@@ -58,6 +59,7 @@ export class BluetoothTrigger extends BaseTrigger {
 
       // Default behavior (any device)
       const isAnyConnected = connectedDevices.length > 0;
+
       if (this.config.state === ConnectionState.CONNECTED) {
         return isAnyConnected;
       } else {
@@ -65,6 +67,7 @@ export class BluetoothTrigger extends BaseTrigger {
       }
     } catch (e) {
       debugLog(`[BluetoothTrigger] Error checking condition: ${e}`);
+
       return false;
     }
   }
@@ -125,15 +128,18 @@ export class BluetoothTrigger extends BaseTrigger {
       // Race condition: event before init
       // We accept this as the baseline.
       const currentState = await this._evaluateCondition();
+
       if (!this._initialized) {
         const shouldIgnoreInitial =
           this.strategy === TriggerStrategy.NEW_CHANGE_ONLY;
+
         if (shouldIgnoreInitial) {
           debugLog(
             `[BluetoothTrigger] Initial State established via Event: ${currentState} (Baselined - Ignored)`
           );
           this._lastMatchState = currentState;
           this._initialized = true;
+
           return;
         } else {
           debugLog(
@@ -157,10 +163,12 @@ export class BluetoothTrigger extends BaseTrigger {
         // USER REQUIREMENT: Disconnect is only valid if Power is ON.
         if (this.config.state === ConnectionState.DISCONNECTED) {
           const isPowerOn = await this.adapter.getBluetoothPowerState();
+
           if (!isPowerOn) {
             debugLog(
               `[BluetoothTrigger] Ignored Disconnect event because Bluetooth Power is OFF.`
             );
+
             // Suppress emission if power off
             return;
           }

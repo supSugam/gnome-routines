@@ -13,6 +13,7 @@ export class PowerAdapter {
   private _profileDispatcher: SignalDispatcher<
     (profile: string) => void
   > | null = null;
+
   private _batteryDispatcher: SignalDispatcher<
     (level: number, isCharging: boolean) => void
   > | null = null;
@@ -23,11 +24,13 @@ export class PowerAdapter {
 
   async setPowerSaver(_enabled: boolean): Promise<boolean> {
     this.setPowerProfile(_enabled ? 'power-saver' : 'balanced');
+
     return true; // Assuming success for now
   }
 
   setPowerProfile(profile: string): void {
     debugLog(`[PowerAdapter] Setting power profile to: ${profile}`);
+
     try {
       Gio.DBus.system.call(
         'net.hadess.PowerProfiles',
@@ -75,9 +78,11 @@ export class PowerAdapter {
         null
       );
       const variant = result.get_child_value(0);
+
       return variant.get_variant().get_string()[0];
     } catch (e) {
       debugLog('[PowerAdapter] Failed to get power profile sync via DBus', e);
+
       return 'balanced'; // Default
     }
   }
@@ -105,11 +110,13 @@ export class PowerAdapter {
           ) => {
             try {
               const [interfaceName, changedProps] = params.deep_unpack();
+
               if (
                 interfaceName === 'net.hadess.PowerProfiles' &&
                 changedProps.ActiveProfile !== undefined
               ) {
                 const newProfile = changedProps.ActiveProfile.get_string()[0];
+
                 debugLog(`[PowerAdapter] Power profile changed: ${newProfile}`);
                 dispatch(newProfile);
               }
@@ -117,17 +124,20 @@ export class PowerAdapter {
           }
         );
       };
+
       const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (_e) {}
       };
+
       this._profileDispatcher = new SignalDispatcher(
         'PowerProfile',
         subscribeFactory,
         unsubscribeFactory
       );
     }
+
     return this._profileDispatcher.addCallback(callback);
   }
 
@@ -148,9 +158,11 @@ export class PowerAdapter {
         null
       );
       const variant = result.get_child_value(0);
+
       return variant.get_variant().get_double();
     } catch (e) {
       debugLog('[PowerAdapter] Failed to get battery level:', e);
+
       return 100; // Default to full if unknown
     }
   }
@@ -170,9 +182,11 @@ export class PowerAdapter {
       );
       const variant = result.get_child_value(0);
       const state = variant.get_variant().get_uint32();
+
       return state === 1 || state === 4; // Charging or FullyCharged
     } catch (e) {
       debugLog('[PowerAdapter] Failed to get charging state:', e);
+
       return true; // Default to charging if unknown
     }
   }
@@ -212,6 +226,7 @@ export class PowerAdapter {
                 ) {
                   const level = this.getBatteryLevel();
                   const charging = this.isCharging();
+
                   dispatch(level, charging);
                 }
               }
@@ -219,17 +234,20 @@ export class PowerAdapter {
           }
         );
       };
+
       const unsubscribeFactory = (signalId: number) => {
         try {
           Gio.DBus.system.signal_unsubscribe(signalId);
         } catch (_e) {}
       };
+
       this._batteryDispatcher = new SignalDispatcher(
         'Battery',
         subscribeFactory,
         unsubscribeFactory
       );
     }
+
     return this._batteryDispatcher.addCallback(callback);
   }
 }

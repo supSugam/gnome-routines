@@ -37,6 +37,7 @@ export class OpenLinkAction extends BaseAction {
       debugLog(
         `[OpenLinkAction] No URLs configured to open for action ${this.id}`
       );
+
       return;
     }
 
@@ -61,6 +62,7 @@ export class ScreenshotAction extends BaseAction {
 
   async execute(): Promise<void> {
     const config = this.config as ScreenshotActionConfig;
+
     this.adapter.takeScreenshot(config.directory);
   }
 
@@ -76,12 +78,15 @@ export class OpenAppAction extends BaseAction {
 
   async execute(): Promise<void> {
     const apps = this.config.appIds || [];
+
     if (apps.length === 0) {
       debugLog(
         `[OpenAppAction] No apps configured to open for action ${this.id}`
       );
+
       return;
     }
+
     this.adapter.openApp(apps);
   }
 

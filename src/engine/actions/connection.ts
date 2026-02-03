@@ -34,6 +34,7 @@ export class WifiAction extends BaseAction {
         this.timeoutId = null;
         this.cancelResolve = null;
         resolve();
+
         return GLib.SOURCE_REMOVE;
       });
     });
@@ -41,10 +42,12 @@ export class WifiAction extends BaseAction {
 
   destroy(): void {
     this.isDestroyed = true;
+
     if (this.timeoutId) {
       GLib.source_remove(this.timeoutId);
       this.timeoutId = null;
     }
+
     if (this.cancelResolve) {
       this.cancelResolve();
       this.cancelResolve = null;
@@ -53,6 +56,7 @@ export class WifiAction extends BaseAction {
 
   async execute(): Promise<void> {
     this.isDestroyed = false; // Reset on new execution
+
     // Capture state if not already captured
     if (this.initialState === null) {
       this.initialState = this.adapter.getWifiState();
@@ -84,10 +88,12 @@ export class WifiAction extends BaseAction {
 
         // Attempt
         const currentSSID = this.adapter.getCurrentWifiSSID();
+
         if (currentSSID === this.config.ssid) {
           debugLog(
             '[WifiAction] Successfully connected to ' + this.config.ssid
           );
+
           return;
         }
 
@@ -98,6 +104,7 @@ export class WifiAction extends BaseAction {
 
         // Wait check
         const elapsed = Date.now() - startTime;
+
         if (elapsed >= timeoutMs) break;
 
         // Calc wait time
@@ -115,15 +122,18 @@ export class WifiAction extends BaseAction {
 
   async revert(): Promise<void> {
     this.destroy(); // Cancel any ongoing loop
+
     if (this.initialState !== null) {
       debugLog(
         `[WifiAction] Reverting state. Enabled: ${this.initialState}, SSID: ${this.initialSsid}`
       );
       this.adapter.setWifi(this.initialState);
+
       if (this.initialState && this.initialSsid) {
         // Reconnect if needed
         this.adapter.connectToWifi(this.initialSsid);
       }
+
       // Reset state capture
       this.initialState = null;
       this.initialSsid = null;
@@ -155,6 +165,7 @@ export class BluetoothAction extends BaseAction {
         this.timeoutId = null;
         this.cancelResolve = null;
         resolve();
+
         return GLib.SOURCE_REMOVE;
       });
     });
@@ -162,10 +173,12 @@ export class BluetoothAction extends BaseAction {
 
   destroy(): void {
     this.isDestroyed = true;
+
     if (this.timeoutId) {
       GLib.source_remove(this.timeoutId);
       this.timeoutId = null;
     }
+
     if (this.cancelResolve) {
       this.cancelResolve();
       this.cancelResolve = null;
@@ -174,6 +187,7 @@ export class BluetoothAction extends BaseAction {
 
   async execute(): Promise<void> {
     this.isDestroyed = false;
+
     if (this.initialState === null) {
       this.initialState = await this.adapter.getBluetooth();
     }
@@ -214,6 +228,7 @@ export class BluetoothAction extends BaseAction {
             '[BluetoothAction] Successfully connected to ' +
               (this.config.deviceName || this.config.deviceId)
           );
+
           return;
         }
 
@@ -224,6 +239,7 @@ export class BluetoothAction extends BaseAction {
 
         // Check if we should wait for next attempt
         const elapsed = Date.now() - startTime;
+
         if (elapsed >= timeoutMs) break;
 
         // Calculate time to next interval or timeout cap
@@ -244,6 +260,7 @@ export class BluetoothAction extends BaseAction {
 
   async revert(): Promise<void> {
     this.destroy();
+
     if (this.initialState !== null) {
       await this.adapter.setBluetooth(this.initialState);
       this.initialState = null;
@@ -268,6 +285,7 @@ export class BluetoothDeviceAction extends BaseAction {
       config.action === ActionOperation.CONNECT
         ? ActionType.CONNECT_BLUETOOTH
         : ActionType.DISCONNECT_BLUETOOTH;
+
     super(id, type, config, adapter);
   }
 
@@ -278,6 +296,7 @@ export class BluetoothDeviceAction extends BaseAction {
         this.timeoutId = null;
         this.cancelResolve = null;
         resolve();
+
         return GLib.SOURCE_REMOVE;
       });
     });
@@ -285,10 +304,12 @@ export class BluetoothDeviceAction extends BaseAction {
 
   destroy(): void {
     this.isDestroyed = true;
+
     if (this.timeoutId) {
       GLib.source_remove(this.timeoutId);
       this.timeoutId = null;
     }
+
     if (this.cancelResolve) {
       this.cancelResolve();
       this.cancelResolve = null;
@@ -297,6 +318,7 @@ export class BluetoothDeviceAction extends BaseAction {
 
   async execute(): Promise<void> {
     this.isDestroyed = false;
+
     if (this.config.action === ActionOperation.CONNECT) {
       const timeoutMs =
         (this.config.timeout || RETRY_DEFAULTS.TIMEOUT.DEFAULT) * 1000;
@@ -330,12 +352,14 @@ export class BluetoothDeviceAction extends BaseAction {
               this.config.deviceName || this.config.deviceId
             }`
           );
+
           return;
         }
 
         debugLog(
           `[BluetoothDeviceAction] Attempting connection to ${this.config.deviceName || this.config.deviceId}... ${isFinalAttempt ? '(Final Attempt)' : ''}`
         );
+
         try {
           await this.adapter.connectBluetoothDevice(this.config.deviceId);
         } catch (e) {
@@ -344,6 +368,7 @@ export class BluetoothDeviceAction extends BaseAction {
 
         // Wait check
         const elapsed = Date.now() - startTime;
+
         if (elapsed >= timeoutMs) break;
 
         // Calc wait time
@@ -375,10 +400,12 @@ export class BluetoothDeviceAction extends BaseAction {
   async revert(): Promise<void> {
     this.destroy(); // stop loops
     const isPowered = await this.adapter.getBluetoothPowerState();
+
     if (!isPowered) {
       debugLog(
         `[BluetoothDeviceAction] Skipping revert for ${this.config.deviceId} because Bluetooth is OFF.`
       );
+
       return;
     }
 

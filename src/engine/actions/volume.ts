@@ -23,6 +23,7 @@ export class VolumeAction extends BaseAction {
 
   async execute(): Promise<void> {
     const targetLevel = this.config.level;
+
     debugLog(`[VolumeAction] Setting volume to: ${targetLevel}%`);
 
     try {
@@ -63,6 +64,7 @@ export class VolumeAction extends BaseAction {
   ): void {
     if (retriesLeft <= 0) {
       debugLog('[VolumeAction] Max retries reached, giving up');
+
       return;
     }
 
@@ -76,6 +78,7 @@ export class VolumeAction extends BaseAction {
           debugLog(
             `[VolumeAction] Volume verified at ${currentVolume}% (target: ${targetLevel}%)`
           );
+
           return;
         }
 
@@ -97,12 +100,14 @@ export class VolumeAction extends BaseAction {
 
     if (this.previousVolume !== null) {
       debugLog(`[VolumeAction] Reverting volume to: ${this.previousVolume}%`);
+
       try {
         await this.adapter.setVolume(this.previousVolume);
         debugLog(`[VolumeAction] Volume reverted successfully`);
       } catch (e) {
         debugLog(`[VolumeAction] Failed to revert:`, e);
       }
+
       this.previousVolume = null;
     }
   }

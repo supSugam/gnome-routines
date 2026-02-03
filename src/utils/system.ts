@@ -23,18 +23,21 @@ export function hasBattery(): boolean {
 
     for (let i = 0; i < devices.length; i++) {
       const device = devices[i];
+
       // BATTERY = 2
       if (device.kind === 2) {
         batteryFound = true;
         break;
       }
     }
+
     cachedHasBattery = batteryFound;
     debugLog(`[SystemUtils] Battery capability: ${batteryFound}`);
   } catch (e) {
     debugLog('[SystemUtils] Failed to check for battery:', e);
     cachedHasBattery = false;
   }
+
   return cachedHasBattery!;
 }
 
@@ -47,16 +50,19 @@ export function hasWifi(): boolean {
   try {
     // Sync check
     const client = NM.Client.new(null);
+
     if (client) {
       const devices = client.get_devices();
       // WIFI = 2
       const wifiDev = devices.find((d: any) => d.device_type === 2);
+
       cachedHasWifi = !!wifiDev;
       debugLog(`[SystemUtils] Wifi capability: ${cachedHasWifi}`);
     }
   } catch (e) {
     debugLog('[SystemUtils] Wifi check failed, assuming true:', e);
   }
+
   return cachedHasWifi!;
 }
 
@@ -73,12 +79,15 @@ export function hasBluetooth(): boolean {
       g_object_path: '/org/bluez/hci0',
       g_interface_name: 'org.bluez.Adapter1',
     });
+
     // Proxy validation
     if (!proxy.g_name_owner) {
       // Ownership check
     }
+
     // Sysfs check
     const file = Gio.File.new_for_path('/sys/class/bluetooth');
+
     cachedHasBluetooth = file.query_exists(null);
     debugLog(
       `[SystemUtils] Bluetooth capability (sysfs): ${cachedHasBluetooth}`
@@ -99,5 +108,6 @@ export function getSystemType(): SystemType {
   } else {
     cachedType = SystemType.PC;
   }
+
   return cachedType;
 }

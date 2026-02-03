@@ -7,6 +7,7 @@ import debugLog from '../../../utils/log.js';
 export class DisplayAdapter {
   setBrightness(percentage: number): void {
     debugLog(`[DisplayAdapter] Setting brightness to: ${percentage}%`);
+
     try {
       const BrightnessProxy = Gio.DBusProxy.makeProxyWrapper(`
         <node>
@@ -47,6 +48,7 @@ export class DisplayAdapter {
       return proxy.Brightness || 100;
     } catch (e) {
       debugLog('[DisplayAdapter] Failed to get brightness:', e);
+
       return 100;
     }
   }
@@ -56,6 +58,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.background',
     });
+
     settings.set_string('picture-uri', uri);
     settings.set_string('picture-uri-dark', uri);
   }
@@ -65,6 +68,7 @@ export class DisplayAdapter {
       schema_id: 'org.gnome.desktop.background',
     });
     const uri = settings.get_string('picture-uri');
+
     return uri;
   }
 
@@ -80,6 +84,7 @@ export class DisplayAdapter {
       (_settings: any, key: string) => {
         if (key === 'picture-uri' || key === 'picture-uri-dark') {
           const newUri = this._wallpaperSettings.get_string('picture-uri');
+
           callback(newUri);
         }
       }
@@ -89,6 +94,7 @@ export class DisplayAdapter {
     const backgroundPath = `${homeDir}/.config/background`;
     const backgroundFile = Gio.File.new_for_path(backgroundPath);
     let fileMonitor: any = null;
+
     try {
       fileMonitor = backgroundFile.monitor_file(
         Gio.FileMonitorFlags.NONE,
@@ -113,6 +119,7 @@ export class DisplayAdapter {
       if (this._wallpaperSettings) {
         this._wallpaperSettings.disconnect(signalId);
       }
+
       if (fileMonitor) {
         fileMonitor.cancel();
       }
@@ -125,6 +132,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.interface',
     });
+
     settings.set_string('color-scheme', enabled ? 'prefer-dark' : 'default');
   }
 
@@ -132,6 +140,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.interface',
     });
+
     return settings.get_string('color-scheme') === 'prefer-dark';
   }
 
@@ -143,6 +152,7 @@ export class DisplayAdapter {
 
       const signalId = settings.connect('changed::color-scheme', () => {
         const isDark = settings.get_string('color-scheme') === 'prefer-dark';
+
         callback(isDark);
       });
 
@@ -160,6 +170,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.settings-daemon.plugins.color',
     });
+
     settings.set_boolean('night-light-enabled', enabled);
   }
 
@@ -167,6 +178,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.settings-daemon.plugins.color',
     });
+
     return settings.get_boolean('night-light-enabled');
   }
 
@@ -174,6 +186,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.session',
     });
+
     settings.set_uint('idle-delay', seconds);
   }
 
@@ -181,6 +194,7 @@ export class DisplayAdapter {
     const settings = new Gio.Settings({
       schema_id: 'org.gnome.desktop.session',
     });
+
     return settings.get_uint('idle-delay');
   }
 
@@ -203,6 +217,7 @@ export class DisplayAdapter {
         (conn: any, res: any) => {
           try {
             const result = conn.call_finish(res);
+
             resolve(result);
           } catch (e) {
             reject(e);
@@ -223,18 +238,24 @@ export class DisplayAdapter {
   ): Promise<void> {
     debugLog(`[DisplayAdapter] Setting orientation to: ${orientation}`);
     let transform = 0; // normal
+
     switch (orientation) {
       case 'normal':
+
       case 'landscape':
         transform = 0;
         break;
+
       case 'right':
         transform = 1;
         break; // 90 deg
+
       case 'upside-down':
         transform = 2;
         break; // 180 deg
+
       case 'left':
+
       case 'portrait':
         transform = 3;
         break; // 270 deg
@@ -252,6 +273,7 @@ export class DisplayAdapter {
       // x, y, scale, transform, primary, monitors, properties
       for (let i = 0; i < logicalMonitors.length; i++) {
         const isPrimary = logicalMonitors[i][4];
+
         if (isPrimary) {
           primaryMonitorIdx = i;
           break;
@@ -264,6 +286,7 @@ export class DisplayAdapter {
 
       if (primaryMonitorIdx === -1) {
         debugLog('[DisplayAdapter] No logical monitors found');
+
         return;
       }
 
@@ -309,8 +332,10 @@ export class DisplayAdapter {
 
   setKeyboardBrightness(percentage: number): void {
     debugLog(`[DisplayAdapter] Setting keyboard brightness to: ${percentage}%`);
+
     try {
       const value = Math.max(0, Math.min(100, percentage));
+
       Gio.DBus.session.call(
         'org.gnome.SettingsDaemon.Power',
         '/org/gnome/SettingsDaemon/Power',
@@ -357,6 +382,7 @@ export class DisplayAdapter {
               const result = connection.call_finish(res);
               const variant = result.get_child_value(0);
               const value = variant.get_variant().get_int32();
+
               resolve(value);
             } catch (_e) {
               resolve(0);

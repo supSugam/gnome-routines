@@ -62,6 +62,7 @@ export class IntervalTriggerEditor extends BaseEditor {
     // @ts-ignore
     unitRow.connect('notify::selected', () => {
       const newUnit = unitRow.selected === 1 ? 'hours' : 'minutes';
+
       this.config.unit = newUnit;
       this.onChange();
     });
@@ -71,6 +72,7 @@ export class IntervalTriggerEditor extends BaseEditor {
       title: 'Note',
       subtitle: 'Routines with an Interval trigger cannot have other triggers.',
     });
+
     group.add(helpRow);
 
     // Initial trigger

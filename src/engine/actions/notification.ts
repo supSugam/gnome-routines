@@ -14,6 +14,7 @@ export class NotificationAction extends BaseAction {
 
   async execute(): Promise<void> {
     const config = this.config as NotificationActionConfig;
+
     debugLog(`[NotificationAction] Showing notification: ${config.title}`);
     this.adapter.showNotification(config);
   }

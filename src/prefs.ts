@@ -10,6 +10,7 @@ export default class GnomeRoutinesPreferences extends ExtensionPreferences {
 
     const settings = (this as any).getSettings();
     const page = new RoutinesPage(settings, window);
+
     window.add(page.widget);
   }
 }

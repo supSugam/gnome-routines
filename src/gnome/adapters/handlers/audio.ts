@@ -11,6 +11,7 @@ export class AudioAdapter {
   private _headphoneDispatcher: GObjectSignalDispatcher<
     (isConnected: boolean) => void
   > | null = null;
+
   private _enforcementSignalIds: Map<any, number> = new Map();
   private _enforcementTimeoutId: number | null = null;
 
@@ -23,6 +24,7 @@ export class AudioAdapter {
       // 1 = Gvc.MixerControlState.READY
       return Promise.resolve();
     }
+
     return new Promise((resolve) => {
       // No timeout (fast connection)
       const id = this._mixer.connect(
@@ -41,8 +43,10 @@ export class AudioAdapter {
   async setVolume(percentage: number): Promise<void> {
     await this._ensureMixerReady();
     const stream = this._mixer.get_default_sink();
+
     if (!stream) {
       debugLog('[AudioAdapter] No default sink found');
+
       return;
     }
 
@@ -67,10 +71,12 @@ export class AudioAdapter {
   async getVolume(): Promise<number> {
     await this._ensureMixerReady();
     const stream = this._mixer.get_default_sink();
+
     if (!stream) return 0;
 
     const max = this._mixer.get_vol_max_norm();
     const current = stream.volume;
+
     return Math.round((current / max) * 100);
   }
 
@@ -81,6 +87,7 @@ export class AudioAdapter {
 
     for (const stream of streams) {
       const port = stream.get_port();
+
       // Heuristic: check icon name or port type
       if (
         stream.get_icon_name().includes('bluetooth') ||
@@ -88,8 +95,10 @@ export class AudioAdapter {
       ) {
         const max = this._mixer.get_vol_max_norm();
         const vol = Math.floor((percentage / 100) * max);
+
         stream.volume = vol;
         stream.push_volume();
+
         if (stream.is_muted) stream.change_is_muted(false);
         found = true;
       }
@@ -101,19 +110,23 @@ export class AudioAdapter {
   async getWiredHeadphonesState(): Promise<boolean> {
     await this._ensureMixerReady();
     const stream = this._mixer.get_default_sink();
+
     if (!stream) return false;
 
     // Check ports
     const ports = stream.get_ports();
+
     for (const port of ports) {
       if (port.port === stream.get_port().port) {
         // Active port
         const name = port.port.toLowerCase();
+
         if (name.includes('headphone') || name.includes('headset')) {
           return true;
         }
       }
     }
+
     return false;
   }
 
@@ -157,6 +170,7 @@ export class AudioAdapter {
         );
         stream.volume = vol;
         stream.push_volume();
+
         if (stream.is_muted) stream.change_is_muted(false);
       }
     };
@@ -175,6 +189,7 @@ export class AudioAdapter {
           const id = stream.connect('notify::volume', () =>
             applyToSink(stream)
           );
+
           this._enforcementSignalIds.set(stream, id);
         }
       }
@@ -182,6 +197,7 @@ export class AudioAdapter {
 
     // 1. Check existing sinks
     const sinks = this._mixer.get_sinks();
+
     sinks.forEach((s: any) => attachToSink(s));
 
     // 2. Listen for new sinks (e.g. slow BT handshake)
@@ -189,9 +205,11 @@ export class AudioAdapter {
       'stream-added',
       (_: any, id: number) => {
         const stream = this._mixer.lookup_stream_id(id);
+
         if (stream) attachToSink(stream);
       }
     );
+
     this._enforcementSignalIds.set(this._mixer, streamAddedId);
 
     // 3. Stop after duration
@@ -201,6 +219,7 @@ export class AudioAdapter {
       () => {
         this._stopEnforcement();
         debugLog('[AudioAdapter] Volume enforcement period ended');
+
         return GLib.SOURCE_REMOVE;
       }
     );
@@ -219,6 +238,7 @@ export class AudioAdapter {
         // Object might be gone
       }
     }
+
     this._enforcementSignalIds.clear();
   }
 }

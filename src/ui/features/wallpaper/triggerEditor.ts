@@ -8,6 +8,7 @@ export class WallpaperTriggerEditor extends BaseEditor {
       title: 'Wallpaper Change',
       subtitle: 'This trigger fires when the desktop wallpaper is changed.',
     });
+
     group.add(infoRow);
   }
 
